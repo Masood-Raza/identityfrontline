@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — Identity Frontline</title>
+<meta name="description" content="Practical, field-tested writing on IAM, Zero Trust, and enterprise cybersecurity from a 24-year practitioner.">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0d1b2a;
+  --paper: #f5f7fa;
+  --teal: #8b0055;
+  --teal-dark: #6a0042;
+  --teal-pale: #f5d0e3;
+  --rule: rgba(13,27,42,0.10);
+  --muted: #5a6a7d;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  line-height: 1.76;
+  font-size: 17px;
+  overflow-x: hidden;
+}
+
+/* ── NAV ── */
+.nav-bar {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--ink);
+  padding: 0 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 58px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: 0.08em;
+  color: #fff; text-decoration: none; flex-shrink: 0;
+}
+.logo em { font-style: normal; color: var(--teal); }
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.42); text-decoration: none; transition: color 0.18s;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--teal); }
+.nav-toggle {
+  display: none; flex-direction: column; gap: 5px;
+  background: none; border: none; cursor: pointer; padding: 4px;
+}
+.nav-toggle span {
+  display: block; width: 22px; height: 1.5px;
+  background: rgba(255,255,255,0.6); transition: all 0.22s;
+}
+.nav-toggle.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.nav-toggle.open span:nth-child(2) { opacity: 0; }
+.nav-toggle.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+.mobile-nav {
+  display: none; position: fixed; top: 58px; left: 0; right: 0;
+  background: var(--ink); border-bottom: 1px solid rgba(255,255,255,0.1);
+  z-index: 99; padding: 24px 28px 28px; flex-direction: column; gap: 0;
+}
+.mobile-nav.open { display: flex; }
+.mobile-nav a {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: rgba(255,255,255,0.6); text-decoration: none;
+  padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06); transition: color 0.18s;
+}
+.mobile-nav a:last-child { border-bottom: none; }
+.mobile-nav a:hover { color: var(--teal); }
+
+/* ── HERO ── */
+.hero {
+  background: var(--ink);
+  padding: 88px 52px 72px;
+  border-bottom: 1.5px solid rgba(255,255,255,0.06);
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 20px;
+}
+.hero-tag::before {
+  content: ''; display: block; width: 24px; height: 1.5px;
+  background: var(--teal); flex-shrink: 0;
+}
+.hero h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 8vw, 84px);
+  line-height: 0.94; letter-spacing: 0.01em;
+  color: #fff; margin-bottom: 18px; max-width: 700px;
+}
+.hero h1 em { font-style: normal; color: var(--teal); }
+.hero p {
+  font-size: 18px; font-weight: 300;
+  color: rgba(255,255,255,0.55); max-width: 600px;
+  line-height: 1.68;
+}
+
+/* ── POSTS GRID ── */
+.posts-section {
+  max-width: 1000px; margin: 0 auto;
+  padding: 72px 52px;
+}
+
+.posts-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 12px;
+}
+
+.posts-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 6vw, 58px);
+  letter-spacing: 0.01em; line-height: 1;
+  color: var(--ink); margin-bottom: 48px;
+}
+
+.posts-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.post-card {
+  padding: 40px 44px;
+  border-bottom: 1px solid var(--rule);
+  transition: background 0.18s;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.post-card:last-child { border-bottom: none; }
+.post-card:hover { background: rgba(139,0,85,0.03); }
+
+.post-card-meta {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; margin-bottom: 14px;
+}
+.post-cat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--teal); background: rgba(139,0,85,0.12);
+  padding: 3px 11px; border-radius: 2px;
+}
+.post-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.post-date::before {
+  content: '·'; margin: 0 10px; color: rgba(13,27,42,0.15);
+}
+.post-read {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+.post-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; letter-spacing: 0.01em;
+  line-height: 1.1; color: var(--ink);
+  margin-bottom: 12px; display: block;
+}
+.post-title em { font-style: normal; color: var(--teal); }
+
+.post-excerpt {
+  font-size: 15px; font-weight: 300;
+  color: var(--muted); line-height: 1.72;
+  margin-bottom: 16px;
+}
+
+.post-readmore {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--teal);
+  display: inline-block; transition: gap 0.2s;
+}
+.post-card:hover .post-readmore { gap: 6px; }
+
+/* ── EMPTY STATE ── */
+.posts-empty {
+  text-align: center; padding: 48px 44px;
+}
+.posts-empty p {
+  font-size: 16px; color: var(--muted); line-height: 1.7;
+  max-width: 480px; margin: 0 auto;
+}
+
+/* ── FOOTER ── */
+footer {
+  background: var(--ink); padding: 28px 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; color: #fff; }
+.footer-logo em { font-style: normal; color: var(--teal); }
+.footer-copy { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.08em; color: rgba(255,255,255,0.2); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .nav-bar { padding: 0 20px; }
+  .nav-links { display: none; }
+  .nav-toggle { display: flex; }
+  .hero { padding: 48px 20px 40px; }
+  .posts-section { padding: 48px 20px; }
+  .post-card { padding: 28px 20px; }
+  .post-title { font-size: 22px; }
+  footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav-bar">
+  <a href="index.html" class="logo">
+    <svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display: inline-block; margin-right: 8px; vertical-align: middle;">
+      <path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#f5f7fa" stroke="#8b0055" stroke-width="1.5"/>
+      <path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(244,242,236,0.3)" stroke-width="1"/>
+      <rect x="22.5" y="17" width="7" height="26" rx="1" fill="#8b0055"/>
+      <rect x="17" y="17" width="18" height="4.5" rx="1" fill="#8b0055"/>
+      <rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#8b0055"/>
+    </svg>
+    Identity<em>Frontline</em>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html" class="active">Blog</a></li>
+    <li><a href="about.html#topics">Topics</a></li>
+    <li><a href="about.html#about">About</a></li>
+    <li><a href="about.html#subscribe">Subscribe</a></li>
+  </ul>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="mobile-nav" id="mobile-nav">
+  <a href="index.html" onclick="closeMobileNav()">Blog</a>
+  <a href="about.html#topics" onclick="closeMobileNav()">Topics</a>
+  <a href="about.html#about" onclick="closeMobileNav()">About</a>
+  <a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a>
+</div>
+
+<!-- Hero -->
+<header class="hero">
+  <p class="hero-tag">The blog</p>
+  <h1>Identity Frontline<br><em>Essays & guides</em></h1>
+  <p>Practical, field-tested writing on IAM, Zero Trust, and enterprise cybersecurity from someone who has deployed this stuff at scale for 24 years.</p>
+</header>
+
+<!-- Posts -->
+<section class="posts-section">
+  <p class="posts-label">Recent posts</p>
+  <h2 class="posts-title">The latest</h2>
+
+  <div class="posts-grid">
+    <!-- Post 4 (newest) -->
+    <a href="blog-post-4.html" class="post-card">
+      <div class="post-card-meta">
+        <span class="post-cat" style="color:#9B59B6;background:rgba(155,89,182,0.12);">Automation</span>
+        <span class="post-date">May 2026</span>
+        <span class="post-read">22 min</span>
+      </div>
+      <h3 class="post-title">Automate User Lifecycle<br><em>Build Your First n8n Workflow for IAM</em></h3>
+      <p class="post-excerpt">Create a user in Active Directory and watch everything happen automatically — welcome email, Teams notification, audit log, and AI-powered group assignment. Your first IAM automation with n8n.</p>
+      <span class="post-readmore">Read guide →</span>
+    </a>
+
+    <!-- Post 3 -->
+    <a href="blog-post-3.html" class="post-card">
+      <div class="post-card-meta">
+        <span class="post-cat" style="color:#e05d20;background:rgba(224,93,32,0.12);">Hands-On Lab</span>
+        <span class="post-date">May 2026</span>
+        <span class="post-read">20 min</span>
+      </div>
+      <h3 class="post-title">Configure SSO with an External App<br><em>in Your Free Homelab</em></h3>
+      <p class="post-excerpt">Set up SAML-based Single Sign-On between Entra ID and AWS IAM Identity Center. Includes SCIM provisioning, user assignment, and a complete SSO testing walkthrough.</p>
+      <span class="post-readmore">Read guide →</span>
+    </a>
+
+    <!-- Post 2 -->
+    <a href="blog-post-2.html" class="post-card">
+      <div class="post-card-meta">
+        <span class="post-cat" style="color:#2563eb;background:rgba(37,99,235,0.12);">Hands-On Lab</span>
+        <span class="post-date">May 2026</span>
+        <span class="post-read">25 min</span>
+      </div>
+      <h3 class="post-title">Build Your IAM Homelab<br><em>For Free: The Complete Guide</em></h3>
+      <p class="post-excerpt">Deploy Active Directory, connect it to Entra ID, configure Conditional Access and MFA — all on a free Azure account. Step-by-step, with PowerShell scripts and a portfolio checklist.</p>
+      <span class="post-readmore">Read guide →</span>
+    </a>
+
+    <!-- Post 1 -->
+    <a href="blog-post-1.html" class="post-card">
+      <div class="post-card-meta">
+        <span class="post-cat">Career Guide</span>
+        <span class="post-date">May 2026</span>
+        <span class="post-read">18 min</span>
+      </div>
+      <h3 class="post-title">No Job, No Experience, No Problem:<br><em>How to Break Into IAM in 2026</em></h3>
+      <p class="post-excerpt">A practical, zero-fluff guide for career changers, recent graduates, and IT generalists who want to build a real, high-paying career in Identity and Access Management — starting from exactly where they are right now.</p>
+      <span class="post-readmore">Read post →</span>
+    </a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <span class="footer-logo">Identity<em>Frontline</em></span>
+  <span class="footer-copy">© 2026 Identity Frontline · All rights reserved</span>
+</footer>
+
+<script>
+/* Hamburger */
+const navToggle = document.getElementById('nav-toggle');
+const mobileNav = document.getElementById('mobile-nav');
+navToggle.addEventListener('click', () => {
+  const open = mobileNav.classList.toggle('open');
+  navToggle.classList.toggle('open', open);
+  navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+});
+document.addEventListener('click', e => {
+  if (!navToggle.contains(e.target) && !mobileNav.contains(e.target)) {
+    mobileNav.classList.remove('open');
+    navToggle.classList.remove('open');
+  }
+});
+function closeMobileNav() {
+  mobileNav.classList.remove('open');
+  navToggle.classList.remove('open');
+}
+</script>
+</body>
+</html>

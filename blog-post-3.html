@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configure SSO with an External App in Your Homelab — Identity Frontline</title>
+<meta name="description" content="Step-by-step guide to configuring SAML-based Single Sign-On between Entra ID and AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.">
+<meta property="og:title" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
+<meta property="og:description" content="Your homelab users can now sign into AWS with their Entra ID credentials. SAML SSO, SCIM provisioning, user assignment — all free.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0d1b2a;--paper:#f5f7fa;--teal:#8b0055;--teal-dark:#6a0042;--teal-pale:#f5d0e3;--rule:rgba(13,27,42,.1);--muted:#5a6a7d;--amber:#e8a020;--amber-pale:#fdf3dc;--orange:#e05d20;--orange-pale:#fde8dc}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif;font-weight:300;line-height:1.76;font-size:17px;overflow-x:hidden}
+.nav-bar{position:sticky;top:0;z-index:100;background:var(--ink);padding:0 52px;display:flex;align-items:center;justify-content:space-between;height:58px;border-bottom:1px solid rgba(255,255,255,.07)}
+.logo{font-family:"Bebas Neue",sans-serif;font-size:22px;letter-spacing:.08em;color:#fff;text-decoration:none;flex-shrink:0}
+.logo em{font-style:normal;color:var(--teal)}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.42);text-decoration:none;transition:color .18s}
+.nav-links a:hover{color:var(--teal)}
+.nav-toggle{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.nav-toggle span{display:block;width:22px;height:1.5px;background:rgba(255,255,255,.6);transition:all .22s}
+.nav-toggle.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.nav-toggle.open span:nth-child(2){opacity:0}
+.nav-toggle.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+.mobile-nav{display:none;position:fixed;top:58px;left:0;right:0;background:var(--ink);border-bottom:1px solid rgba(255,255,255,.1);z-index:99;padding:24px 28px 28px;flex-direction:column}
+.mobile-nav.open{display:flex}
+.mobile-nav a{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6);text-decoration:none;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06);transition:color .18s}
+.mobile-nav a:last-child{border-bottom:none}
+.mobile-nav a:hover{color:var(--teal)}
+.progress-bar{position:fixed;top:58px;left:0;z-index:98;height:2px;background:var(--teal);width:0%;transition:width .1s linear}
+.post-hero{background:var(--ink);padding:72px 52px 64px;border-bottom:1.5px solid rgba(255,255,255,.06)}
+.post-meta-row{display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.post-cat{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);background:rgba(224,93,32,.12);padding:4px 12px;border-radius:2px}
+.post-date,.post-read{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)}
+.post-date::before,.post-read::before{content:"\00B7";margin-right:16px;color:rgba(255,255,255,.15)}
+.post-hero h1{font-family:"Bebas Neue",sans-serif;font-size:clamp(44px,6vw,76px);line-height:.95;letter-spacing:.01em;color:#fff;margin-bottom:24px;max-width:820px}
+.post-hero h1 em{font-style:normal;color:var(--teal)}
+.post-subtitle{font-size:18px;font-weight:300;color:rgba(255,255,255,.55);line-height:1.65;max-width:680px;margin-bottom:40px}
+.author-row{display:flex;align-items:center;gap:14px;padding-top:32px;border-top:1px solid rgba(255,255,255,.07)}
+.author-avatar{width:44px;height:44px;border-radius:4px;background:rgba(139,0,85,.15);border:1px solid rgba(139,0,85,.3);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:16px;color:var(--teal);flex-shrink:0}
+.author-info{display:flex;flex-direction:column;gap:2px}
+.author-name{font-size:14px;font-weight:500;color:#fff}
+.author-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.post-layout{display:grid;grid-template-columns:1fr 280px;gap:0;max-width:1100px;margin:0 auto;padding:0 52px;align-items:start}
+.post-body{padding:64px 64px 64px 0;border-right:1px solid var(--rule);min-width:0}
+.post-body p{font-size:17px;font-weight:300;color:var(--muted);line-height:1.82;margin-bottom:20px}
+.post-body p strong{color:var(--ink);font-weight:500}
+.post-body p.lead{font-size:20px;font-weight:300;color:var(--ink);line-height:1.7;margin-bottom:28px}
+.post-body h2{font-family:"Bebas Neue",sans-serif;font-size:clamp(32px,4vw,46px);letter-spacing:.01em;line-height:1;color:var(--ink);margin:48px 0 18px}
+.post-body h3{font-size:18px;font-weight:500;color:var(--ink);margin:32px 0 14px;display:flex;align-items:center;gap:10px}
+.post-body h3::before{content:"";display:block;width:16px;height:2px;background:var(--teal);flex-shrink:0}
+.post-body ul,.post-body ol{margin:0 0 24px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.post-body ul li{display:flex;gap:12px;align-items:flex-start;font-size:16px;font-weight:300;color:var(--muted);line-height:1.7}
+.post-body ul li::before{content:"";display:block;width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:10px}
+.post-body ol{counter-reset:lc}
+.post-body ol li{counter-increment:lc;display:flex;gap:14px;align-items:flex-start;font-size:16px;font-weight:300;color:var(--muted);line-height:1.7}
+.post-body ol li::before{content:counter(lc);font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:500;color:var(--teal);background:rgba(139,0,85,.1);min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.post-body li strong{color:var(--ink);font-weight:500}
+.callout{border-left:3px solid var(--teal);background:var(--teal-pale);padding:20px 24px;margin:28px 0;border-radius:0 4px 4px 0}
+.callout-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-dark);margin-bottom:8px;font-weight:500}
+.callout p{font-size:15px!important;color:#4a0028!important;margin-bottom:0!important;line-height:1.65!important}
+.callout-amber{border-left-color:var(--amber);background:var(--amber-pale)}
+.callout-amber .callout-label{color:#7a4400}
+.callout-amber p{color:#4a2d00!important}
+.callout-orange{border-left-color:var(--orange);background:var(--orange-pale)}
+.callout-orange .callout-label{color:#8a3a10}
+.callout-orange p{color:#4a2000!important}
+.section-divider{display:flex;align-items:center;gap:14px;margin:56px 0 8px}
+.section-divider-line{height:1px;background:var(--rule);flex:1}
+.section-divider-text{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);flex-shrink:0}
+.code-block{font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--ink);color:#e2e8f0;padding:20px 24px;border-radius:6px;margin:16px 0 24px;line-height:1.65;overflow-x:auto;white-space:pre}
+.code-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin-bottom:6px}
+.arch-box{background:var(--ink);border-radius:8px;padding:28px;margin:28px 0}
+.arch-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.arch-node{background:rgba(139,0,85,.1);border:1px solid rgba(139,0,85,.3);border-radius:6px;padding:14px 20px;text-align:center;min-width:140px}
+.arch-node-title{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;color:var(--teal);text-transform:uppercase;margin-bottom:4px}
+.arch-node-desc{font-size:11px;color:rgba(255,255,255,.5)}
+.arch-node-orange{background:rgba(224,93,32,.1);border-color:rgba(224,93,32,.3)}
+.arch-node-orange .arch-node-title{color:var(--orange)}
+.arch-arrow{color:var(--teal);font-size:20px;flex-shrink:0}
+.pull-quote{font-style:italic;font-size:22px;font-weight:300;color:var(--ink);line-height:1.45;border-left:3px solid var(--teal);padding-left:24px;margin:36px 0}
+.post-rule{border:none;border-top:1px solid var(--rule);margin:48px 0}
+.post-rule-teal{border-top-color:var(--teal);border-top-width:2px}
+.step-table{width:100%;border-collapse:collapse;margin:20px 0 28px;font-size:15px}
+.step-table th{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:10px 16px;text-align:left;background:var(--ink);color:rgba(255,255,255,.7)}
+.step-table td{padding:14px 16px;border-bottom:1px solid var(--rule);vertical-align:top;font-weight:300;color:var(--muted);line-height:1.65}
+.step-table tr:nth-child(odd) td{background:rgba(139,0,85,.03)}
+.step-table td:first-child{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:500;color:var(--teal);white-space:nowrap;width:40px;text-align:center}
+.step-table td strong{color:var(--ink);font-weight:500}
+.step-table code{font-family:"JetBrains Mono",monospace;font-size:13px;background:rgba(139,0,85,.08);padding:1px 6px;border-radius:3px;color:var(--ink)}
+.checklist{margin:20px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.checklist li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);line-height:1.6;padding:8px 12px;background:rgba(139,0,85,.04);border-radius:4px;border-left:2px solid var(--teal)}
+.checklist li::before{content:"☐";font-size:14px;color:var(--teal);flex-shrink:0;margin-top:1px}
+.post-sidebar{padding:64px 0 64px 48px}
+.sidebar-widget{border:.5px solid var(--rule);border-radius:4px;margin-bottom:24px;overflow:hidden}
+.sidebar-widget-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.5);background:var(--ink);padding:10px 16px}
+.sidebar-widget-body{padding:16px}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:0}
+.toc-list li{border-bottom:.5px solid var(--rule)}
+.toc-list li:last-child{border-bottom:none}
+.toc-list a{display:block;padding:9px 4px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--muted);text-decoration:none;transition:color .15s,padding-left .15s;line-height:1.45}
+.toc-list a:hover,.toc-list a.active{color:var(--teal);padding-left:8px}
+.sidebar-sub{background:var(--ink);border-radius:4px;padding:20px 18px;margin-bottom:24px}
+.sidebar-sub-title{font-family:"Bebas Neue",sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;margin-bottom:10px;line-height:1}
+.sidebar-sub-desc{font-size:12px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:16px}
+.sidebar-sub-btn{width:100%;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:2px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.sidebar-sub-btn:hover{background:var(--teal-dark)}
+.sidebar-sub-note{font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;text-align:center}
+.share-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:2px;text-decoration:none;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:.5px solid var(--rule);color:var(--muted);transition:all .18s;background:0 0;cursor:pointer;width:100%;text-align:left;margin-bottom:8px}
+.share-btn:hover{border-color:var(--teal);color:var(--teal);background:rgba(139,0,85,.05)}
+.share-btn svg{width:14px;height:14px;flex-shrink:0}
+.post-footer-section{background:var(--ink);padding:72px 52px;border-top:1px solid rgba(255,255,255,.06)}
+.post-footer-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;max-width:1100px;margin:0 auto}
+.post-footer-sub h2{font-family:"Bebas Neue",sans-serif;font-size:clamp(36px,4vw,52px);line-height:.95;color:#fff;margin-bottom:16px}
+.post-footer-sub p{font-size:15px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:24px}
+.footer-sub-btn{padding:14px 28px;background:var(--teal);color:#fff;border:none;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:background .2s}
+.footer-sub-btn:hover{background:var(--teal-dark)}
+.resource-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.resource-list li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:rgba(255,255,255,.5)}
+.resource-list li::before{content:"→";color:var(--teal);flex-shrink:0}
+.resource-list a{color:rgba(255,255,255,.65);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.15);transition:color .15s}
+.resource-list a:hover{color:var(--teal);border-color:var(--teal)}
+footer{background:var(--ink);padding:24px 52px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.06)}
+.footer-logo{font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.08em;color:#fff}
+.footer-logo em{font-style:normal;color:var(--teal)}
+.footer-copy{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.2)}
+@media(max-width:900px){.nav-bar{padding:0 20px}.nav-links{display:none}.nav-toggle{display:flex}.post-hero{padding:48px 20px 44px}.post-layout{grid-template-columns:1fr;padding:0 20px}.post-body{padding:40px 0;border-right:none}.post-sidebar{padding:0 0 40px;border-top:1px solid var(--rule)}.post-footer-section{padding:52px 20px}.post-footer-grid{grid-template-columns:1fr;gap:40px}footer{flex-direction:column;gap:12px;text-align:center;padding:24px 20px}.arch-flow{flex-direction:column}.arch-arrow{transform:rotate(90deg)}}
+@media(max-width:480px){.post-hero h1{font-size:38px}.post-body h2{font-size:30px}.code-block{font-size:11px;padding:14px 16px}}
+</style>
+</head>
+<body>
+<nav class="nav-bar">
+  <a href="index.html" class="logo"><svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display:inline-block;margin-right:8px;vertical-align:middle"><path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#f5f7fa" stroke="#8b0055" stroke-width="1.5"/><rect x="22.5" y="17" width="7" height="26" rx="1" fill="#8b0055"/><rect x="17" y="17" width="18" height="4.5" rx="1" fill="#8b0055"/><rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#8b0055"/></svg>Identity<em>Frontline</em></a>
+  <ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li><li><a href="about.html#subscribe">Subscribe</a></li></ul>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
+</nav>
+<div class="mobile-nav" id="mobile-nav"><a href="index.html" onclick="closeMobileNav()">Blog</a><a href="about.html#topics" onclick="closeMobileNav()">Topics</a><a href="about.html#about" onclick="closeMobileNav()">About</a><a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a></div>
+<div class="progress-bar" id="progress-bar"></div>
+
+<header class="post-hero">
+  <div class="post-meta-row"><span class="post-cat">Hands-On Lab</span><span class="post-date">May 2026</span><span class="post-read">20 min read</span></div>
+  <h1>Configure SSO with an External App<br><em>in Your Free Homelab</em></h1>
+  <p class="post-subtitle">Your homelab users can now sign into AWS with their Entra ID credentials. SAML-based Single Sign-On, user assignment, and SCIM provisioning &mdash; all configured step-by-step. Total cost: still $0.</p>
+  <div class="author-row"><div class="author-avatar">MR</div><div class="author-info"><span class="author-name">Syed Masood Raza</span><span class="author-title">IAM Architect &middot; 24+ years &middot; Fortune 500 SME</span></div></div>
+</header>
+
+<div class="post-layout">
+<article class="post-body">
+
+<p class="lead">A reader asked: &ldquo;Can you set up SSO with an external app in your homelab?&rdquo; Yes. And by the end of this guide, you will have done exactly that.</p>
+
+<p>In <a href="blog-post-2.html" style="color:var(--teal)">Post 2</a>, you built a hybrid identity environment &mdash; Active Directory synced to Entra ID via Entra Connect, with Conditional Access and MFA enforced. That was the foundation.</p>
+
+<p>This post adds the feature that enterprise IAM teams configure most often: <strong>Single Sign-On (SSO)</strong>. You will configure SAML-based SSO between your Entra ID tenant and AWS IAM Identity Center, assign your homelab users, and test federated authentication &mdash; the exact workflow I have configured hundreds of times for Fortune 500 clients.</p>
+
+<p><strong>Why AWS?</strong> Because it is free (AWS free tier), it is the second most common cloud platform after Azure, and configuring cross-cloud SSO between Microsoft and AWS is one of the most sought-after skills in enterprise IAM. This single lab project tells interviewers: &ldquo;I understand federated identity across cloud providers.&rdquo;</p>
+
+<div class="callout"><div class="callout-label">Prerequisites</div><p>You need the working homelab from Post 2 &mdash; Active Directory, Entra Connect, and Entra ID with synced users. If you have not built it yet, <a href="blog-post-2.html" style="color:var(--teal-dark)">start there first</a>. You also need a free AWS account (aws.amazon.com/free).</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Concepts</span><div class="section-divider-line"></div></div>
+<h2 id="concepts">SAML vs OIDC &mdash; What You Need to Know</h2>
+
+<p>Before configuring anything, understand the two protocols that power SSO in enterprise environments.</p>
+
+<p><strong>SAML 2.0 (Security Assertion Markup Language)</strong> is the older, more established protocol. It uses XML-based assertions to exchange authentication data between an Identity Provider (IdP &mdash; your Entra ID) and a Service Provider (SP &mdash; the application). SAML is the standard for enterprise SSO. If you configure SSO at work, it will almost certainly be SAML.</p>
+
+<p><strong>OpenID Connect (OIDC)</strong> is the newer protocol built on top of OAuth 2.0. It uses JSON Web Tokens (JWTs) instead of XML. It is lighter, more developer-friendly, and common in modern SaaS applications and custom-built apps.</p>
+
+<p><strong>In this guide, we use SAML</strong> &mdash; because AWS IAM Identity Center uses SAML for external IdP federation, and because SAML is what interviewers ask about most frequently. Understanding SAML deeply is a core IAM skill.</p>
+
+<div class="arch-box"><div class="arch-label">SSO Authentication Flow (SAML)</div><div class="arch-flow"><div class="arch-node"><div class="arch-node-title">User</div><div class="arch-node-desc">Clicks &ldquo;Sign in&rdquo;<br>on AWS console</div></div><span class="arch-arrow">&rarr;</span><div class="arch-node arch-node-orange"><div class="arch-node-title">AWS (Service Provider)</div><div class="arch-node-desc">Redirects to IdP<br>SAML AuthnRequest</div></div><span class="arch-arrow">&rarr;</span><div class="arch-node"><div class="arch-node-title">Entra ID (IdP)</div><div class="arch-node-desc">Authenticates user<br>MFA if required</div></div><span class="arch-arrow">&rarr;</span><div class="arch-node arch-node-orange"><div class="arch-node-title">AWS Console</div><div class="arch-node-desc">Receives SAML assertion<br>User is signed in</div></div></div></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 1</span><div class="section-divider-line"></div></div>
+<h2 id="phase-1">Set Up AWS IAM Identity Center</h2>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>Create a free AWS account</strong> at <code>aws.amazon.com/free</code>. You need a credit card for verification (same as Azure &mdash; no charges for what we are doing).</td></tr>
+<tr><td>2</td><td><strong>Enable IAM Identity Center</strong> &mdash; In the AWS Console, search for <code>IAM Identity Center</code> and click <strong>Enable</strong>. Choose your home region (e.g., us-east-1).</td></tr>
+<tr><td>3</td><td><strong>Change the identity source</strong> &mdash; Navigate to: <strong>Settings</strong> &rarr; <strong>Identity source</strong> &rarr; <strong>Actions</strong> &rarr; <strong>Change identity source</strong> &rarr; Select <strong>&ldquo;External identity provider&rdquo;</strong>.</td></tr>
+<tr><td>4</td><td><strong>Download the AWS metadata</strong> &mdash; On the same page, download the <strong>SAML metadata file</strong>. Also note the <strong>Sign-in URL</strong> and <strong>ACS URL</strong> &mdash; you will need both.</td></tr>
+</tbody>
+</table>
+
+<div class="callout-amber callout"><div class="callout-label">Keep this tab open</div><p>Do not close the AWS console yet. You will need the ACS URL and Issuer URL from this page when configuring the Entra ID side. Keep both browser tabs open &mdash; AWS and Entra &mdash; side by side.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 2</span><div class="section-divider-line"></div></div>
+<h2 id="phase-2">Register the Enterprise App in Entra ID</h2>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>Open Entra Portal</strong> &mdash; Go to <code>entra.microsoft.com</code> &rarr; <strong>Applications</strong> &rarr; <strong>Enterprise applications</strong></td></tr>
+<tr><td>2</td><td><strong>Add new application</strong> &mdash; Click <strong>&ldquo;New application&rdquo;</strong></td></tr>
+<tr><td>3</td><td><strong>Search the gallery</strong> for <code>AWS IAM Identity Center</code> &mdash; Microsoft has a pre-built integration. Click it &rarr; <strong>Create</strong>.</td></tr>
+<tr><td>4</td><td><strong>Name it:</strong> <code>AWS IAM Identity Center &mdash; Homelab</code></td></tr>
+</tbody>
+</table>
+
+<p>You now have an Enterprise Application registered in your Entra ID tenant. This is the &ldquo;bridge&rdquo; between your identity provider and AWS.</p>
+
+<h3>Configure SAML-Based SSO</h3>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>In your new Enterprise App, go to <strong>Single sign-on</strong> &rarr; Select <strong>SAML</strong></td></tr>
+<tr><td>2</td><td><strong>Edit Basic SAML Configuration</strong> &mdash; enter the values from the code block below</td></tr>
+</tbody>
+</table>
+
+<div class="code-label">SAML Configuration Values</div>
+<div class="code-block">Identifier (Entity ID):     [Paste from AWS metadata]
+Reply URL (ACS URL):        [Paste ACS URL from AWS]
+Sign on URL:                [Paste Sign-in URL from AWS]
+Relay State:                (leave blank)
+Logout URL:                 (leave blank for now)</div>
+
+<p><strong>Edit Attributes &amp; Claims</strong> &mdash; Ensure these claims are mapped:</p>
+
+<div class="code-label">SAML Attribute Mappings</div>
+<div class="code-block">Unique User Identifier (Name ID):   user.userprincipalname
+email:                              user.mail
+firstName:                          user.givenname
+lastName:                           user.surname</div>
+
+<p><strong>Download the Federation Metadata XML</strong> from Section 3 (&ldquo;SAML Certificates&rdquo;) &mdash; you will upload this to AWS.</p>
+
+<div class="callout"><div class="callout-label">What is happening here</div><p>You are telling Entra ID: &ldquo;When AWS sends a user to authenticate, here is who they are and how to respond.&rdquo; The SAML assertion contains the user&rsquo;s identity claims &mdash; name, email, groups &mdash; signed by Entra ID&rsquo;s certificate. AWS trusts this signature because you are about to upload Entra&rsquo;s metadata to AWS.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 3</span><div class="section-divider-line"></div></div>
+<h2 id="phase-3">Complete the AWS Side</h2>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>Go back to your AWS IAM Identity Center tab</strong></td></tr>
+<tr><td>2</td><td><strong>Upload the IdP SAML metadata</strong> &mdash; In the &ldquo;External identity provider&rdquo; configuration, upload the <strong>Federation Metadata XML</strong> you downloaded from Entra ID</td></tr>
+<tr><td>3</td><td><strong>Confirm the change</strong> &mdash; AWS will warn you that changing the identity source will affect all existing users. Type <code>ACCEPT</code> to confirm.</td></tr>
+</tbody>
+</table>
+
+<p>The trust relationship is now established. Entra ID is the Identity Provider. AWS is the Service Provider. SAML is the protocol connecting them.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 4</span><div class="section-divider-line"></div></div>
+<h2 id="phase-4">Assign Users and Groups</h2>
+
+<h3>In Entra ID</h3>
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Go to your Enterprise App &rarr; <strong>Users and groups</strong> &rarr; <strong>Add user/group</strong></td></tr>
+<tr><td>2</td><td>Assign your homelab security group <code>SG-Cloud-Admins</code> (Priya Sharma, David Lee from Post 2)</td></tr>
+<tr><td>3</td><td>Optionally assign individual users like <code>Raj Patel</code> (your IAM Architect test user)</td></tr>
+</tbody>
+</table>
+
+<h3>In AWS IAM Identity Center</h3>
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>Create matching users</strong> &mdash; Go to <strong>Users</strong> &rarr; <strong>Add user</strong> &rarr; enter the same email/UPN as in Entra ID</td></tr>
+<tr><td>2</td><td><strong>Create a Permission Set</strong> &mdash; Go to <strong>Permission sets</strong> &rarr; <strong>Create</strong> &rarr; Select <code>ReadOnlyAccess</code> (safe for a lab)</td></tr>
+<tr><td>3</td><td><strong>Assign the permission set</strong> &mdash; Go to <strong>AWS accounts</strong> &rarr; Select your account &rarr; <strong>Assign users</strong> &rarr; Select the user &rarr; Assign <code>ReadOnlyAccess</code></td></tr>
+</tbody>
+</table>
+
+<div class="callout-orange callout"><div class="callout-label">Pro tip &mdash; SCIM makes this automatic</div><p>Manually creating matching users in AWS is fine for a lab. In production, you would enable SCIM provisioning to automatically sync users from Entra ID to AWS. We will cover this in the next section.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 5</span><div class="section-divider-line"></div></div>
+<h2 id="phase-5">Test Your SSO</h2>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>Go to <code>myapps.microsoft.com</code></strong> and sign in as one of your assigned test users (e.g., <code>psharma@iamlab.local</code>)</td></tr>
+<tr><td>2</td><td>You should see the <strong>&ldquo;AWS IAM Identity Center&rdquo;</strong> tile in the My Apps portal</td></tr>
+<tr><td>3</td><td><strong>Click the tile</strong> &mdash; you should be redirected to AWS and signed in automatically without entering AWS credentials</td></tr>
+<tr><td>4</td><td><strong>Verify:</strong> You are now in the AWS Console with ReadOnlyAccess, authenticated via your Entra ID identity</td></tr>
+</tbody>
+</table>
+
+<p><strong>That is Single Sign-On.</strong> The user clicked one tile. Entra ID authenticated them (with MFA if your Conditional Access policy from Post 2 is active). Entra ID issued a SAML assertion to AWS. AWS accepted it and granted access. One identity, two clouds.</p>
+
+<h3>Alternative Test Method</h3>
+<p>You can also test from the Entra Portal: Go to your Enterprise App &rarr; <strong>Single sign-on</strong> &rarr; Scroll to <strong>&ldquo;Test single sign-on&rdquo;</strong> &rarr; Click <strong>Test</strong>. This sends a test SAML assertion and shows you exactly what Entra ID sends to AWS &mdash; invaluable for debugging.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 6</span><div class="section-divider-line"></div></div>
+<h2 id="phase-6">Enable SCIM Provisioning (Bonus)</h2>
+
+<p>SCIM (System for Cross-domain Identity Management) automates user provisioning. Instead of manually creating users in AWS, SCIM synchronises them from Entra ID automatically. This is how production environments work at scale.</p>
+
+<h3>In AWS IAM Identity Center</h3>
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Go to <strong>Settings</strong> &rarr; <strong>Automatic provisioning</strong> &rarr; <strong>Enable</strong></td></tr>
+<tr><td>2</td><td>AWS generates a <strong>SCIM endpoint URL</strong> and an <strong>Access token</strong> &mdash; copy both</td></tr>
+</tbody>
+</table>
+
+<h3>In Entra ID</h3>
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Go to your Enterprise App &rarr; <strong>Provisioning</strong> &rarr; <strong>Get started</strong></td></tr>
+<tr><td>2</td><td>Provisioning Mode: <strong>Automatic</strong></td></tr>
+<tr><td>3</td><td>Paste the <strong>Tenant URL</strong> (SCIM endpoint) and <strong>Secret Token</strong> (access token) from AWS</td></tr>
+<tr><td>4</td><td>Click <strong>Test Connection</strong> &mdash; it should say &ldquo;The supplied credentials are authorised to enable provisioning&rdquo;</td></tr>
+<tr><td>5</td><td>Click <strong>Save</strong></td></tr>
+<tr><td>6</td><td>Under <strong>Mappings</strong>, review the attribute mappings (defaults are usually correct for AWS)</td></tr>
+<tr><td>7</td><td>Change Provisioning Status to <strong>On</strong> &rarr; <strong>Save</strong></td></tr>
+</tbody>
+</table>
+
+<p>Entra ID will now automatically provision users assigned to this Enterprise App into AWS IAM Identity Center. When you add someone to the SG-Cloud-Admins group in AD and they sync via Entra Connect, they automatically appear in AWS. When you remove them, they are deprovisioned. This is the Joiner-Mover-Leaver automation that enterprises depend on.</p>
+
+<div class="callout"><div class="callout-label">What you just built</div><p>You now have a fully automated identity pipeline: create a user in Active Directory &rarr; Entra Connect syncs them to Entra ID &rarr; SCIM provisions them to AWS &rarr; they sign in via SAML SSO. One identity, managed from one place, federated across two cloud providers. This is enterprise-grade IAM.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 7</span><div class="section-divider-line"></div></div>
+<h2 id="phase-7">Document for Your Portfolio</h2>
+
+<ul>
+<li><strong>Architecture diagram</strong> &mdash; update your diagram from Post 2 to include the SSO flow: AD &rarr; Entra Connect &rarr; Entra ID &rarr; SAML SSO &rarr; AWS</li>
+<li><strong>SAML configuration screenshots</strong> &mdash; capture the Entra ID SAML setup page, the attribute mappings, and the AWS IdP configuration</li>
+<li><strong>Test results</strong> &mdash; screenshot the successful SSO login, the My Apps portal tile, and the AWS console showing the federated user</li>
+<li><strong>SCIM provisioning log</strong> &mdash; Entra ID &rarr; Provisioning &rarr; Provisioning logs &mdash; screenshot a successful sync event</li>
+<li><strong>Write a brief summary</strong> explaining SAML vs OIDC, what claims were mapped, and how SCIM automates user lifecycle</li>
+</ul>
+
+<div class="pull-quote">&ldquo;I configured SAML-based SSO between Entra ID and AWS, with SCIM provisioning for automated user lifecycle management.&rdquo; That single sentence in an interview changes the conversation.</div>
+
+<hr class="post-rule post-rule-teal">
+<h2 id="checklist">Your SSO Lab Checklist</h2>
+
+<ul class="checklist">
+<li>Created free AWS account</li>
+<li>Enabled AWS IAM Identity Center</li>
+<li>Changed identity source to External IdP</li>
+<li>Downloaded AWS SAML metadata</li>
+<li>Registered Enterprise App in Entra ID (gallery)</li>
+<li>Configured SAML &mdash; Entity ID, ACS URL, Sign-on URL</li>
+<li>Mapped SAML attributes (UPN, email, name)</li>
+<li>Downloaded Entra Federation Metadata XML</li>
+<li>Uploaded Entra metadata to AWS</li>
+<li>Assigned users and groups in Entra ID</li>
+<li>Created permission set in AWS (ReadOnlyAccess)</li>
+<li>Tested SSO via My Apps portal</li>
+<li>Enabled SCIM provisioning</li>
+<li>Verified automatic user sync to AWS</li>
+<li>Updated architecture diagram</li>
+<li>Documented everything for portfolio</li>
+</ul>
+
+<hr class="post-rule">
+<h2 id="whats-next">What to Build Next</h2>
+<ul>
+<li><strong>Add a second SSO app</strong> &mdash; Salesforce Developer Edition (free) or GitHub Enterprise &mdash; to show you can manage multiple SP integrations</li>
+<li><strong>Configure OIDC-based SSO</strong> &mdash; register a custom app using OAuth 2.0/OIDC instead of SAML. This teaches you the newer protocol.</li>
+<li><strong>Build an App Proxy</strong> &mdash; publish an on-premises web app through Entra Application Proxy with SSO</li>
+<li><strong>Add group-based claims</strong> &mdash; configure group claims in SAML assertions so AWS can assign permissions based on AD group membership automatically</li>
+<li><strong>Implement PIM for AWS access</strong> &mdash; require approval and time-limited elevation for AWS admin permissions via Entra PIM</li>
+</ul>
+
+<p>Three posts in, your homelab now covers Active Directory, hybrid identity, Conditional Access, MFA, SSPR, SAML SSO, and SCIM provisioning. That is not a hobby project. That is a production-ready skill set.</p>
+
+<p><strong>Keep building. The market rewards builders.</strong></p>
+
+<p>&mdash; <strong>Masood</strong></p>
+<p style="font-size:13px;color:var(--muted)">IAM Architect &middot; 24+ years &middot; identityfrontline.com</p>
+
+</article>
+
+<aside class="post-sidebar">
+<div class="sidebar-sub"><div class="sidebar-sub-title">Stay on the Frontline</div><p class="sidebar-sub-desc">Step-by-step IAM labs and career guides. One post per week.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="sidebar-sub-btn" style="display:block;text-align:center;text-decoration:none;color:#fff">Join the frontline &rarr;</a><p class="sidebar-sub-note">Subscribe on Substack. Free.</p></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">In this guide</div><div class="sidebar-widget-body"><ul class="toc-list">
+<li><a href="#concepts" class="toc-link">SAML vs OIDC</a></li>
+<li><a href="#phase-1" class="toc-link">Phase 1: AWS Identity Center</a></li>
+<li><a href="#phase-2" class="toc-link">Phase 2: Entra ID app</a></li>
+<li><a href="#phase-3" class="toc-link">Phase 3: Complete AWS side</a></li>
+<li><a href="#phase-4" class="toc-link">Phase 4: Assign users</a></li>
+<li><a href="#phase-5" class="toc-link">Phase 5: Test SSO</a></li>
+<li><a href="#phase-6" class="toc-link">Phase 6: SCIM provisioning</a></li>
+<li><a href="#phase-7" class="toc-link">Phase 7: Portfolio</a></li>
+<li><a href="#checklist" class="toc-link">Checklist</a></li>
+<li><a href="#whats-next" class="toc-link">What to build next</a></li>
+</ul></div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">Share this guide</div><div class="sidebar-widget-body">
+<a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https://identityfrontline.com/blog-post-3.html" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Share on LinkedIn</a>
+<button class="share-btn" onclick="copyLink()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><span id="copy-label">Copy link</span></button>
+</div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">Previous guides</div><div class="sidebar-widget-body">
+<a href="blog-post-2.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Build Your IAM Homelab for Free</a>
+<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Hands-On Lab &middot; 25 min</span>
+<hr style="border:none;border-top:1px solid var(--rule);margin:10px 0">
+<a href="blog-post-1.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">How to Break Into IAM in 2026</a>
+<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Career Guide &middot; 18 min</span>
+</div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">About the author</div><div style="padding:16px"><div class="author-avatar" style="width:52px;height:52px;font-size:20px;margin-bottom:12px">MR</div><div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px">Syed Masood Raza</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">IAM Architect &middot; Cybersecurity SME</div><p style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6">24+ years building hybrid identity for Fortune 500 companies. Configured SSO for 700+ enterprise applications using SAML, OAuth, and OIDC.</p></div></div>
+</aside>
+</div>
+
+<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>The lab series continues.</h2><p>Each guide adds a new enterprise IAM skill to your homelab &mdash; and your resume. Subscribe for the next one.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="footer-sub-btn" style="display:inline-block;text-decoration:none;color:#fff">Join the frontline &rarr;</a></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>AWS Free Tier &mdash; <a href="https://aws.amazon.com/free" target="_blank">aws.amazon.com/free</a></li><li>Entra ID Enterprise Apps &mdash; <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>SAML 2.0 Spec &mdash; <a href="https://docs.oasis-open.org/security/saml/v2.0/" target="_blank">oasis-open.org</a></li><li>AWS IAM Identity Center &mdash; <a href="https://docs.aws.amazon.com/singlesignon/" target="_blank">docs.aws.amazon.com</a></li></ul></div></div></section>
+
+<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span></footer>
+
+<script>
+window.addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress-bar').style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight))*100+'%'});
+const hs=document.querySelectorAll('h2[id]'),tls=document.querySelectorAll('.toc-link');
+const to=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){tls.forEach(l=>l.classList.remove('active'));const m=document.querySelector('.toc-link[href="#'+en.target.id+'"]');if(m)m.classList.add('active')}})},{rootMargin:'-10% 0px -70% 0px'});
+hs.forEach(h=>to.observe(h));
+const nt=document.getElementById('nav-toggle'),mn=document.getElementById('mobile-nav');
+nt.addEventListener('click',()=>{const o=mn.classList.toggle('open');nt.classList.toggle('open',o)});
+document.addEventListener('click',e=>{if(!nt.contains(e.target)&&!mn.contains(e.target)){mn.classList.remove('open');nt.classList.remove('open')}});
+function closeMobileNav(){mn.classList.remove('open');nt.classList.remove('open')}
+function copyLink(){navigator.clipboard.writeText(window.location.href).then(()=>{const l=document.getElementById('copy-label');l.textContent='Copied!';setTimeout(()=>l.textContent='Copy link',2000)})}
+</script>
+</body>
+</html>

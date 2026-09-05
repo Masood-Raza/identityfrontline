@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — Identity Frontline</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0d1b2a;
+  --paper: #f5f7fa;
+  --teal: #8b0055;
+  --teal-dark: #6a0042;
+  --teal-pale: #f5d0e3;
+  --rule: rgba(13,27,42,0.11);
+  --muted: #5a6a7d;
+  --surface: #edeae2;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  line-height: 1.76;
+  font-size: 17px;
+  overflow-x: hidden;
+}
+
+/* ── NAV ── */
+.nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--ink);
+  padding: 0 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 58px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.logo em { font-style: normal; color: var(--teal); }
+
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.42);
+  text-decoration: none;
+  transition: color 0.18s;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--teal); }
+
+/* Hamburger */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+.nav-toggle span {
+  display: block;
+  width: 22px;
+  height: 1.5px;
+  background: rgba(255,255,255,0.6);
+  transition: all 0.22s;
+}
+.nav-toggle.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.nav-toggle.open span:nth-child(2) { opacity: 0; }
+.nav-toggle.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* Mobile nav drawer */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  top: 58px;
+  left: 0; right: 0;
+  background: var(--ink);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  z-index: 99;
+  padding: 24px 28px 28px;
+  flex-direction: column;
+  gap: 0;
+}
+.mobile-nav.open { display: flex; }
+.mobile-nav a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  transition: color 0.18s;
+}
+.mobile-nav a:last-child { border-bottom: none; }
+.mobile-nav a:hover { color: var(--teal); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 78vh;
+  display: grid;
+  grid-template-columns: 58% 42%;
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.hero-left {
+  padding: 80px 60px 80px 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1.5px solid var(--ink);
+  position: relative;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 24px;
+}
+.hero-tag::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1.5px;
+  background: var(--teal);
+  flex-shrink: 0;
+}
+
+.hero-h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(68px, 8vw, 108px);
+  line-height: 0.91;
+  letter-spacing: 0.01em;
+  margin-bottom: 32px;
+}
+.hero-h1 .accent { color: var(--teal); display: block; }
+
+.hero-lead {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--muted);
+  max-width: 480px;
+  line-height: 1.72;
+  margin-bottom: 36px;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--ink);
+  padding: 13px 24px;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: background 0.2s;
+  width: fit-content;
+}
+.hero-cta:hover { background: var(--teal); }
+.hero-cta svg { width: 14px; height: 14px; }
+
+/* Hero right — dark panel */
+.hero-right {
+  background: var(--ink);
+  padding: 64px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-right::after {
+  content: 'IF';
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 340px;
+  line-height: 1;
+  color: rgba(255,255,255,0.025);
+  position: absolute;
+  bottom: -40px;
+  right: -20px;
+  pointer-events: none;
+  letter-spacing: -0.04em;
+}
+
+.expertise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.exp-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  transition: padding-left 0.2s;
+  cursor: default;
+}
+.exp-item:first-child { border-top: 1px solid rgba(255,255,255,0.07); }
+.exp-item:hover { padding-left: 6px; }
+
+.exp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  flex-shrink: 0;
+}
+
+.exp-text {
+  font-size: 14px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.68);
+  line-height: 1.4;
+}
+.exp-text strong { color: #fff; font-weight: 500; display: block; font-size: 13px; }
+
+.hero-stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin-top: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.h-stat {
+  background: var(--ink);
+  padding: 22px 20px;
+  transition: background 0.2s;
+}
+.h-stat:hover { background: #101520; }
+
+.h-stat-n {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 44px;
+  color: var(--teal);
+  line-height: 1;
+  display: block;
+  margin-bottom: 2px;
+}
+.h-stat-l {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ── TICKER ── */
+.ticker {
+  background: var(--teal);
+  overflow: hidden;
+  padding: 11px 0;
+  white-space: nowrap;
+}
+.ticker-track {
+  display: inline-block;
+  animation: scroll-left 32s linear infinite;
+}
+.ticker-track span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  margin-right: 52px;
+  opacity: 0.9;
+}
+.ticker-track span::before {
+  content: '▸';
+  margin-right: 14px;
+  opacity: 0.5;
+}
+@keyframes scroll-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ── SHARED SECTION STYLES ── */
+.section {
+  padding: 96px 52px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.section-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-tag::before {
+  content: '';
+  display: block;
+  width: 20px;
+  height: 1.5px;
+  background: var(--teal);
+}
+
+.section-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 5vw, 62px);
+  letter-spacing: 0.015em;
+  line-height: 0.96;
+  margin-bottom: 40px;
+}
+
+/* ── MISSION ── */
+.mission-wrap {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 72px;
+  align-items: start;
+}
+
+.mission-body p {
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--muted);
+  margin-bottom: 22px;
+  line-height: 1.8;
+}
+.mission-body p strong { color: var(--ink); font-weight: 500; }
+
+.mission-pull {
+  font-family: 'DM Sans', sans-serif;
+  font-style: italic;
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1.45;
+  color: var(--ink);
+  border-left: 3px solid var(--teal);
+  padding-left: 24px;
+  margin: 32px 0;
+}
+
+.principles { display: flex; flex-direction: column; }
+
+.principle {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 18px;
+}
+.principle:first-child { border-top: 1px solid var(--rule); }
+
+.p-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--teal);
+  padding-top: 4px;
+}
+
+.p-body strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.p-body { font-size: 13px; color: var(--muted); line-height: 1.62; font-weight: 300; }
+
+/* ── AUTHOR ── */
+.author-section {
+  background: var(--ink);
+  color: #fff;
+  padding: 96px 52px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.author-inner {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 72px;
+  align-items: start;
+}
+
+.author-card {
+  position: sticky;
+  top: 80px;
+}
+
+.avatar-ring {
+  width: 180px;
+  height: 180px;
+  border-radius: 4px;
+  background: #0f1520;
+  border: 1px solid rgba(139,0,85,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px;
+  color: var(--teal);
+  letter-spacing: 0.04em;
+  margin-bottom: 20px;
+}
+
+.a-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 0.03em;
+  color: #fff;
+  line-height: 1.05;
+  margin-bottom: 4px;
+}
+.a-role {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 18px;
+}
+
+.cert-stack { display: flex; flex-direction: column; gap: 6px; }
+.cert-item {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 5px 11px;
+  border: 1px solid rgba(139,0,85,0.25);
+  color: rgba(255,255,255,0.55);
+  background: rgba(139,0,85,0.06);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cert-item::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--teal);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.author-content .section-tag { color: var(--teal); }
+.author-content .section-tag::before { background: var(--teal); }
+
+.author-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(38px, 4vw, 56px);
+  letter-spacing: 0.015em;
+  line-height: 0.96;
+  margin-bottom: 28px;
+  color: #fff;
+}
+
+.author-bio p {
+  font-size: 16px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.82;
+  margin-bottom: 20px;
+}
+.author-bio p strong { color: #fff; font-weight: 500; }
+
+/* Fortune 500 bar */
+.f500-bar {
+  margin: 32px 0;
+  padding: 22px 24px;
+  background: rgba(139,0,85,0.08);
+  border: 1px solid rgba(139,0,85,0.2);
+  border-radius: 4px;
+}
+.f500-bar-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 10px;
+}
+.f500-bar p {
+  font-size: 15px;
+  font-weight: 300;
+  color: rgba(255,255,255,0.72) !important;
+  line-height: 1.65 !important;
+  margin: 0 !important;
+}
+.f500-bar p strong { color: #fff !important; }
+
+/* Skills grid */
+.skills-section {
+  background: var(--surface);
+  padding: 96px 52px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.skills-outer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5px;
+  background: var(--rule);
+  margin-top: 40px;
+}
+
+.skill-cat {
+  background: var(--paper);
+  padding: 30px 26px;
+  transition: background 0.18s;
+}
+.skill-cat:hover { background: var(--teal-pale); }
+
+.skill-cat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.skill-cat-label::before {
+  content: '';
+  width: 14px;
+  height: 1.5px;
+  background: var(--teal);
+  flex-shrink: 0;
+}
+
+.skill-cat-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 14px;
+  line-height: 1.3;
+}
+
+.skill-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.skill-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 4px 9px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--muted);
+  background: var(--paper);
+}
+
+/* ── WHAT TO EXPECT ── */
+.pillars-section { padding: 96px 52px; border-bottom: 1px solid var(--rule); }
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  background: var(--rule);
+  margin-top: 40px;
+}
+
+.pillar-card {
+  background: var(--paper);
+  padding: 36px 32px;
+  border-bottom: 1px solid var(--rule);
+  transition: background 0.18s;
+  position: relative;
+}
+.pillar-card:hover { background: var(--teal-pale); }
+
+.pillar-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px;
+  line-height: 0.85;
+  color: rgba(13,27,42,0.06);
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  transition: color 0.18s;
+}
+.pillar-card:hover .pillar-num { color: rgba(139,0,85,0.1); }
+
+.pillar-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 10px;
+}
+
+.pillar-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+
+.pillar-desc {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 300;
+  line-height: 1.66;
+}
+
+/* ── SUBSCRIBE ── */
+.subscribe-section {
+  padding: 96px 52px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  align-items: center;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sub-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(42px, 5vw, 66px);
+  line-height: 0.94;
+  letter-spacing: 0.01em;
+  margin-bottom: 20px;
+}
+
+.sub-desc {
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--muted);
+  line-height: 1.72;
+}
+
+.sub-form { display: flex; flex-direction: column; gap: 12px; }
+
+.sub-form input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1.5px solid var(--rule);
+  background: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--ink);
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 0.18s;
+  -webkit-appearance: none;
+}
+.sub-form input:focus { border-color: var(--teal); }
+.sub-form input::placeholder { color: rgba(88,94,104,0.5); }
+
+.sub-btn {
+  width: 100%;
+  padding: 15px 24px;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+.sub-btn:hover { background: var(--teal); }
+
+.sub-note {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* ── FOOTER ── */
+footer {
+  background: var(--ink);
+  padding: 28px 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: #fff;
+}
+.footer-logo em { font-style: normal; color: var(--teal); }
+
+.footer-nav { display: flex; gap: 28px; list-style: none; }
+.footer-nav a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.32);
+  text-decoration: none;
+  transition: color 0.18s;
+}
+.footer-nav a:hover { color: var(--teal); }
+
+.footer-copy {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.2);
+}
+
+/* ── SCROLL ANIMATIONS ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.reveal.in { opacity: 1; transform: translateY(0); }
+.reveal.delay-1 { transition-delay: 0.1s; }
+.reveal.delay-2 { transition-delay: 0.2s; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 860px) {
+  /* Nav */
+  .nav-bar { padding: 0 20px; }
+  .nav-links { display: none; }
+  .nav-toggle { display: flex; }
+
+  /* Hero */
+  .hero { grid-template-columns: 1fr; min-height: auto; }
+  .hero-right { display: none; }
+  .hero-left { padding: 48px 20px 52px; }
+  .hero-h1 { font-size: clamp(52px, 14vw, 80px); }
+  .hero-lead { font-size: 16px; }
+
+  /* Ticker */
+  .ticker { padding: 9px 0; }
+
+  /* Sections */
+  .section { padding: 56px 20px; }
+  .section-h2 { font-size: clamp(34px, 9vw, 50px); margin-bottom: 28px; }
+
+  /* Mission */
+  .mission-wrap { grid-template-columns: 1fr; gap: 36px; }
+  .mission-body p { font-size: 15px; }
+  .mission-pull { font-size: 18px; }
+
+  /* ── AUTHOR (main fix) ── */
+  .author-section { padding: 52px 20px; }
+  .author-inner {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .author-card {
+    position: static; /* remove sticky on mobile */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .avatar-ring {
+    width: 120px;
+    height: 120px;
+    font-size: 44px;
+    margin-bottom: 16px;
+  }
+  .a-name { font-size: 26px; text-align: center; }
+  .a-role { text-align: center; }
+  .cert-stack { width: 100%; }
+  .cert-item { font-size: 9px; padding: 5px 10px; }
+  .author-h2 { font-size: clamp(30px, 8vw, 44px); }
+  .author-bio p { font-size: 15px; }
+  .f500-bar { padding: 16px 18px; }
+  .f500-bar p { font-size: 14px !important; }
+
+  /* Skills */
+  .skills-section { padding: 56px 20px; }
+  .skills-outer-grid { grid-template-columns: 1fr; }
+  .skill-cat { padding: 22px 18px; }
+
+  /* Pillars */
+  .pillars-section { padding: 56px 20px; }
+  .pillars-grid { grid-template-columns: 1fr; }
+  .pillar-card { padding: 28px 22px; }
+  .pillar-num { font-size: 48px; }
+
+  /* Subscribe */
+  .subscribe-section {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding: 56px 20px;
+  }
+  .sub-h2 { font-size: clamp(36px, 10vw, 54px); }
+
+  /* Footer */
+  footer {
+    flex-direction: column;
+    gap: 18px;
+    text-align: center;
+    padding: 28px 20px;
+  }
+  .footer-nav { flex-wrap: wrap; justify-content: center; gap: 16px; }
+}
+
+@media (max-width: 480px) {
+  .hero-h1 { font-size: 48px; }
+  .section-h2 { font-size: 32px; }
+  .hero-cta { font-size: 10px; padding: 11px 18px; }
+  .avatar-ring { width: 100px; height: 100px; font-size: 38px; }
+  .cert-item { font-size: 8.5px; letter-spacing: 0.04em; }
+}
+</style>
+</head>
+<body id="top">
+
+<!-- Nav -->
+<nav class="nav-bar">
+  <a href="#top" class="logo">
+    <svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display: inline-block; margin-right: 8px; vertical-align: middle;">
+      <path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#f5f7fa" stroke="#8b0055" stroke-width="1.5"/>
+      <path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(244,242,236,0.3)" stroke-width="1"/>
+      <rect x="22.5" y="17" width="7" height="26" rx="1" fill="#8b0055"/>
+      <rect x="17" y="17" width="18" height="4.5" rx="1" fill="#8b0055"/>
+      <rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#8b0055"/>
+    </svg>
+    Identity<em>Frontline</em>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Blog</a></li>
+    <li><a href="#topics">Topics</a></li>
+    <li><a href="#about" class="active">About</a></li>
+    <li><a href="#subscribe">Subscribe</a></li>
+  </ul>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile nav drawer -->
+<div class="mobile-nav" id="mobile-nav">
+  <a href="index.html" onclick="closeMobileNav()">Blog</a>
+  <a href="#topics" onclick="closeMobileNav()">Topics</a>
+  <a href="#about" onclick="closeMobileNav()">About</a>
+  <a href="#subscribe" onclick="closeMobileNav()">Subscribe</a>
+</div>
+
+<!-- Hero -->
+<section class="hero" id="blog">
+  <div class="hero-left">
+    <span class="hero-tag">About this publication</span>
+    <h1 class="hero-h1">
+      Securing<br>
+      every<br>
+      <span class="accent">identity.</span>
+    </h1>
+    <p class="hero-lead">
+      Practitioner-grade writing on IAM, Zero Trust, and enterprise cybersecurity — grounded in 24+ years of hands-on work protecting the identity infrastructure of the world's largest organisations.
+    </p>
+    <a href="#mission" class="hero-cta">
+      Read the mission
+      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+
+  <div class="hero-right">
+    <ul class="expertise-list">
+      <li class="exp-item">
+        <span class="exp-dot"></span>
+        <span class="exp-text">
+          <strong>Identity & Access Management</strong>
+          Architecture, governance, lifecycle, and federation across enterprise-scale environments
+        </span>
+      </li>
+      <li class="exp-item">
+        <span class="exp-dot"></span>
+        <span class="exp-text">
+          <strong>Zero Trust Architecture</strong>
+          Designing and deploying never-trust, always-verify frameworks from the ground up
+        </span>
+      </li>
+      <li class="exp-item">
+        <span class="exp-dot"></span>
+        <span class="exp-text">
+          <strong>Privileged Access Management</strong>
+          CyberArk, Delinea, Azure PIM — securing the accounts that matter most
+        </span>
+      </li>
+      <li class="exp-item">
+        <span class="exp-dot"></span>
+        <span class="exp-text">
+          <strong>Cloud Identity (Azure / AWS / GCP)</strong>
+          Entra ID, hybrid identity, conditional access, and multi-cloud IAM strategy
+        </span>
+      </li>
+      <li class="exp-item">
+        <span class="exp-dot"></span>
+        <span class="exp-text">
+          <strong>AI-Driven Security Automation</strong>
+          n8n workflows, AI agents, and automated threat response for modern security teams
+        </span>
+      </li>
+    </ul>
+
+    <div class="hero-stat-row">
+      <div class="h-stat">
+        <span class="h-stat-n">24+</span>
+        <span class="h-stat-l">Years in enterprise IT</span>
+      </div>
+      <div class="h-stat">
+        <span class="h-stat-n">F500</span>
+        <span class="h-stat-l">Clients served</span>
+      </div>
+      <div class="h-stat">
+        <span class="h-stat-n">8</span>
+        <span class="h-stat-l">Microsoft certifications</span>
+      </div>
+      <div class="h-stat">
+        <span class="h-stat-n">MCT</span>
+        <span class="h-stat-l">Certified trainer</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Ticker -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Microsoft Entra ID</span><span>CyberArk PAM</span><span>SailPoint IGA</span><span>Zero Trust</span><span>Conditional Access</span><span>Azure Virtual Desktop</span><span>n8n Automation</span><span>SAML / OAuth2 / OIDC</span><span>Microsoft Purview</span><span>Hybrid Identity</span><span>Intune MDM</span><span>Azure Sentinel</span><span>PIM / JIT Access</span><span>ISC2 CC</span><span>Okta</span><span>Microsoft Defender</span>
+    <span>Microsoft Entra ID</span><span>CyberArk PAM</span><span>SailPoint IGA</span><span>Zero Trust</span><span>Conditional Access</span><span>Azure Virtual Desktop</span><span>n8n Automation</span><span>SAML / OAuth2 / OIDC</span><span>Microsoft Purview</span><span>Hybrid Identity</span><span>Intune MDM</span><span>Azure Sentinel</span><span>PIM / JIT Access</span><span>ISC2 CC</span><span>Okta</span><span>Microsoft Defender</span>
+  </div>
+</div>
+
+<!-- Mission -->
+<section class="section reveal" id="mission" data-about="about">
+  <p class="section-tag">Why this blog exists</p>
+  <h2 class="section-h2">The mission</h2>
+  <div class="mission-wrap">
+    <div class="mission-body">
+      <p>
+        Almost every major breach in recent memory traces back to the same root cause: <strong>a compromised identity</strong>. A stolen credential. A misconfigured access policy. An over-privileged account that should have been revoked months ago. Identity is where attacks begin — and it is where defences must be strongest.
+      </p>
+      <p>
+        Yet most of the genuinely useful knowledge in this space stays locked inside enterprise security teams, vendor partner portals, and consulting engagements that cost hundreds of thousands of dollars. The practitioner who has actually deployed CyberArk across 200 applications, or wrestled with Entra ID hybrid join in a complex multi-forest environment, rarely has time to write about it.
+      </p>
+      <div class="mission-pull">
+        "Identity Frontline exists to change that — one deeply researched, field-tested post at a time."
+      </div>
+      <p>
+        Every article here is written from direct, hands-on experience. No vendor whitepapers regurgitated. No surface-level summaries. <strong>Just the patterns that work in production, the pitfalls that hurt, and the emerging capabilities that are reshaping enterprise security.</strong>
+      </p>
+    </div>
+    <div class="principles">
+      <div class="principle">
+        <span class="p-num">01</span>
+        <div class="p-body">
+          <strong>Practitioner-written</strong>
+          Every post comes from someone who has done the work at enterprise scale — not someone who has read about it.
+        </div>
+      </div>
+      <div class="principle">
+        <span class="p-num">02</span>
+        <div class="p-body">
+          <strong>Vendor-neutral</strong>
+          Entra ID, Okta, SailPoint, CyberArk — each is assessed on its merits. No affiliate links, no paid placements, no brand loyalty.
+        </div>
+      </div>
+      <div class="principle">
+        <span class="p-num">03</span>
+        <div class="p-body">
+          <strong>Depth over frequency</strong>
+          One rigorous, accurate piece is worth more than ten shallow ones. Quality is the only metric that matters here.
+        </div>
+      </div>
+      <div class="principle">
+        <span class="p-num">04</span>
+        <div class="p-body">
+          <strong>Always current</strong>
+          IAM and cybersecurity evolve fast. Articles are reviewed and updated when tools, protocols, or best practices shift materially.
+        </div>
+      </div>
+      <div class="principle">
+        <span class="p-num">05</span>
+        <div class="p-body">
+          <strong>Immediately actionable</strong>
+          Every post ends with something you can do today — a configuration change, a policy review, a tool evaluation. No theory without application.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Author -->
+<section class="author-section reveal" id="about">
+  <div class="author-inner">
+    <div class="author-card">
+      <div class="avatar-ring">MR</div>
+      <p class="a-name">Syed Masood<br>Raza Kazmi</p>
+      <p class="a-role">IAM Architect · Cybersecurity SME</p>
+      <div class="cert-stack">
+        <span class="cert-item">AZ-305 — Azure Solutions Architect Expert</span>
+        <span class="cert-item">SC-300 — Identity & Access Administrator</span>
+        <span class="cert-item">MS-102 — Microsoft 365 Administrator</span>
+        <span class="cert-item">AZ-140 — Azure Virtual Desktop</span>
+        <span class="cert-item">AZ-700 — Azure Network Engineer</span>
+        <span class="cert-item">AZ-104 — Azure Administrator</span>
+        <span class="cert-item">ISC2 CC — Certified in Cybersecurity</span>
+        <span class="cert-item">MCT — Microsoft Certified Trainer</span>
+      </div>
+    </div>
+
+    <div class="author-content">
+      <p class="section-tag">The author</p>
+      <h2 class="author-h2">24 years on the identity frontline</h2>
+      <div class="author-bio">
+        <p>
+          I am an <strong>Identity & Access Management Architect and Cybersecurity Subject Matter Expert</strong> with over two decades of hands-on experience securing the identity infrastructure of enterprise organisations across North America, Europe, and the Gulf region.
+        </p>
+
+        <div class="f500-bar">
+          <p class="f500-bar-label">Fortune 500 experience</p>
+          <p>
+            Throughout my career I have served as a <strong>trusted SME and technical advisor to Fortune 500 companies</strong>, leading high-stakes IAM and cloud security programmes at a scale that few practitioners encounter. These engagements have spanned financial services, healthcare, energy, and technology sectors — industries where identity failures carry regulatory, financial, and reputational consequences that are simply not acceptable.
+          </p>
+        </div>
+
+        <p>
+          My core work has always lived at the intersection of <strong>identity governance, privileged access, and cloud security</strong>. I have architected and deployed Azure AD and Entra ID environments managing tens of thousands of identities, built CyberArk PAM ecosystems protecting hundreds of privileged accounts, and designed Zero Trust frameworks that replaced perimeter-based security models that had become obsolete.
+        </p>
+        <p>
+          In recent years I have expanded into <strong>AI-driven security automation</strong> — using n8n, Logic Apps, and AI agents to automate identity lifecycle processes, detect anomalous access patterns, and orchestrate incident response at a speed that manual processes simply cannot match. This is not a future direction. I am building these systems for clients today.
+        </p>
+        <p>
+          I hold eight Microsoft certifications including the Azure Solutions Architect Expert (AZ-305) and the Identity & Access Administrator Associate (SC-300), the ISC2 Certified in Cybersecurity (CC) credential, and I am a <strong>Microsoft Certified Trainer (MCT)</strong> — which means I have also spent significant time making complex IAM concepts accessible to engineers, architects, and security leaders who are building their own programmes.
+        </p>
+        <p>
+          Identity Frontline is where I write about the things I wish I had been able to read when I was building these skills — and the things I learn every week that are not yet documented anywhere well.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Skills -->
+<section class="skills-section reveal">
+  <p class="section-tag">Technical depth</p>
+  <h2 class="section-h2">Core skill areas</h2>
+  <div class="skills-outer-grid">
+    <div class="skill-cat">
+      <p class="skill-cat-label">Identity & Access</p>
+      <p class="skill-cat-title">IAM & Identity Governance</p>
+      <div class="skill-tags">
+        <span class="skill-tag">Entra ID / Azure AD</span>
+        <span class="skill-tag">AD DS</span>
+        <span class="skill-tag">ADFS</span>
+        <span class="skill-tag">SailPoint</span>
+        <span class="skill-tag">Okta</span>
+        <span class="skill-tag">Saviynt</span>
+        <span class="skill-tag">Hybrid Identity</span>
+        <span class="skill-tag">SCIM</span>
+        <span class="skill-tag">SAML 2.0</span>
+        <span class="skill-tag">OAuth2 / OIDC</span>
+        <span class="skill-tag">PIM</span>
+        <span class="skill-tag">MFA</span>
+      </div>
+    </div>
+    <div class="skill-cat">
+      <p class="skill-cat-label">Privileged Access</p>
+      <p class="skill-cat-title">PAM & Privileged Security</p>
+      <div class="skill-tags">
+        <span class="skill-tag">CyberArk PAS</span>
+        <span class="skill-tag">CyberArk EPM</span>
+        <span class="skill-tag">Delinea</span>
+        <span class="skill-tag">BeyondTrust</span>
+        <span class="skill-tag">JIT Access</span>
+        <span class="skill-tag">Azure PIM</span>
+        <span class="skill-tag">Vault policies</span>
+        <span class="skill-tag">Session recording</span>
+      </div>
+    </div>
+    <div class="skill-cat">
+      <p class="skill-cat-label">Cloud & Architecture</p>
+      <p class="skill-cat-title">Cloud Security & Architecture</p>
+      <div class="skill-tags">
+        <span class="skill-tag">Azure (AZ-305)</span>
+        <span class="skill-tag">AWS IAM</span>
+        <span class="skill-tag">GCP</span>
+        <span class="skill-tag">Zero Trust</span>
+        <span class="skill-tag">Conditional Access</span>
+        <span class="skill-tag">AVD</span>
+        <span class="skill-tag">FSLogix</span>
+        <span class="skill-tag">Azure Landing Zones</span>
+        <span class="skill-tag">Terraform</span>
+      </div>
+    </div>
+    <div class="skill-cat">
+      <p class="skill-cat-label">Security & Monitoring</p>
+      <p class="skill-cat-title">Cyber Defence & SIEM</p>
+      <div class="skill-tags">
+        <span class="skill-tag">Microsoft Sentinel</span>
+        <span class="skill-tag">Defender for Identity</span>
+        <span class="skill-tag">Defender for Cloud</span>
+        <span class="skill-tag">Orca Security</span>
+        <span class="skill-tag">KQL</span>
+        <span class="skill-tag">SPF / DKIM / DMARC</span>
+        <span class="skill-tag">Incident Response</span>
+      </div>
+    </div>
+    <div class="skill-cat">
+      <p class="skill-cat-label">Automation & AI</p>
+      <p class="skill-cat-title">AI-Driven Security Automation</p>
+      <div class="skill-tags">
+        <span class="skill-tag">n8n workflows</span>
+        <span class="skill-tag">AI Agents</span>
+        <span class="skill-tag">OpenAI / Anthropic</span>
+        <span class="skill-tag">PowerShell</span>
+        <span class="skill-tag">Logic Apps</span>
+        <span class="skill-tag">Azure Functions</span>
+        <span class="skill-tag">Graph API</span>
+      </div>
+    </div>
+    <div class="skill-cat">
+      <p class="skill-cat-label">Compliance & Governance</p>
+      <p class="skill-cat-title">Frameworks & Compliance</p>
+      <div class="skill-tags">
+        <span class="skill-tag">NIST 800-207</span>
+        <span class="skill-tag">ISO 27001</span>
+        <span class="skill-tag">HIPAA</span>
+        <span class="skill-tag">SOC 2</span>
+        <span class="skill-tag">Microsoft Purview</span>
+        <span class="skill-tag">DLP</span>
+        <span class="skill-tag">eDiscovery</span>
+        <span class="skill-tag">Sensitivity Labels</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Content pillars -->
+<section class="pillars-section reveal" id="topics">
+  <p class="section-tag">What you will find here</p>
+  <h2 class="section-h2">Content pillars</h2>
+  <div class="pillars-grid">
+    <div class="pillar-card">
+      <span class="pillar-num">01</span>
+      <p class="pillar-tag">IAM deep dives</p>
+      <h3 class="pillar-title">Identity Architecture & Governance</h3>
+      <p class="pillar-desc">End-to-end IAM architecture — SailPoint, Okta, Entra ID, CyberArk, RBAC models, IGA workflows, and access certification design. Production patterns, not theory.</p>
+    </div>
+    <div class="pillar-card">
+      <span class="pillar-num">02</span>
+      <p class="pillar-tag">Zero Trust</p>
+      <h3 class="pillar-title">Zero Trust in Practice</h3>
+      <p class="pillar-desc">Moving beyond the buzzword into concrete implementation — Conditional Access policies, device compliance, least-privilege access, and network micro-segmentation.</p>
+    </div>
+    <div class="pillar-card">
+      <span class="pillar-num">03</span>
+      <p class="pillar-tag">Azure & Cloud Identity</p>
+      <h3 class="pillar-title">Cloud Security & Hybrid Identity</h3>
+      <p class="pillar-desc">Hybrid identity, Azure Virtual Desktop security, Microsoft Purview DLP, Defender for Identity — the configurations the official docs do not fully explain.</p>
+    </div>
+    <div class="pillar-card">
+      <span class="pillar-num">04</span>
+      <p class="pillar-tag">AI & Automation</p>
+      <h3 class="pillar-title">AI-Driven Security Automation</h3>
+      <p class="pillar-desc">n8n, Logic Apps, and AI agents applied to identity lifecycle automation, anomaly detection, and incident response. The emerging edge of enterprise IAM operations.</p>
+    </div>
+    <div class="pillar-card">
+      <span class="pillar-num">05</span>
+      <p class="pillar-tag">Compliance</p>
+      <h3 class="pillar-title">Governance & Compliance Frameworks</h3>
+      <p class="pillar-desc">HIPAA, NIST 800-207, SOC 2, ISO 27001 — how identity controls map to audit requirements, and how to build IAM programmes that satisfy regulators without breaking operations.</p>
+    </div>
+    <div class="pillar-card">
+      <span class="pillar-num">06</span>
+      <p class="pillar-tag">Career & Craft</p>
+      <h3 class="pillar-title">IAM Career & Professional Growth</h3>
+      <p class="pillar-desc">Which certifications are worth pursuing, how enterprise clients evaluate IAM talent, and lessons learned across 24 years of working at the senior end of the identity security market.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Subscribe -->
+<section class="subscribe-section reveal" id="subscribe">
+  <div>
+    <p class="section-tag">Stay on the frontline</p>
+    <h2 class="sub-h2">New posts.<br>Every week.<br>No noise.</h2>
+    <p class="sub-desc">One email a week. A deeply researched post, a hard-won field note, or a practical configuration guide from an active IAM practitioner. No spam. No upsells. Unsubscribe instantly, any time.</p>
+  </div>
+  <a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="sub-btn" style="display: inline-block; text-decoration: none; color: #fff;">
+    Join the frontline →
+  </a>
+  <span class="sub-note">Subscribe on Substack. No spam. Unsubscribe any time.</span>
+</section>
+
+<!-- Footer -->
+<footer>
+  <span class="footer-logo">Identity<em>Frontline</em></span>
+  <ul class="footer-nav">
+    <li><a href="index.html">Blog</a></li>
+    <li><a href="#topics">Topics</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="https://linkedin.com/in/masood-raza-89488632" target="_blank" rel="noopener">LinkedIn</a></li>
+    <li><a href="#subscribe">Subscribe</a></li>
+  </ul>
+  <span class="footer-copy">© 2026 Identity Frontline · All rights reserved</span>
+</footer>
+
+<script>
+  /* ── Scroll reveal ── */
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.06 });
+  revealEls.forEach(el => io.observe(el));
+
+  /* ── Hamburger menu ── */
+  const navToggle = document.getElementById('nav-toggle');
+  const mobileNav = document.getElementById('mobile-nav');
+
+  navToggle.addEventListener('click', () => {
+    const isOpen = mobileNav.classList.toggle('open');
+    navToggle.classList.toggle('open', isOpen);
+    navToggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+  });
+
+  function closeMobileNav() {
+    mobileNav.classList.remove('open');
+    navToggle.classList.remove('open');
+  }
+
+  /* Close mobile nav when clicking outside */
+  document.addEventListener('click', (e) => {
+    if (!navToggle.contains(e.target) && !mobileNav.contains(e.target)) {
+      closeMobileNav();
+    }
+  });
+
+  /* ── Active nav link on scroll ── */
+  const sections = [
+    { id: 'blog',      link: '[href="#blog"]' },
+    { id: 'mission',   link: '[href="#about"]' },
+    { id: 'about',     link: '[href="#about"]' },
+    { id: 'topics',    link: '[href="#topics"]' },
+    { id: 'subscribe', link: '[href="#subscribe"]' },
+  ];
+
+  const navLinks = document.querySelectorAll('.nav-links a');
+  const scrollSpy = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const match = sections.find(s => s.id === entry.target.id);
+        if (match) {
+          document.querySelectorAll('.nav-links ' + match.link)
+            .forEach(a => a.classList.add('active'));
+        }
+      }
+    });
+  }, { threshold: 0.35 });
+
+  sections.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (el) scrollSpy.observe(el);
+  });
+
+  /* ── Subscribe form ── */
+  /* Mobile nav is handled above */
+
+  /* Substack redirect message */
+  if (new URLSearchParams(window.location.search).get('ref') === 'substack') {
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:#8b0055;color:#fff;padding:14px 28px;
+      border-radius:4px;font-family:'JetBrains Mono',monospace;
+      font-size:12px;letter-spacing:0.1em;z-index:9999;
+      box-shadow:0 4px 24px rgba(0,0,0,0.3);
+    `;
+    banner.textContent = '✓ Welcome to the frontline — see you in your inbox!';
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 6000);
+  }
+</script>
+</body>
+</html>

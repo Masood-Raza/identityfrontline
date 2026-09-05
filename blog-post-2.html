@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build Your IAM Homelab for Free: The Complete Guide — Identity Frontline</title>
+<meta name="description" content="Step-by-step guide to building a complete IAM homelab with Active Directory, Entra ID, Conditional Access, and hybrid identity — entirely for free.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0d1b2a;--paper:#f5f7fa;--teal:#8b0055;--teal-dark:#6a0042;--teal-pale:#f5d0e3;--rule:rgba(13,27,42,.1);--muted:#5a6a7d;--amber:#e8a020;--amber-pale:#fdf3dc;--blue:#2563eb}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif;font-weight:300;line-height:1.76;font-size:17px;overflow-x:hidden}
+.nav-bar{position:sticky;top:0;z-index:100;background:var(--ink);padding:0 52px;display:flex;align-items:center;justify-content:space-between;height:58px;border-bottom:1px solid rgba(255,255,255,.07)}
+.logo{font-family:"Bebas Neue",sans-serif;font-size:22px;letter-spacing:.08em;color:#fff;text-decoration:none;flex-shrink:0}
+.logo em{font-style:normal;color:var(--teal)}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.42);text-decoration:none;transition:color .18s}
+.nav-links a:hover{color:var(--teal)}
+.nav-toggle{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.nav-toggle span{display:block;width:22px;height:1.5px;background:rgba(255,255,255,.6);transition:all .22s}
+.nav-toggle.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.nav-toggle.open span:nth-child(2){opacity:0}
+.nav-toggle.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+.mobile-nav{display:none;position:fixed;top:58px;left:0;right:0;background:var(--ink);border-bottom:1px solid rgba(255,255,255,.1);z-index:99;padding:24px 28px 28px;flex-direction:column}
+.mobile-nav.open{display:flex}
+.mobile-nav a{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6);text-decoration:none;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06);transition:color .18s}
+.mobile-nav a:last-child{border-bottom:none}
+.mobile-nav a:hover{color:var(--teal)}
+.progress-bar{position:fixed;top:58px;left:0;z-index:98;height:2px;background:var(--teal);width:0%;transition:width .1s linear}
+.post-hero{background:var(--ink);padding:72px 52px 64px;border-bottom:1.5px solid rgba(255,255,255,.06)}
+.post-meta-row{display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.post-cat{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);background:rgba(37,99,235,.12);padding:4px 12px;border-radius:2px}
+.post-date,.post-read{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)}
+.post-date::before,.post-read::before{content:".";margin-right:16px;color:rgba(255,255,255,.15)}
+.post-hero h1{font-family:"Bebas Neue",sans-serif;font-size:clamp(44px,6vw,76px);line-height:.95;letter-spacing:.01em;color:#fff;margin-bottom:24px;max-width:820px}
+.post-hero h1 em{font-style:normal;color:var(--teal)}
+.post-subtitle{font-size:18px;font-weight:300;color:rgba(255,255,255,.55);line-height:1.65;max-width:680px;margin-bottom:40px}
+.author-row{display:flex;align-items:center;gap:14px;padding-top:32px;border-top:1px solid rgba(255,255,255,.07)}
+.author-avatar{width:44px;height:44px;border-radius:4px;background:rgba(139,0,85,.15);border:1px solid rgba(139,0,85,.3);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:16px;color:var(--teal);flex-shrink:0}
+.author-info{display:flex;flex-direction:column;gap:2px}
+.author-name{font-size:14px;font-weight:500;color:#fff}
+.author-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.post-layout{display:grid;grid-template-columns:1fr 280px;gap:0;max-width:1100px;margin:0 auto;padding:0 52px;align-items:start}
+.post-body{padding:64px 64px 64px 0;border-right:1px solid var(--rule);min-width:0}
+.post-body p{font-size:17px;font-weight:300;color:var(--muted);line-height:1.82;margin-bottom:20px}
+.post-body p strong{color:var(--ink);font-weight:500}
+.post-body p.lead{font-size:20px;font-weight:300;color:var(--ink);line-height:1.7;margin-bottom:28px}
+.post-body h2{font-family:"Bebas Neue",sans-serif;font-size:clamp(32px,4vw,46px);letter-spacing:.01em;line-height:1;color:var(--ink);margin:48px 0 18px}
+.post-body h3{font-size:18px;font-weight:500;color:var(--ink);margin:32px 0 14px;display:flex;align-items:center;gap:10px}
+.post-body h3::before{content:"";display:block;width:16px;height:2px;background:var(--teal);flex-shrink:0}
+.post-body ul,.post-body ol{margin:0 0 24px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.post-body ul li{display:flex;gap:12px;align-items:flex-start;font-size:16px;font-weight:300;color:var(--muted);line-height:1.7}
+.post-body ul li::before{content:"";display:block;width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:10px}
+.post-body ol{counter-reset:lc}
+.post-body ol li{counter-increment:lc;display:flex;gap:14px;align-items:flex-start;font-size:16px;font-weight:300;color:var(--muted);line-height:1.7}
+.post-body ol li::before{content:counter(lc);font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:500;color:var(--teal);background:rgba(139,0,85,.1);min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.post-body li strong{color:var(--ink);font-weight:500}
+.callout{border-left:3px solid var(--teal);background:var(--teal-pale);padding:20px 24px;margin:28px 0;border-radius:0 4px 4px 0}
+.callout-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-dark);margin-bottom:8px;font-weight:500}
+.callout p{font-size:15px!important;color:#4a0028!important;margin-bottom:0!important;line-height:1.65!important}
+.callout-amber{border-left-color:var(--amber);background:var(--amber-pale)}
+.callout-amber .callout-label{color:#7a4400}
+.callout-amber p{color:#4a2d00!important}
+.section-divider{display:flex;align-items:center;gap:14px;margin:56px 0 8px}
+.section-divider-line{height:1px;background:var(--rule);flex:1}
+.section-divider-text{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);flex-shrink:0}
+.code-block{font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--ink);color:#e2e8f0;padding:20px 24px;border-radius:6px;margin:16px 0 24px;line-height:1.65;overflow-x:auto;white-space:pre}
+.code-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin-bottom:6px}
+.arch-box{background:var(--ink);border-radius:8px;padding:28px;margin:28px 0}
+.arch-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.arch-node{background:rgba(139,0,85,.1);border:1px solid rgba(139,0,85,.3);border-radius:6px;padding:14px 20px;text-align:center;min-width:140px}
+.arch-node-title{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;color:var(--teal);text-transform:uppercase;margin-bottom:4px}
+.arch-node-desc{font-size:11px;color:rgba(255,255,255,.5)}
+.arch-arrow{color:var(--teal);font-size:20px;flex-shrink:0}
+.checklist{margin:20px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.checklist li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);line-height:1.6;padding:8px 12px;background:rgba(139,0,85,.04);border-radius:4px;border-left:2px solid var(--teal)}
+.checklist li::before{content:"☐";font-size:14px;color:var(--teal);flex-shrink:0;margin-top:1px}
+.pull-quote{font-style:italic;font-size:22px;font-weight:300;color:var(--ink);line-height:1.45;border-left:3px solid var(--teal);padding-left:24px;margin:36px 0}
+.post-rule{border:none;border-top:1px solid var(--rule);margin:48px 0}
+.post-rule-teal{border-top-color:var(--teal);border-top-width:2px}
+.post-sidebar{padding:64px 0 64px 48px}
+.sidebar-widget{border:.5px solid var(--rule);border-radius:4px;margin-bottom:24px;overflow:hidden}
+.sidebar-widget-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.5);background:var(--ink);padding:10px 16px}
+.sidebar-widget-body{padding:16px}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:0}
+.toc-list li{border-bottom:.5px solid var(--rule)}
+.toc-list li:last-child{border-bottom:none}
+.toc-list a{display:block;padding:9px 4px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--muted);text-decoration:none;transition:color .15s,padding-left .15s;line-height:1.45}
+.toc-list a:hover,.toc-list a.active{color:var(--teal);padding-left:8px}
+.sidebar-sub{background:var(--ink);border-radius:4px;padding:20px 18px;margin-bottom:24px}
+.sidebar-sub-title{font-family:"Bebas Neue",sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;margin-bottom:10px;line-height:1}
+.sidebar-sub-desc{font-size:12px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:16px}
+.sidebar-sub-btn{width:100%;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:2px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.sidebar-sub-btn:hover{background:var(--teal-dark)}
+.sidebar-sub-note{font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;text-align:center}
+.share-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:2px;text-decoration:none;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:.5px solid var(--rule);color:var(--muted);transition:all .18s;background:0 0;cursor:pointer;width:100%;text-align:left;margin-bottom:8px}
+.share-btn:hover{border-color:var(--teal);color:var(--teal);background:rgba(139,0,85,.05)}
+.share-btn svg{width:14px;height:14px;flex-shrink:0}
+.post-footer-section{background:var(--ink);padding:72px 52px;border-top:1px solid rgba(255,255,255,.06)}
+.post-footer-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;max-width:1100px;margin:0 auto}
+.post-footer-sub h2{font-family:"Bebas Neue",sans-serif;font-size:clamp(36px,4vw,52px);line-height:.95;color:#fff;margin-bottom:16px}
+.post-footer-sub p{font-size:15px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:24px}
+.footer-sub-btn{padding:14px 28px;background:var(--teal);color:#fff;border:none;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:background .2s}
+.footer-sub-btn:hover{background:var(--teal-dark)}
+.resource-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.resource-list li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:rgba(255,255,255,.5)}
+.resource-list li::before{content:"→";color:var(--teal);flex-shrink:0}
+.resource-list a{color:rgba(255,255,255,.65);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.15);transition:color .15s}
+.resource-list a:hover{color:var(--teal);border-color:var(--teal)}
+footer{background:var(--ink);padding:24px 52px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.06)}
+.footer-logo{font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.08em;color:#fff}
+.footer-logo em{font-style:normal;color:var(--teal)}
+.footer-copy{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.2)}
+@media(max-width:900px){.nav-bar{padding:0 20px}.nav-links{display:none}.nav-toggle{display:flex}.post-hero{padding:48px 20px 44px}.post-layout{grid-template-columns:1fr;padding:0 20px}.post-body{padding:40px 0;border-right:none}.post-sidebar{padding:0 0 40px;border-top:1px solid var(--rule)}.post-footer-section{padding:52px 20px}.post-footer-grid{grid-template-columns:1fr;gap:40px}footer{flex-direction:column;gap:12px;text-align:center;padding:24px 20px}.arch-flow{flex-direction:column}.arch-arrow{transform:rotate(90deg)}}
+@media(max-width:480px){.post-hero h1{font-size:38px}.post-body h2{font-size:30px}.code-block{font-size:11px;padding:14px 16px}}
+</style>
+</head>
+<body>
+<nav class="nav-bar">
+  <a href="index.html" class="logo"><svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display:inline-block;margin-right:8px;vertical-align:middle"><path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#f5f7fa" stroke="#8b0055" stroke-width="1.5"/><rect x="22.5" y="17" width="7" height="26" rx="1" fill="#8b0055"/><rect x="17" y="17" width="18" height="4.5" rx="1" fill="#8b0055"/><rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#8b0055"/></svg>Identity<em>Frontline</em></a>
+  <ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li><li><a href="about.html#subscribe">Subscribe</a></li></ul>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
+</nav>
+<div class="mobile-nav" id="mobile-nav"><a href="index.html" onclick="closeMobileNav()">Blog</a><a href="about.html#topics" onclick="closeMobileNav()">Topics</a><a href="about.html#about" onclick="closeMobileNav()">About</a><a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a></div>
+<div class="progress-bar" id="progress-bar"></div>
+
+<header class="post-hero">
+  <div class="post-meta-row"><span class="post-cat">Hands-On Lab</span><span class="post-date">May 2026</span><span class="post-read">25 min read</span></div>
+  <h1>Build Your IAM Homelab<br><em>For Free: The Complete Guide</em></h1>
+  <p class="post-subtitle">Deploy Active Directory, connect it to Entra ID, configure Conditional Access and MFA, and build the exact hybrid identity environment that Fortune 500 companies run — all on a free Azure account. This is the lab that gets you hired.</p>
+  <div class="author-row"><div class="author-avatar">MR</div><div class="author-info"><span class="author-name">Syed Masood Raza</span><span class="author-title">IAM Architect · 24+ years · Fortune 500 SME</span></div></div>
+</header>
+
+<div class="post-layout">
+<article class="post-body">
+
+<p class="lead">In my <a href="blog-post-1.html" style="color:var(--teal)">first post</a>, I told you to "deploy Active Directory in your lab." I did not show you how. This post fixes that.</p>
+
+<p>What you are about to build is not a toy. It is a scaled-down version of the exact hybrid identity architecture that I have deployed for Fortune 500 companies — an on-premises Active Directory domain synchronised to Microsoft Entra ID, with Conditional Access, MFA, and user lifecycle management.</p>
+
+<p>The difference? You are building it for free. Everything in this guide uses either free Azure credits, free evaluation licences, or permanently free tiers.</p>
+
+<p><strong>By the end of this guide, you will have:</strong></p>
+
+<ul>
+<li>A Windows Server 2022 VM running Active Directory Domain Services</li>
+<li>A properly structured domain with OUs, users, groups, and GPOs</li>
+<li>Microsoft Entra Connect synchronising your on-prem users to the cloud</li>
+<li>Conditional Access policies enforcing MFA and blocking risky sign-ins</li>
+<li>Self-Service Password Reset configured and working</li>
+<li>A portfolio-ready project you can reference in interviews</li>
+</ul>
+
+<div class="callout"><div class="callout-label">What you need before starting</div><p>A computer with internet access. No prior lab experience needed. Set aside 3–4 hours for the initial build. Total cost: /bin/sh.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Architecture</span><div class="section-divider-line"></div></div>
+<h2 id="architecture">What You Are Building</h2>
+
+<p>Before touching a single button, understand the architecture. This is how enterprise hybrid identity works — and your lab will mirror it.</p>
+
+<div class="arch-box"><div class="arch-label">Your homelab architecture</div><div class="arch-flow"><div class="arch-node"><div class="arch-node-title">Windows Server 2022</div><div class="arch-node-desc">Active Directory DS<br>DNS Server<br>Domain Controller</div></div><span class="arch-arrow">→</span><div class="arch-node"><div class="arch-node-title">Entra Connect</div><div class="arch-node-desc">Syncs users &amp; groups<br>Password hash sync<br>Hybrid identity bridge</div></div><span class="arch-arrow">→</span><div class="arch-node"><div class="arch-node-title">Microsoft Entra ID</div><div class="arch-node-desc">Cloud identity<br>Conditional Access<br>MFA · SSPR · SSO</div></div></div></div>
+
+<p>Active Directory is the source of truth. Entra Connect synchronises identities to the cloud. Entra ID applies security policies. This is hybrid identity — what 90% of enterprises run.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 1</span><div class="section-divider-line"></div></div>
+<h2 id="phase-1">Create Your Free Azure Account</h2>
+
+<ol>
+<li><strong>Go to azure.microsoft.com/free</strong> and click "Start free." Sign in with your Microsoft account or create one.</li>
+<li><strong>Complete identity verification.</strong> You need a phone number and a card for verification only — you will not be charged. Microsoft gives you 00 in free credits.</li>
+<li><strong>Access the Azure Portal</strong> at portal.azure.com. You now have a working Azure subscription.</li>
+</ol>
+
+<div class="callout callout-amber"><div class="callout-label">Credit card note</div><p>Azure requires a card for verification but will not charge you unless you explicitly upgrade. The 00 free credit covers this entire lab easily — a Windows Server VM costs roughly /bin/sh.05/hour.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 2</span><div class="section-divider-line"></div></div>
+<h2 id="phase-2">Deploy a Windows Server VM</h2>
+
+<h3>Create a Resource Group</h3>
+<p>In the Azure Portal, search for "Resource Groups" → Click Create.</p>
+<div class="code-label">Resource Group settings</div>
+<div class="code-block">Subscription:     Your free subscription
+Resource Group:   rg-iam-homelab
+Region:           East US</div>
+
+<h3>Create the Virtual Machine</h3>
+<p>Search for "Virtual Machines" → Click Create → Azure Virtual Machine.</p>
+<div class="code-label">VM settings</div>
+<div class="code-block">Resource Group:       rg-iam-homelab
+VM Name:              DC01
+Region:               East US
+Image:                Windows Server 2022 Datacenter
+Size:                 Standard_B2s (2 vCPU, 4 GB RAM)
+Username:             labadmin
+Password:             (strong password)
+Public inbound ports: Allow RDP (3389)</div>
+<p>Click Review + Create → Create. Deployment takes 2–4 minutes. Then Connect → RDP → download the file and log in.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 3</span><div class="section-divider-line"></div></div>
+<h2 id="phase-3">Install Active Directory Domain Services</h2>
+
+<h3>Set a Static IP (Critical)</h3>
+<p>Before installing AD, set your VM's private IP to static: VM → Networking → Network Interface → IP configurations → Change to Static → Save.</p>
+
+<div class="callout"><div class="callout-label">Why static IP matters</div><p>Active Directory relies on DNS, and DNS relies on a consistent IP. If your DC's IP changes, the entire domain breaks. In production, this is always static.</p></div>
+
+<h3>Install AD DS via Server Manager</h3>
+<ol>
+<li><strong>Open Server Manager</strong> → Add roles and features</li>
+<li><strong>Check "Active Directory Domain Services"</strong> → Add Features</li>
+<li><strong>Click Install</strong> and wait 2–3 minutes</li>
+</ol>
+
+<h3>Promote to Domain Controller</h3>
+<p>Click the yellow notification flag → "Promote this server to a domain controller."</p>
+<div class="code-label">Domain configuration</div>
+<div class="code-block">Select:               Add a new forest
+Root domain name:     iamlab.local
+Forest/Domain level:  Windows Server 2016
+DSRM Password:        (save this)
+NetBIOS name:         IAMLAB</div>
+<p>Install → server restarts. Log back in as <strong>IAMLAB\labadmin</strong>. You have a working Active Directory domain.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 4</span><div class="section-divider-line"></div></div>
+<h2 id="phase-4">Build Your Domain Structure</h2>
+
+<h3>Create Organisational Units</h3>
+<p>Open Active Directory Users and Computers (ADUC). Right-click your domain → New → Organisational Unit:</p>
+<div class="code-block">iamlab.local
+├── OU=Corporate
+│   ├── OU=Users
+│   ├── OU=Groups
+│   ├── OU=Computers
+│   └── OU=Service Accounts
+├── OU=IT
+│   ├── OU=IT-Users
+│   └── OU=IT-Groups
+└── OU=Disabled Accounts</div>
+
+<h3>Create Test Users via PowerShell</h3>
+<div class="code-block"># Create 10 test users
+ = "OU=Users,OU=Corporate,DC=iamlab,DC=local"
+ = ConvertTo-SecureString "P@ssw0rd2026!" -AsPlainText -Force
+
+ = @(
+  @{First="Sarah";Last="Chen";Title="IAM Analyst"},
+  @{First="James";Last="Wilson";Title="Security Engineer"},
+  @{First="Priya";Last="Sharma";Title="Cloud Admin"},
+  @{First="Michael";Last="Johnson";Title="IT Manager"},
+  @{First="Fatima";Last="Ali";Title="Helpdesk Analyst"},
+  @{First="David";Last="Lee";Title="Network Engineer"},
+  @{First="Emma";Last="Martinez";Title="Compliance Officer"},
+  @{First="Ahmed";Last="Hassan";Title="DevOps Engineer"},
+  @{First="Lisa";Last="Thompson";Title="SOC Analyst"},
+  @{First="Raj";Last="Patel";Title="IAM Architect"}
+)
+
+foreach ( in ) {
+   = (.First[0] + .Last).ToLower()
+  New-ADUser -Name " "     -GivenName .First -Surname .Last     -SamAccountName      -UserPrincipalName "@iamlab.local"     -Title .Title -Path      -AccountPassword  -Enabled 
+  Write-Host "Created: " -ForegroundColor Green
+}</div>
+
+<h3>Create Security Groups</h3>
+<div class="code-block"># Create security groups
+ = "OU=Groups,OU=Corporate,DC=iamlab,DC=local"
+@("SG-IAM-Admins","SG-Cloud-Admins","SG-Helpdesk",
+  "SG-VPN-Users","SG-MFA-Enforced") | ForEach {
+  New-ADGroup -Name  -GroupScope Global     -GroupCategory Security -Path 
+  Write-Host "Created: " -ForegroundColor Cyan
+}
+
+# Add members
+Add-ADGroupMember "SG-IAM-Admins" -Members "rpatel","schen"
+Add-ADGroupMember "SG-Cloud-Admins" -Members "psharma","dlee"</div>
+
+<h3>Create a Group Policy Object</h3>
+<ol>
+<li>Open <strong>Group Policy Management</strong></li>
+<li>Right-click Corporate OU → Create GPO → Name: "Password Policy - Corporate"</li>
+<li>Edit → Computer Config → Policies → Windows Settings → Security → Account Policies → Password Policy</li>
+<li>Set: Min length = <strong>12</strong>, Complexity = <strong>Enabled</strong>, Max age = <strong>90 days</strong></li>
+</ol>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 5</span><div class="section-divider-line"></div></div>
+<h2 id="phase-5">Connect to Entra ID with Entra Connect</h2>
+
+<p>This is where your lab goes from "I set up AD" to "I built hybrid identity." This single step separates a homelab from an enterprise-grade lab.</p>
+
+<ol>
+<li><strong>Verify your Entra ID tenant</strong> — Azure Portal → Microsoft Entra ID. Your free subscription includes one.</li>
+<li><strong>Download Entra Connect V2</strong> — on your DC VM, search microsoft.com/download for "Microsoft Entra Connect"</li>
+<li><strong>Install with Express Settings</strong> — this enables Password Hash Sync (the most common production method)</li>
+<li><strong>Enter Entra ID Global Admin credentials</strong></li>
+<li><strong>Enter AD DS Enterprise Admin credentials</strong> (IAMLAB\labadmin)</li>
+<li><strong>Click Install</strong></li>
+</ol>
+
+<div class="callout"><div class="callout-label">What just happened</div><p>Entra Connect is synchronising your on-premises AD users to the cloud. Every user you created — Sarah Chen, Raj Patel, all of them — now exists in both your on-prem AD and Entra ID. This is hybrid identity. This is what enterprises run.</p></div>
+
+<p><strong>Verify:</strong> Go to entra.microsoft.com → Users → All users. Your 10 users should appear with Source = "Windows Server AD."</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 6</span><div class="section-divider-line"></div></div>
+<h2 id="phase-6">Configure Conditional Access and MFA</h2>
+
+<div class="callout callout-amber"><div class="callout-label">Licence requirement</div><p>Conditional Access requires Entra ID P1. Activate the free 30-day P2 trial: Entra Portal → Licences → All products → Activate Entra ID P2 trial.</p></div>
+
+<h3>Policy 1: Require MFA for All Users</h3>
+<ol>
+<li>Entra Portal → Protection → Conditional Access → New policy</li>
+<li>Name: <strong>"Require MFA — All Users"</strong></li>
+<li>Users: All users (exclude your break-glass admin)</li>
+<li>Target resources: All cloud apps</li>
+<li>Grant: <strong>Require multifactor authentication</strong></li>
+<li>Enable: <strong>Report-only</strong> first, then switch to On after testing</li>
+</ol>
+
+<h3>Policy 2: Block Legacy Authentication</h3>
+<ol>
+<li>New policy → Name: <strong>"Block Legacy Auth"</strong></li>
+<li>Users: All users</li>
+<li>Conditions → Client apps: Exchange ActiveSync + Other clients</li>
+<li>Grant: <strong>Block access</strong></li>
+<li>Enable: On</li>
+</ol>
+<p>Legacy auth protocols don't support MFA — blocking them is one of the first things you do in any enterprise.</p>
+
+<h3>Enable Self-Service Password Reset</h3>
+<ol>
+<li>Entra Portal → Protection → Password reset</li>
+<li>Enabled: <strong>All</strong></li>
+<li>Methods: Mobile app notification + Email</li>
+<li>Save</li>
+</ol>
+<p>In production, SSPR alone reduces L1 ticket volume by 20–30%.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 7</span><div class="section-divider-line"></div></div>
+<h2 id="phase-7">Document Everything — Build Your Portfolio</h2>
+
+<ul>
+<li><strong>Architecture diagram</strong> — use draw.io (free). Show: AD → Entra Connect → Entra ID → Conditional Access</li>
+<li><strong>Configuration summary</strong> — list every setting: domain name, OUs, GPOs, CA policies, SSPR. Keep in a clean PDF.</li>
+<li><strong>PowerShell scripts</strong> — push to a GitHub repo titled "IAM-Homelab-Scripts"</li>
+<li><strong>Screenshots</strong> — ADUC structure, Entra users (synced), CA policies, SSPR config. Annotate them.</li>
+<li><strong>Lessons learned</strong> — 3–5 bullets on what you learned and what you'd do differently in production</li>
+</ul>
+
+<div class="callout"><div class="callout-label">The portfolio effect</div><p>"I built a hybrid identity environment with AD, Entra Connect, Conditional Access, and SSPR — here is my documentation" is immediately more credible than only having certifications. Certifications show you studied. A lab shows you built.</p></div>
+
+<hr class="post-rule post-rule-teal">
+<h2 id="checklist">Your Complete Lab Checklist</h2>
+
+<ul class="checklist">
+<li>Created Azure free account with 00 credits</li>
+<li>Deployed Windows Server 2022 VM (DC01)</li>
+<li>Set static private IP on the VM</li>
+<li>Installed Active Directory Domain Services</li>
+<li>Promoted server to Domain Controller (iamlab.local)</li>
+<li>Created OU structure (Corporate, IT, Disabled Accounts)</li>
+<li>Created 10 test users via PowerShell</li>
+<li>Created security groups and assigned memberships</li>
+<li>Created and linked a GPO (password policy)</li>
+<li>Installed Microsoft Entra Connect V2</li>
+<li>Verified user synchronisation to Entra ID</li>
+<li>Activated Entra ID P2 trial</li>
+<li>Created CA policy: Require MFA</li>
+<li>Created CA policy: Block legacy auth</li>
+<li>Enabled Self-Service Password Reset</li>
+<li>Created architecture diagram</li>
+<li>Documented all configurations</li>
+<li>Pushed scripts to GitHub</li>
+<li>Updated LinkedIn profile with lab project</li>
+</ul>
+
+<hr class="post-rule">
+<h2 id="whats-next">What to Build Next</h2>
+<ul>
+<li><strong>Configure Azure AD PIM</strong> — just-in-time admin access with approval workflows</li>
+<li><strong>Add a SAML SSO application</strong> — register a test app and configure Single Sign-On</li>
+<li><strong>Enable Identity Protection</strong> — user risk and sign-in risk policies</li>
+<li><strong>Build an n8n automation</strong> — trigger a workflow when a new AD user is created</li>
+<li><strong>Deploy a second DC</strong> — add DC02 and configure AD replication</li>
+</ul>
+
+<div class="pull-quote">"The lab is where theory becomes muscle memory. When an interviewer asks 'Have you configured Conditional Access?' your answer is not 'I studied it.' Your answer is 'I built it.'"</div>
+
+<p>Go build it. The Azure free account takes 5 minutes. Your first domain controller takes 30 minutes. By tonight, you can have a working hybrid identity environment that matches what Fortune 500 companies run.</p>
+
+<p><strong>That is not a hobby project. That is a career.</strong></p>
+
+<p>— <strong>Masood</strong></p>
+<p style="font-size:13px;color:var(--muted)">IAM Architect · 24+ years · identityfrontline.com</p>
+
+</article>
+
+<aside class="post-sidebar">
+<div class="sidebar-sub"><div class="sidebar-sub-title">Stay on the Frontline</div><p class="sidebar-sub-desc">Step-by-step IAM guides, lab projects, and career advice weekly.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="sidebar-sub-btn" style="display:block;text-align:center;text-decoration:none;color:#fff">Join the frontline →</a><p class="sidebar-sub-note">Subscribe on Substack. Free.</p></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">In this guide</div><div class="sidebar-widget-body"><ul class="toc-list">
+<li><a href="#architecture" class="toc-link">Architecture overview</a></li>
+<li><a href="#phase-1" class="toc-link">Phase 1: Azure account</a></li>
+<li><a href="#phase-2" class="toc-link">Phase 2: Deploy VM</a></li>
+<li><a href="#phase-3" class="toc-link">Phase 3: Install AD DS</a></li>
+<li><a href="#phase-4" class="toc-link">Phase 4: Domain structure</a></li>
+<li><a href="#phase-5" class="toc-link">Phase 5: Entra Connect</a></li>
+<li><a href="#phase-6" class="toc-link">Phase 6: Conditional Access</a></li>
+<li><a href="#phase-7" class="toc-link">Phase 7: Portfolio</a></li>
+<li><a href="#checklist" class="toc-link">Checklist</a></li>
+<li><a href="#whats-next" class="toc-link">What to build next</a></li>
+</ul></div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">Share this guide</div><div class="sidebar-widget-body">
+<a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https://identityfrontline.com/blog-post-2.html" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Share on LinkedIn</a>
+<button class="share-btn" onclick="copyLink()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><span id="copy-label">Copy link</span></button>
+</div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">Start here first</div><div class="sidebar-widget-body"><a href="blog-post-1.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">No Job, No Experience, No Problem: How to Break Into IAM in 2026</a><span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Career Guide · 18 min</span></div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">About the author</div><div style="padding:16px"><div class="author-avatar" style="width:52px;height:52px;font-size:20px;margin-bottom:12px">MR</div><div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px">Syed Masood Raza</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">IAM Architect · Cybersecurity SME</div><p style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6">24+ years building hybrid identity for Fortune 500 companies. AZ-305, SC-300, ISC2 CC, MCT.</p></div></div>
+</aside>
+</div>
+
+<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>Next guide drops next week.</h2><p>Step-by-step IAM labs, cert guides, and career strategies from a practitioner. No spam.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="footer-sub-btn" style="display:inline-block;text-decoration:none;color:#fff">Join the frontline →</a></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>Azure Free Account — <a href="https://azure.microsoft.com/free" target="_blank">azure.microsoft.com/free</a></li><li>Entra Connect — <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>Windows Server Eval — <a href="https://microsoft.com/evalcenter" target="_blank">microsoft.com/evalcenter</a></li><li>draw.io — <a href="https://app.diagrams.net" target="_blank">app.diagrams.net</a></li><li>n8n.io — <a href="https://n8n.io" target="_blank">n8n.io</a></li></ul></div></div></section>
+
+<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">© 2026 Identity Frontline · identityfrontline.com</span></footer>
+
+<script>
+window.addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress-bar').style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight))*100+'%'});
+const hs=document.querySelectorAll('h2[id]'),tls=document.querySelectorAll('.toc-link');
+const to=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){tls.forEach(l=>l.classList.remove('active'));const m=document.querySelector('.toc-link[href="#'+en.target.id+'"]');if(m)m.classList.add('active')}})},{rootMargin:'-10% 0px -70% 0px'});
+hs.forEach(h=>to.observe(h));
+const nt=document.getElementById('nav-toggle'),mn=document.getElementById('mobile-nav');
+nt.addEventListener('click',()=>{const o=mn.classList.toggle('open');nt.classList.toggle('open',o)});
+document.addEventListener('click',e=>{if(!nt.contains(e.target)&&!mn.contains(e.target)){mn.classList.remove('open');nt.classList.remove('open')}});
+function closeMobileNav(){mn.classList.remove('open');nt.classList.remove('open')}
+function copyLink(){navigator.clipboard.writeText(window.location.href).then(()=>{const l=document.getElementById('copy-label');l.textContent='Copied!';setTimeout(()=>l.textContent='Copy link',2000)})}
+</script>
+</body>
+</html>
