@@ -461,6 +461,25 @@ footer {
   .cert-table { font-size: 11px; }
   .cert-table td, .cert-table th { padding: 9px 8px; }
 }
+/* Dark identity-security theme */
+:root {
+  --ink: #f5f7ff;
+  --ink-mid: #172342;
+  --paper: #060b1c;
+  --teal: #35d7ff;
+  --teal-dark: #1aaed9;
+  --teal-pale: rgba(53,215,255,.12);
+  --rule: rgba(147,185,255,.18);
+  --muted: #a9b5cd;
+  --surface: #0e1730;
+  --amber: #f2b84b;
+  --amber-pale: rgba(242,184,75,.12);
+  --nav: #080d1f;
+}
+body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36%); }
+.nav-bar, .mobile-nav, .post-hero, .post-footer-section, footer, .sidebar-sub, .cert-table th, .sidebar-widget-title { background: var(--nav); }
+.code-block { background: #0b1228; border-color: var(--rule); }
+.post-hero h1 em { background: linear-gradient(90deg, #35d7ff, #8c6cff, #e95cd7); -webkit-background-clip: text; background-clip: text; color: transparent; }
 </style>
 </head>
 <body>
@@ -469,11 +488,11 @@ footer {
 <nav class="nav-bar">
   <a href="about.html" class="logo">
     <svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display: inline-block; margin-right: 8px; vertical-align: middle;">
-      <path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#f5f7fa" stroke="#8b0055" stroke-width="1.5"/>
-      <path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(244,242,236,0.3)" stroke-width="1"/>
-      <rect x="22.5" y="17" width="7" height="26" rx="1" fill="#8b0055"/>
-      <rect x="17" y="17" width="18" height="4.5" rx="1" fill="#8b0055"/>
-      <rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#8b0055"/>
+      <path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#0e1730" stroke="#35d7ff" stroke-width="1.5"/>
+      <path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(140,108,255,0.6)" stroke-width="1"/>
+      <rect x="22.5" y="17" width="7" height="26" rx="1" fill="#35d7ff"/>
+      <rect x="17" y="17" width="18" height="4.5" rx="1" fill="#35d7ff"/>
+      <rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#35d7ff"/>
     </svg>
     Identity<em>Frontline</em>
   </a>
