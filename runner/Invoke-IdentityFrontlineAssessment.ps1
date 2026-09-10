@@ -33,7 +33,12 @@
 
 .PARAMETER WhatIfPlan
     Validate the plan, show what would run and which scopes would be requested, then exit
-    without signing in or contacting the tenant.
+    without signing in or contacting the tenant. Needs nothing installed.
+
+.PARAMETER DryRun
+    Install/import the assessment engine and let it resolve the plan's sections, services,
+    scopes and check counts, then exit. Still no sign-in and no tenant contact. Use this to
+    prove the whole pipeline before pointing it at a real tenant.
 
 .EXAMPLE
     .\Invoke-IdentityFrontlineAssessment.ps1 -RunPlan .\assessment-run-plan.json -TenantId contoso.onmicrosoft.com
@@ -52,7 +57,8 @@ param(
     [string]$TenantId,
     [string]$OutputFolder,
     [string]$CatalogPath,
-    [switch]$WhatIfPlan
+    [switch]$WhatIfPlan,
+    [switch]$DryRun
 )
 
 $ErrorActionPreference = 'Stop'
@@ -144,19 +150,57 @@ $pinned = $catalog.source.moduleVersion
 $installed = Get-Module -ListAvailable -Name 'M365-Assess' | Sort-Object Version -Descending | Select-Object -First 1
 
 if (-not $installed) {
-    Write-Warn "M365-Assess is not installed. Required version: $pinned"
-    $answer = Read-Host "Install M365-Assess $pinned for the current user now? [y/N]"
+    Write-Warn "M365-Assess is not installed. Catalog pins version $pinned."
+
+    # The catalog is built from a git checkout, whose module version can be ahead of what is
+    # published. Resolve the newest gallery release at or below the pin rather than failing
+    # on -RequiredVersion for a version that was never published.
+    $target = $pinned
+    try {
+        $available = @(Find-Module -Name 'M365-Assess' -AllVersions -ErrorAction Stop)
+        if (-not ($available.Version -contains [version]$pinned)) {
+            $best = $available |
+                Where-Object { [version]$_.Version -le [version]$pinned } |
+                Sort-Object { [version]$_.Version } -Descending |
+                Select-Object -First 1
+            if (-not $best) { throw "No published M365-Assess release is at or below the pinned $pinned." }
+            $target = $best.Version.ToString()
+            Write-Warn "Version $pinned is not published. Newest available at or below it: $target."
+        }
+    }
+    catch {
+        throw "Could not reach the PowerShell Gallery to resolve M365-Assess: $($_.Exception.Message)"
+    }
+
+    Write-Warn 'This also installs the Microsoft Graph modules it depends on (several hundred MB).'
+    $answer = Read-Host "Install M365-Assess $target for the current user now? [y/N]"
     if ($answer -notmatch '^(y|yes)$') { throw 'Cannot continue without the assessment engine.' }
-    Install-Module -Name 'M365-Assess' -RequiredVersion $pinned -Scope CurrentUser -Force -AllowClobber
+
+    Install-Module -Name 'M365-Assess' -RequiredVersion $target -Scope CurrentUser -Force -AllowClobber
     $installed = Get-Module -ListAvailable -Name 'M365-Assess' | Sort-Object Version -Descending | Select-Object -First 1
+    if (-not $installed) { throw 'Install reported success but M365-Assess is still not available.' }
 }
-elseif ($installed.Version.ToString() -ne $pinned) {
-    Write-Warn "Installed M365-Assess $($installed.Version) differs from the catalog's pinned $pinned."
-    Write-Warn 'Check results and framework mappings may not match the planner preview.'
+
+if ($installed.Version.ToString() -ne $pinned) {
+    Write-Warn "Using M365-Assess $($installed.Version); the catalog was built from $pinned."
+    Write-Warn 'Check counts and framework mappings may differ from the planner preview.'
 }
 
 Import-Module -Name 'M365-Assess' -MinimumVersion $installed.Version -Force
 Write-Ok "Engine ready: M365-Assess $($installed.Version)"
+
+# ==========================================================================================
+# 2b. Engine dry run -- exercises the real engine's section/scope resolution, no tenant
+# ==========================================================================================
+if ($DryRun) {
+    Write-Step 'Engine dry run (no sign-in, no tenant contact)'
+    $dryArgs = @{ Section = $planSections; DryRun = $true; ErrorAction = 'Stop' }
+    if ($TenantId) { $dryArgs.TenantId = $TenantId }
+    Invoke-M365Assessment @dryArgs
+    Write-Host ''
+    Write-Host 'Engine dry run complete. No sign-in attempted and no tenant contacted.' -ForegroundColor Green
+    return
+}
 
 # ==========================================================================================
 # 3. Interactive sign-in, then verify what was actually granted

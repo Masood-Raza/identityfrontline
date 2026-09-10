@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const html = readFileSync(`${root}/assessments.html`, 'utf8');
-const cat = JSON.parse(readFileSync(`${root}/assets/catalog/catalog.json`, 'utf8'));
+const cat = JSON.parse(readFileSync(join(root, 'assets/catalog/catalog.json'), 'utf8'));
 
 let fail = 0;
 const ok = (name, cond, extra = '') => {

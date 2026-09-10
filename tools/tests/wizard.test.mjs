@@ -48,6 +48,7 @@ const ok = (name, cond, extra = '') => {
 };
 const $ = s => doc.querySelector(s);
 const $$ = s => [...doc.querySelectorAll(s)];
+const man = JSON.parse(fs.readFileSync(join(root, 'assets/catalog/manifest.json'), 'utf8'));
 
 ok('no uncaught script errors', errors.length === 0, errors.join(' | '));
 ok('catalog error banner hidden', $('#catalogError').hidden);
@@ -97,10 +98,10 @@ ok('Entra path leaks no Teams scope', !t.includes('TeamSettings'));
 ok('Entra path leaks no Intune scope', !t.includes('DeviceManagement'));
 
 // Manifest-driven download.
-ok('download box rendered from manifest', $('#downloadBox').textContent.includes('v1.0.0'));
+ok('download box rendered from manifest', $('#downloadBox').textContent.includes('v' + man.runner.version));
 ok('SHA256 published on the page', /[0-9a-f]{64}/.test($('#downloadBox').textContent));
 ok('download link points at the package',
-  $('#downloadBox a')?.getAttribute('href') === '/assets/runner/identityfrontline-assessment-runner-1.0.0.zip',
+  $('#downloadBox a')?.getAttribute('href') === man.runner.url,
   $('#downloadBox a')?.getAttribute('href'));
 ok('unsigned build is labelled', $('.unsigned') !== null);
 ok('catalog provenance shown', $('#catalogMeta').textContent.includes('M365-Assess 2.13.0'));

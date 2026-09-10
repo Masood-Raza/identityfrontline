@@ -92,11 +92,34 @@ Deliberate constraints, all enforced in code and covered by tests:
 | No sensitive logging | `Connect-MgGraph -NoWelcome`; exception messages are surfaced without inner request/response payloads. |
 | Always disconnects | `Disconnect-MgGraph` runs in `finally`, including on failure. |
 
-Validate a plan without touching a tenant:
+### Two ways to rehearse without touching a tenant
 
 ```powershell
+# 1. Plan validation only. Needs nothing installed, contacts nothing.
 .\Invoke-IdentityFrontlineAssessment.ps1 -RunPlan .\assessment-run-plan.json -WhatIfPlan
+
+# 2. Engine dry run. Installs/imports M365-Assess and lets the real engine resolve the
+#    plan's sections, services, scopes and check counts. Still no sign-in, no tenant.
+.\Invoke-IdentityFrontlineAssessment.ps1 -RunPlan .\assessment-run-plan.json -DryRun
+
+# 3. The real thing. Opens a browser for interactive sign-in.
+.\Invoke-IdentityFrontlineAssessment.ps1 -RunPlan .\assessment-run-plan.json -TenantId contoso.onmicrosoft.com
 ```
+
+Steps 2 and 3 install the engine plus its eight Microsoft Graph dependencies (several hundred
+MB, `CurrentUser` scope) if they are not already present, after asking.
+
+### The catalog pin can be ahead of the gallery
+
+The catalog records the module version from the git checkout it was built against, which can
+be **newer than anything published**. At the time of writing the catalog pins `2.13.0` while
+the newest PowerShell Gallery release is `2.12.0`, so a naive
+`Install-Module -RequiredVersion 2.13.0` fails on a clean machine.
+
+The runner resolves this: if the pinned version is not published it installs the newest
+release at or below the pin and warns that check counts and framework mappings may differ
+from the planner preview. Pin and installed version are compared on every run, not just on
+first install.
 
 ## Building and publishing the runner
 
@@ -133,9 +156,13 @@ recording the pinned engine version and catalog source ref.
 
 ## Not done yet
 
-- **No test-tenant validation.** Nothing here has been run against a real tenant. Sign-in,
-  consent, scope verification and partial-service degradation are implemented and unit-tested
-  but unproven end to end.
+- **No test-tenant validation.** Nothing here has been run against a real tenant, and the
+  engine has not been installed on a build machine either. Sign-in, consent, scope
+  verification and partial-service degradation are implemented and unit-tested but unproven
+  end to end. Start with `-DryRun`, which exercises the real engine without a tenant.
+- **The runner prompts interactively.** Module install confirmation, tenant entry and the
+  reduced-coverage confirmation all use `Read-Host`, and sign-in opens a browser. It has to
+  be run from a real terminal; it cannot be driven from a non-interactive session.
 - **Builds are unsigned.** The signing path exists; no certificate has been applied.
 - **Throttling** beyond sign-in retry is left to M365-Assess's own Graph handling.
 - **No CI wiring.** `Build-AssessmentCatalog.ps1 -Check` and `npm test` are ready to gate a
