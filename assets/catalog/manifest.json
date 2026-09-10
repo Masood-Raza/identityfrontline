@@ -1,0 +1,46 @@
+{
+  "manifestVersion": "1.0.0",
+  "generatedUtc": "2026-09-10T09:29:05Z",
+  "runner": {
+    "version": "1.0.0",
+    "file": "identityfrontline-assessment-runner-1.0.0.zip",
+    "url": "/assets/runner/identityfrontline-assessment-runner-1.0.0.zip",
+    "sha256": "130824f816a61171cd949594a40a6741588515b51c42ebbd11ce4c01cc3ac746",
+    "sizeBytes": 8545,
+    "signed": false,
+    "verify": "Get-FileHash .\\identityfrontline-assessment-runner-1.0.0.zip -Algorithm SHA256"
+  },
+  "requires": {
+    "powerShell": "7.0",
+    "modules": [
+      "M365-Assess",
+      "Microsoft.Graph.Authentication"
+    ],
+    "engineVersion": "2.13.0"
+  },
+  "assessment": {
+    "profile": "graph-delegated-v1",
+    "authentication": "interactive-delegated",
+    "sections": [
+      "Tenant",
+      "Identity",
+      "Licensing",
+      "Intune",
+      "Collaboration",
+      "Hybrid"
+    ],
+    "checkCount": 196.0,
+    "scopeCount": 17,
+    "readOnly": true
+  },
+  "catalog": {
+    "version": "1.0.0",
+    "registryData": "2026-04-30",
+    "sourceRef": "3148d98741f5d7edc51c978e4b724bf8148a54ee"
+  },
+  "privacy": {
+    "dataLeavesDevice": false,
+    "statement": "The website serves this manifest and the package only. No tenant data, report content or token is transmitted to identityfrontline.com."
+  },
+  "attribution": "Assessment engine and control registry (c) Galvnyz, MIT licensed."
+}

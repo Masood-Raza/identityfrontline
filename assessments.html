@@ -1,21 +1,202 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cloud Assessments | Identity Frontline</title><meta name="description" content="Local-first Microsoft 365 and Entra ID security assessment planning."><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
 :root{--ink:#0d1b2a;--paper:#f5f7fa;--wine:#8b0055;--wine-dark:#61003b;--pale:#f5d0e3;--muted:#5a6a7d;--rule:rgba(13,27,42,.12);--green:#146c55;--green-bg:#e5f5ee;--amber:#8c5b00;--amber-bg:#fff5db}*{box-sizing:border-box;margin:0}body{background:var(--paper);color:var(--ink);font:300 16px/1.7 'DM Sans',sans-serif}.nav-bar{height:58px;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 52px}.logo{font:22px 'Bebas Neue',sans-serif;letter-spacing:.08em;color:#fff;text-decoration:none}.logo em{color:var(--wine);font-style:normal}.nav-links{display:flex;gap:28px;list-style:none}.nav-links a{font:10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#aab3c1;text-decoration:none}.nav-links a:hover,.nav-links .active{color:#fff}.nav-toggle,.mobile-nav{display:none}.hero{background:radial-gradient(circle at 80% 0,#3b1530 0,transparent 37%),var(--ink);color:#fff;padding:80px max(6vw,28px) 72px}.eyebrow,.step-label{font:10px 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#df8fbd}.hero-grid{max-width:1160px;margin:auto;display:grid;grid-template-columns:1.25fr .75fr;gap:70px;align-items:end}.hero h1{font:clamp(46px,7vw,88px)/.88 'Bebas Neue',sans-serif;letter-spacing:.01em;margin:15px 0 24px}.hero h1 em{color:#eaa2ca;font-style:normal}.hero p{max-width:650px;color:#d0d6df;font-size:18px}.hero-card{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);padding:26px}.hero-card strong{font:22px 'Bebas Neue',sans-serif;letter-spacing:.05em;display:block;margin:9px 0}.hero-card p{font-size:14px;color:#bdc6d2}.section{max-width:1160px;margin:auto;padding:72px 28px}.intro{display:grid;grid-template-columns:1fr 1fr;gap:64px}.section h2{font:42px/1 'Bebas Neue',sans-serif;letter-spacing:.02em;margin:10px 0 18px}.section p{color:var(--muted)}.facts{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fact{background:#fff;border:1px solid var(--rule);padding:18px}.fact b{font:20px 'Bebas Neue',sans-serif;letter-spacing:.04em;display:block}.fact span{font-size:13px;color:var(--muted)}.wizard-wrap{background:#fff;border:1px solid var(--rule);box-shadow:0 18px 55px rgba(13,27,42,.09);margin-top:16px}.steps{display:flex;border-bottom:1px solid var(--rule);overflow:auto}.step{min-width:145px;padding:17px 20px;color:#8a97a7;font:10px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;border-bottom:3px solid transparent}.step.active{color:var(--wine);border-color:var(--wine)}.wizard{padding:38px}.panel{display:none}.panel.active{display:block}.panel h3{font:34px/1 'Bebas Neue',sans-serif;margin:9px 0 10px}.hint{color:var(--muted);margin-bottom:25px}.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.choice{display:block;border:1px solid var(--rule);padding:20px;cursor:pointer;transition:.18s;background:#fff}.choice:hover,.choice.selected{border-color:var(--wine);background:#fff8fc;box-shadow:inset 3px 0 var(--wine)}.choice input{position:absolute;opacity:0}.choice b{display:block;font-weight:700}.choice small{color:var(--muted);display:block;margin-top:6px}.tag-grid{display:flex;flex-wrap:wrap;gap:9px}.tag{border:1px solid var(--rule);padding:9px 12px;background:#fff;cursor:pointer;font:12px 'JetBrains Mono',monospace}.tag input{display:none}.tag:has(input:checked){background:var(--ink);border-color:var(--ink);color:#fff}.scope-group{margin:23px 0}.scope-group h4{font:11px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;color:var(--wine)}.notice{border-left:4px solid var(--green);background:var(--green-bg);padding:16px 18px;margin:20px 0;color:#194c3e}.notice strong{display:block}.permission-table{width:100%;border-collapse:collapse;font-size:13px;margin:20px 0}.permission-table th{font:10px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--muted);background:#f3f5f7}.permission-table th,.permission-table td{padding:12px;border-bottom:1px solid var(--rule);vertical-align:top}.read-only{display:inline-block;border-radius:10px;padding:2px 8px;background:var(--green-bg);color:var(--green);font-size:11px}.warning{background:var(--amber-bg);border-left:4px solid var(--amber);padding:16px 18px;margin-top:18px;color:#624000}.actions{display:flex;justify-content:space-between;gap:15px;margin-top:32px}.button{border:0;background:var(--wine);color:#fff;padding:13px 19px;font:12px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;text-decoration:none}.button:hover{background:var(--wine-dark)}.button.secondary{background:transparent;color:var(--ink);border:1px solid var(--rule)}.final{max-width:720px}.final .download{display:flex;gap:12px;align-items:center;background:#f8fafb;padding:18px;border:1px solid var(--rule);margin:20px 0}.download i{font:24px 'Bebas Neue',sans-serif;font-style:normal;color:var(--wine)}.security{background:var(--ink);color:#fff}.security .section p{color:#b9c3ce}.security-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:25px;margin-top:30px}.security-grid div{border-top:1px solid rgba(255,255,255,.2);padding-top:15px}.security-grid b{font:18px 'Bebas Neue',sans-serif;letter-spacing:.04em;display:block}footer{padding:28px 52px;background:#09131f;color:#aeb8c4;font-size:12px;display:flex;justify-content:space-between}.footer-logo{font:19px 'Bebas Neue',sans-serif;letter-spacing:.06em;color:#fff}.footer-logo em{color:var(--wine);font-style:normal}@media(max-width:720px){.nav-bar{padding:0 20px}.nav-links{display:none}.hero{padding:58px 24px}.hero-grid,.intro{grid-template-columns:1fr;gap:32px}.section{padding:52px 20px}.wizard{padding:26px 18px}.cards,.security-grid{grid-template-columns:1fr}.permission-table{display:block;overflow:auto;white-space:nowrap}.nav-toggle{display:flex;background:transparent;border:0;color:#fff;font-size:24px}.mobile-nav.open{display:flex;position:absolute;top:58px;left:0;right:0;background:var(--ink);padding:15px 20px;z-index:5;flex-direction:column}.mobile-nav a{color:#fff;text-decoration:none;padding:10px}.steps{margin:0 -18px}.step{min-width:128px;padding:14px}.actions{flex-wrap:wrap}footer{padding:22px;flex-direction:column;gap:8px}}
-</style><style>body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}.nav-bar,.hero{background:#080d1f}.logo{display:flex;align-items:center}.logo svg{margin-right:8px}.logo em{color:#35d7ff}.nav-links a:hover,.nav-links .active{color:#35d7ff}.eyebrow,.step-label{color:#35d7ff}.hero h1 em{font-style:normal;background:linear-gradient(90deg,#35d7ff,#8c6cff,#e95cd7);-webkit-background-clip:text;background-clip:text;color:transparent}</style></head><body>
+</style><style>body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}.nav-bar,.hero{background:#080d1f}.logo{display:flex;align-items:center}.logo svg{margin-right:8px}.logo em{color:#35d7ff}.nav-links a:hover,.nav-links .active{color:#35d7ff}.eyebrow,.step-label{color:#35d7ff}.hero h1 em{font-style:normal;background:linear-gradient(90deg,#35d7ff,#8c6cff,#e95cd7);-webkit-background-clip:text;background-clip:text;color:transparent}:root{--wine:#5a3fd0;--wine-dark:#452fa8;--pale:#e5e0fb}.choice:hover,.choice.selected{background:#f7f5ff}footer a{color:#35d7ff}footer{flex-wrap:wrap;gap:10px}.excluded-item{font-size:13px;color:var(--muted);margin:7px 0}.excluded-item b{color:var(--ink)}.plan-summary{background:#f8fafb;border:1px solid var(--rule);padding:14px 16px;font-size:14px;margin:16px 0}.plan-summary b{font-weight:700}.catalog-meta{padding:0 38px 24px;font:10px 'JetBrains Mono',monospace;letter-spacing:.06em;color:#8a97a7;word-break:break-word}.catalog-error{margin:0;padding:18px 38px;background:var(--amber-bg);border-bottom:1px solid var(--rule);color:#624000;font-size:14px}#consentNote code{background:rgba(0,0,0,.07);padding:1px 4px}@media(max-width:720px){.catalog-meta{padding:0 18px 18px}.catalog-error{padding:14px 18px}}.download{flex-wrap:wrap}.hashline{margin-top:9px;font-size:11px;color:var(--muted);word-break:break-all}.hashline code{background:rgba(0,0,0,.06);padding:1px 4px;font-size:10px}.unsigned{display:inline-block;background:var(--amber-bg);color:var(--amber);font-size:10px;padding:2px 7px;border-radius:9px;margin-left:6px}#downloadBox .button{margin-left:auto;align-self:flex-start}</style></head><body>
 <nav class="nav-bar"><a class="logo" href="index.html">Identity<em>Frontline</em></a><ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a class="active" href="assessments.html">Assessments</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li></ul><button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button></nav><div class="mobile-nav" id="mobileNav"><a href="index.html">Blog</a><a href="assessments.html">Assessments</a><a href="about.html#about">About</a></div>
 <header class="hero"><div class="hero-grid"><div><span class="eyebrow">Cloud security & compliance</span><h1>Know your <em>cloud posture.</em></h1><p>Plan a focused, read-only assessment of your Microsoft 365 and Entra ID environment. Your tenant data stays on your machine.</p></div><aside class="hero-card"><span class="eyebrow">Local-first by design</span><strong>No tenant data passes through this website.</strong><p>The runner will authenticate through Microsoft, collect only your chosen scope, and generate confidential reports locally.</p></aside></div></header>
 <section class="section intro"><div><span class="step-label">What this does</span><h2>A practical security snapshot—not a certification.</h2><p>Select services and frameworks, review the read-only permissions needed, then prepare a local assessment package. Findings will map one technical condition to every selected compliance framework without duplicating the underlying evidence.</p></div><div class="facts"><div class="fact"><b>Read only</b><span>Never changes policies, roles, users, or resources.</span></div><div class="fact"><b>Least privilege</b><span>Permissions are calculated from your selected scope.</span></div><div class="fact"><b>Local reports</b><span>HTML, Excel, and CSV results remain on your device.</span></div><div class="fact"><b>Scoped evidence</b><span>Only selected service configuration is assessed.</span></div></div></section>
-<section class="section" id="start"><span class="step-label">Assessment planner</span><h2>Start cloud assessment</h2><div class="wizard-wrap"><div class="steps"><div class="step active" data-ind="1">01 Type</div><div class="step" data-ind="2">02 Frameworks</div><div class="step" data-ind="3">03 Scope</div><div class="step" data-ind="4">04 Permissions</div><div class="step" data-ind="5">05 Prepare</div></div><div class="wizard">
+<section class="section" id="start"><span class="step-label">Assessment planner</span><h2>Start cloud assessment</h2><div class="wizard-wrap"><p class="catalog-error" id="catalogError" hidden></p><div class="steps"><div class="step active" data-ind="1">01 Type</div><div class="step" data-ind="2">02 Frameworks</div><div class="step" data-ind="3">03 Scope</div><div class="step" data-ind="4">04 Permissions</div><div class="step" data-ind="5">05 Prepare</div></div><div class="wizard">
 <div class="panel active" data-panel="1"><span class="step-label">Step 1</span><h3>Choose an assessment</h3><p class="hint">Azure resource posture checks are planned separately and are not represented as M365-Assess capability.</p><div class="cards"><label class="choice selected"><input type="radio" name="type" value="m365" checked><b>Microsoft 365 Security</b><small>Identity, Exchange, Intune, Defender, collaboration, and compliance configuration.</small></label><label class="choice"><input type="radio" name="type" value="entra"><b>Azure / Entra ID Security</b><small>Entra identity configuration and access controls. Azure resource assessment is not yet included.</small></label></div></div>
 <div class="panel" data-panel="2"><span class="step-label">Step 2</span><h3>Select compliance frameworks</h3><p class="hint">Choose one or more. The future runner will use a versioned catalog derived from supported mappings.</p><div class="tag-grid" id="frameworks"></div></div>
-<div class="panel" data-panel="3"><span class="step-label">Step 3</span><h3>Set your assessment scope</h3><p class="hint">More areas can require additional read-only permissions. You can adjust this before downloading the package.</p><div class="scope-group"><h4>Identity & access</h4><div class="tag-grid" id="identityScopes"></div></div><div class="scope-group" id="m365Scopes"><h4>Microsoft 365 services</h4><div class="tag-grid" id="serviceScopes"></div></div></div>
-<div class="panel" data-panel="4"><span class="step-label">Step 4</span><h3>Review required permissions</h3><p class="hint">This preview reflects the selected areas. The production runner will verify effective permissions after Microsoft sign-in and identify missing consent or service roles.</p><div class="notice"><strong>Your assessment requires read-only access.</strong>It will read selected configuration, evaluate controls, and produce findings. It will not modify tenant configuration, create users, assign roles, install agents, or change Azure resources.</div><div style="overflow:auto"><table class="permission-table"><thead><tr><th>Service</th><th>Permission</th><th>Type</th><th>Why required</th><th>Risk</th></tr></thead><tbody id="permissions"></tbody></table></div><div class="warning"><b>Admin consent may be required.</b> Some organization-wide Graph scopes and Exchange/Purview access require an administrator. Consent is granted through Microsoft—not this website. Application permissions are not requested for this interactive local assessment.</div></div>
-<div class="panel" data-panel="5"><span class="step-label">Step 5</span><h3>Prepare your local assessment</h3><div class="final"><p>Your local run plan is ready. The package download and Microsoft sign-in will be enabled when the signed assessment runner is delivered in Phase 3.</p><div class="download"><i>PS</i><div><b>Local assessment package — coming next</b><br><small>PowerShell 7 • Microsoft interactive sign-in • branded offline reports</small></div></div><div class="notice"><strong>Privacy commitment</strong>Do not upload generated reports to public storage. Reports can contain usernames, role assignments, policy bodies, device identifiers, and tenant configuration.</div></div></div>
-<div class="actions"><button class="button secondary" id="back" type="button">← Back</button><button class="button" id="next" type="button">Continue →</button></div></div></div></section>
-<section class="security"><div class="section"><span class="step-label">Security & privacy</span><h2>Built around tenant trust.</h2><div class="security-grid"><div><b>Authentication</b><p>Microsoft Entra sign-in only. No password, secret, token, or refresh-token paste fields.</p></div><div><b>Data handling</b><p>Assessment output is confidential and remains local by default. No unnecessary telemetry or retention.</p></div><div><b>Transparent limits</b><p>Results are a posture snapshot and remediation guide, not a certification or formal audit opinion.</p></div></div></div></section><footer><span class="footer-logo">Identity<em>Frontline</em></span><span>© 2026 Identity Frontline · Cloud Assessments</span></footer>
+<div class="panel" data-panel="3"><span class="step-label">Step 3</span><h3>Set your assessment scope</h3><p class="hint">Each area is one assessment section; the number in brackets is how many automated checks it contributes. The permissions in the next step are calculated from this selection.</p><div class="scope-group"><h4>Included in this release</h4><div class="tag-grid" id="sectionScopes"></div></div><div class="scope-group"><h4>Not in this release</h4><div id="excludedScopes"></div></div></div>
+<div class="panel" data-panel="4"><span class="step-label">Step 4</span><h3>Review required permissions</h3><p class="hint">This preview reflects the selected areas. The production runner will verify effective permissions after Microsoft sign-in and identify missing consent or service roles.</p><div class="notice"><strong>Your assessment requires read-only access.</strong>It will read selected configuration, evaluate controls, and produce findings. It will not modify tenant configuration, create users, assign roles, install agents, or change Azure resources.</div><div style="overflow:auto"><table class="permission-table"><thead><tr><th>Service</th><th>Permission</th><th>Type</th><th>Why required</th><th>Risk</th></tr></thead><tbody id="permissions"></tbody></table></div><div class="warning" id="consentNote" style="display:none"></div><div class="warning"><b>Admin consent may be required.</b> Some organization-wide Graph scopes and Exchange/Purview access require an administrator. Consent is granted through Microsoft—not this website. Application permissions are not requested for this interactive local assessment.</div></div>
+<div class="panel" data-panel="5"><span class="step-label">Step 5</span><h3>Prepare your local assessment</h3><div class="final"><p>Your local run plan is ready. Export it now and hand it to the runner, or keep it as a record of what was scoped.</p><p id="planSummary" class="plan-summary"></p><div class="download" id="downloadBox"></div><button class="button" id="downloadPlan" type="button">Download run plan (JSON)</button><div class="notice"><strong>Privacy commitment</strong>Do not upload generated reports to public storage. Reports can contain usernames, role assignments, policy bodies, device identifiers, and tenant configuration.</div></div></div>
+<div class="actions"><button class="button secondary" id="back" type="button">← Back</button><button class="button" id="next" type="button">Continue &rarr;</button></div><p class="catalog-meta" id="catalogMeta"></p></div></div></section>
+<section class="security"><div class="section"><span class="step-label">Security & privacy</span><h2>Built around tenant trust.</h2><div class="security-grid"><div><b>Authentication</b><p>Microsoft Entra sign-in only. No password, secret, token, or refresh-token paste fields.</p></div><div><b>Data handling</b><p>Assessment output is confidential and remains local by default. No unnecessary telemetry or retention.</p></div><div><b>Transparent limits</b><p>Results are a posture snapshot and remediation guide, not a certification or formal audit opinion.</p></div></div></div></section><footer><span class="footer-logo">Identity<em>Frontline</em></span><span>Assessment engine based on <a href="https://github.com/Galvnyz/M365-Assess" rel="noopener">M365-Assess</a> by Galvnyz — MIT licensed.</span><span>© 2026 Identity Frontline · Cloud Assessments</span></footer>
 <script>
-const frameworkNames=['CIS Microsoft 365','CIS Controls v8','NIST 800-53','NIST CSF 2.0','SOC 2 TSC','HIPAA','ISO 27001','PCI DSS','CMMC 2.0','CISA SCuBA','FedRAMP','Essential Eight','MITRE ATT&CK','DISA STIG'];const identity=['Users','Groups','Roles & privileged access','Conditional Access','MFA','Applications & service principals'];const services=['Exchange Online','SharePoint & OneDrive','Teams','Intune','Defender','Purview','Power BI'];function tags(list,target,checked){document.getElementById(target).innerHTML=list.map((x,i)=>`<label class="tag"><input type="checkbox" value="${x}" ${checked.includes(x)?'checked':''}>${x}</label>`).join('')}tags(frameworkNames,'frameworks',['NIST CSF 2.0']);tags(identity,'identityScopes',['Users','Roles & privileged access','Conditional Access','MFA']);tags(services,'serviceScopes',[]);
-let current=1;const getScopes=()=>[...document.querySelectorAll('#identityScopes input:checked,#serviceScopes input:checked')].map(x=>x.value);function renderPermissions(){const s=getScopes(), rows=[];if(s.some(x=>['Users','Groups','Roles & privileged access'].includes(x)))rows.push(['Microsoft Graph','Directory.Read.All','Delegated','Read directory objects and role configuration']);if(s.includes('Users'))rows.push(['Microsoft Graph','User.Read.All','Delegated','Read user configuration']);if(s.includes('MFA'))rows.push(['Microsoft Graph','UserAuthenticationMethod.Read.All','Delegated','Read MFA method posture']);if(s.some(x=>['Conditional Access','MFA'].includes(x)))rows.push(['Microsoft Graph','Policy.Read.All','Delegated','Read Conditional Access and authentication policies']);if(s.includes('Applications & service principals'))rows.push(['Microsoft Graph','Application.Read.All','Delegated','Read application registrations and service principals']);if(s.includes('Intune'))rows.push(['Microsoft Graph','DeviceManagementConfiguration.Read.All','Delegated','Read Intune configuration policies']);if(s.includes('SharePoint & OneDrive'))rows.push(['Microsoft Graph','SharePointTenantSettings.Read.All','Delegated','Read tenant sharing settings']);if(s.includes('Teams'))rows.push(['Microsoft Graph','TeamSettings.Read.All','Delegated','Read Teams tenant configuration']);if(s.includes('Defender'))rows.push(['Microsoft Graph','SecurityEvents.Read.All','Delegated','Read security posture information']);if(s.includes('Exchange Online'))rows.push(['Exchange Online','View-Only Organization Management','RBAC prerequisite','Read mail-flow and organization configuration']);if(!rows.length)rows.push(['Microsoft Graph','User.Read','Delegated','Identify the signed-in administrator and tenant']);document.getElementById('permissions').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td><code>${r[1]}</code></td><td>${r[2]}</td><td>${r[3]}</td><td><span class="read-only">Read-only</span></td></tr>`).join('')}
-function show(n){current=n;document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',+x.dataset.panel===n));document.querySelectorAll('.step').forEach(x=>x.classList.toggle('active',+x.dataset.ind===n));document.getElementById('back').style.visibility=n===1?'hidden':'visible';document.getElementById('next').textContent=n===5?'Assessment package coming soon':'Continue →';if(n===4)renderPermissions();if(n===5)document.getElementById('next').disabled=true;window.scrollTo({top:document.getElementById('start').offsetTop-15,behavior:'smooth'})}document.getElementById('next').onclick=()=>current<5&&show(current+1);document.getElementById('back').onclick=()=>current>1&&show(current-1);document.querySelectorAll('.choice').forEach(x=>x.onclick=()=>{document.querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'));x.classList.add('selected');document.getElementById('m365Scopes').style.display=x.querySelector('input').value==='entra'?'none':'block'});document.getElementById('navToggle').onclick=()=>document.getElementById('mobileNav').classList.toggle('open');show(1);
-document.querySelector('.logo').insertAdjacentHTML('afterbegin','<svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" aria-hidden="true"><path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#0e1730" stroke="#35d7ff" stroke-width="1.5"/><path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(140,108,255,.6)" stroke-width="1"/><rect x="22.5" y="17" width="7" height="26" rx="1" fill="#35d7ff"/><rect x="17" y="17" width="18" height="4.5" rx="1" fill="#35d7ff"/><rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#35d7ff"/></svg>');
+// Wizard state is driven entirely by assets/catalog/catalog.json.
+// Nothing about frameworks, sections or permissions is hard-coded here -- the catalog is
+// generated from a pinned M365-Assess checkout by tools/Build-AssessmentCatalog.ps1.
+const CATALOG_URL = 'assets/catalog/catalog.json';
+const MANIFEST_URL = 'assets/catalog/manifest.json';
+const ENTRA_SECTIONS = ['Tenant', 'Identity'];
+
+let catalog = null;
+let manifest = null;
+let current = 1;
+const sel = { frameworks: new Set(), sections: new Set() };
+
+const el = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function renderTags(items, target, store, onchange) {
+  el(target).innerHTML = items.map(i =>
+    `<label class="tag" title="${esc(i.title)}"><input type="checkbox" value="${esc(i.id)}"${store.has(i.id) ? ' checked' : ''}>${esc(i.label)}</label>`
+  ).join('');
+  el(target).querySelectorAll('input').forEach(x => x.onchange = () => {
+    x.checked ? store.add(x.value) : store.delete(x.value);
+    if (onchange) onchange();
+  });
+}
+
+function renderFrameworks() {
+  renderTags(catalog.frameworks.map(f => ({
+    id: f.id,
+    label: f.label,
+    title: `${f.profileChecks} of ${f.mappedChecks} mapped checks covered by this release (${f.profilePct}%)`
+  })), 'frameworks', sel.frameworks);
+}
+
+function renderSections() {
+  const inProfile = catalog.sections.filter(s => s.inProfile);
+  renderTags(inProfile.map(s => ({
+    id: s.id,
+    label: s.checkCount ? `${s.id} (${s.checkCount})` : s.id,
+    title: s.summary || ''
+  })), 'sectionScopes', sel.sections, updateSummary);
+
+  const excluded = catalog.profile.excluded || {};
+  el('excludedScopes').innerHTML = Object.keys(excluded).map(k =>
+    `<p class="excluded-item"><b>${esc(k)}</b> — ${esc(excluded[k])}</p>`
+  ).join('');
+}
+
+function selectedPermissions() {
+  const chosen = [...sel.sections];
+  return catalog.permissions.filter(p => p.sections.some(s => chosen.includes(s)));
+}
+
+function renderPermissions() {
+  const rows = selectedPermissions();
+  el('permissions').innerHTML = rows.length
+    ? rows.map(p => `<tr><td>${esc(p.service)}</td><td><code>${esc(p.name)}</code></td><td>${esc(p.type)}</td><td>${esc(p.reason || '—')}</td><td><span class="read-only">${esc(p.access)}</span></td></tr>`).join('')
+    : '<tr><td colspan="5">Select at least one area in step 3 to see the permissions it needs.</td></tr>';
+
+  const ungranted = rows.filter(p => !p.grantedByUpstreamConsentHelper);
+  el('consentNote').innerHTML = ungranted.length
+    ? `<b>Consent these separately.</b> ${ungranted.map(p => '<code>' + esc(p.name) + '</code>').join(', ')} ${ungranted.length === 1 ? 'is' : 'are'} requested at sign-in but ${ungranted.length === 1 ? 'is' : 'are'} not part of the standard consent grant. Checks that depend on ${ungranted.length === 1 ? 'it' : 'them'} report as <em>Unknown</em> until an administrator consents.`
+    : '';
+  el('consentNote').style.display = ungranted.length ? '' : 'none';
+}
+
+function updateSummary() {
+  const checks = catalog.sections
+    .filter(s => sel.sections.has(s.id))
+    .reduce((n, s) => n + s.checkCount, 0);
+  el('planSummary').innerHTML =
+    `<b>${sel.sections.size}</b> area${sel.sections.size === 1 ? '' : 's'} · ` +
+    `<b>${checks}</b> automated check${checks === 1 ? '' : 's'} · ` +
+    `<b>${sel.frameworks.size}</b> framework${sel.frameworks.size === 1 ? '' : 's'} · ` +
+    `<b>${selectedPermissions().length}</b> read-only scope${selectedPermissions().length === 1 ? '' : 's'}`;
+}
+
+function renderDownload() {
+  if (!manifest) {
+    el('downloadBox').innerHTML =
+      '<i>PS</i><div><b>Local assessment package — not yet published</b><br>' +
+      '<small>Export the run plan above; the runner will accept it unchanged.</small></div>';
+    return;
+  }
+  const r = manifest.runner;
+  const kb = Math.round(r.sizeBytes / 1024);
+  el('downloadBox').innerHTML =
+    `<i>PS</i><div><b>Local assessment package v${esc(r.version)}</b>` +
+    `${r.signed ? '' : ' <span class="unsigned">unsigned build</span>'}<br>` +
+    `<small>PowerShell ${esc(manifest.requires.powerShell)}+ &bull; Microsoft interactive sign-in &bull; ` +
+    `${esc(manifest.assessment.checkCount)} checks &bull; ${kb} KB</small>` +
+    `<div class="hashline">SHA256 <code>${esc(r.sha256)}</code><br>` +
+    `<small>Verify before running: <code>${esc(r.verify)}</code></small></div></div>` +
+    `<a class="button" href="${esc(r.url)}" download>Download runner</a>`;
+}
+
+function buildRunPlan() {
+  return {
+    planVersion: '1.0.0',
+    generatedUtc: new Date().toISOString(),
+    catalog: { version: catalog.catalogVersion, source: catalog.source },
+    profile: catalog.profile.id,
+    authentication: 'interactive-delegated',
+    sections: [...sel.sections],
+    frameworks: [...sel.frameworks],
+    scopes: selectedPermissions().map(p => p.name)
+  };
+}
+
+function downloadPlan() {
+  const blob = new Blob([JSON.stringify(buildRunPlan(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: 'assessment-run-plan.json' });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function show(n) {
+  current = n;
+  document.querySelectorAll('.panel').forEach(x => x.classList.toggle('active', +x.dataset.panel === n));
+  document.querySelectorAll('.step').forEach(x => x.classList.toggle('active', +x.dataset.ind === n));
+  el('back').style.visibility = n === 1 ? 'hidden' : 'visible';
+  el('next').textContent = n === 5 ? 'Plan ready' : 'Continue →';
+  el('next').disabled = n === 5;
+  if (n === 4) renderPermissions();
+  if (n === 5) updateSummary();
+  window.scrollTo({ top: el('start').offsetTop - 15, behavior: 'smooth' });
+}
+
+function applyType(value) {
+  const isEntra = value === 'entra';
+  // Selecting a type resets scope so the permission preview can never describe a hidden area.
+  sel.sections.clear();
+  const allowed = isEntra
+    ? ENTRA_SECTIONS
+    : catalog.sections.filter(s => s.inProfile).map(s => s.id);
+  allowed.forEach(s => sel.sections.add(s));
+  renderSections();
+  updateSummary();
+  if (current === 4) renderPermissions();
+}
+
+async function init() {
+  try {
+    const res = await fetch(CATALOG_URL, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    catalog = await res.json();
+  } catch (e) {
+    el('catalogError').hidden = false;
+    el('catalogError').textContent = 'The assessment catalog could not be loaded, so the planner is unavailable. Please refresh, or contact us if this persists.';
+    el('next').disabled = true;
+    return;
+  }
+
+  // The manifest is optional: the planner still works before a runner build is published.
+  try {
+    const mr = await fetch(MANIFEST_URL, { cache: 'no-cache' });
+    if (mr.ok) manifest = await mr.json();
+  } catch (e) { /* leave manifest null */ }
+
+  el('catalogMeta').textContent =
+    `Catalog ${catalog.catalogVersion} · engine ${catalog.source.name} ${catalog.source.moduleVersion} · ` +
+    `registry ${catalog.registry.dataVersion} · ${catalog.profile.checkCount} of ${catalog.registry.implementedChecks} checks in this release`;
+
+  renderFrameworks();
+  renderDownload();
+  applyType('m365');
+
+  document.querySelectorAll('.choice').forEach(x => x.onclick = () => {
+    document.querySelectorAll('.choice').forEach(c => c.classList.remove('selected'));
+    x.classList.add('selected');
+    applyType(x.querySelector('input').value);
+  });
+
+  el('next').onclick = () => current < 5 && show(current + 1);
+  el('back').onclick = () => current > 1 && show(current - 1);
+  el('downloadPlan').onclick = downloadPlan;
+  show(1);
+}
+
+el('navToggle').onclick = () => el('mobileNav').classList.toggle('open');
+document.querySelector('.logo').insertAdjacentHTML('afterbegin', '<svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" aria-hidden="true"><path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#0e1730" stroke="#35d7ff" stroke-width="1.5"/><path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(140,108,255,.6)" stroke-width="1"/><rect x="22.5" y="17" width="7" height="26" rx="1" fill="#35d7ff"/><rect x="17" y="17" width="18" height="4.5" rx="1" fill="#35d7ff"/><rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#35d7ff"/></svg>');
+init();
 </script></body></html>

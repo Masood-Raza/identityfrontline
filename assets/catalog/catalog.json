@@ -1,0 +1,581 @@
+{
+  "catalogVersion": "1.0.0",
+  "generatedUtc": "2026-09-10T09:22:36Z",
+  "source": {
+    "name": "M365-Assess",
+    "repository": "https://github.com/Galvnyz/M365-Assess",
+    "ref": "3148d98741f5d7edc51c978e4b724bf8148a54ee",
+    "moduleVersion": "2.13.0",
+    "license": "MIT",
+    "attribution": "Assessment engine and control registry (c) Galvnyz, MIT licensed."
+  },
+  "registry": {
+    "schemaVersion": "3.4.0",
+    "dataVersion": "2026-04-30",
+    "totalChecks": 292,
+    "implementedChecks": 291,
+    "unimplemented": [
+      "Backup"
+    ]
+  },
+  "profile": {
+    "id": "graph-delegated-v1",
+    "label": "Microsoft Graph (delegated)",
+    "authSurface": "Microsoft Graph interactive sign-in (delegated, read-only)",
+    "sections": [
+      "Tenant",
+      "Identity",
+      "Licensing",
+      "Intune",
+      "Collaboration",
+      "Hybrid"
+    ],
+    "checkCount": 196.0,
+    "coveragePct": 67.0,
+    "excluded": {
+      "Email": "Requires the Exchange Online module and the View-Only Organization Management role group.",
+      "Security": "Requires Exchange Online RBAC plus the Security Reader / Compliance Administrator directory roles.",
+      "PowerBI": "Requires the MicrosoftPowerBIMgmt module and Power BI tenant admin read access."
+    }
+  },
+  "sections": [
+    {
+      "id": "ActiveDirectory",
+      "label": "ActiveDirectory",
+      "summary": null,
+      "services": [],
+      "scopes": [],
+      "checkCount": 0,
+      "inProfile": false
+    },
+    {
+      "id": "Collaboration",
+      "label": "Collaboration",
+      "summary": "SharePoint and OneDrive sharing, Teams access and meeting policy, Forms external access.",
+      "services": [
+        "Graph"
+      ],
+      "scopes": [
+        "SharePointTenantSettings.Read.All",
+        "TeamSettings.Read.All",
+        "TeamworkAppSettings.Read.All",
+        "OrgSettings-Forms.Read.All"
+      ],
+      "checkCount": 53,
+      "inProfile": true
+    },
+    {
+      "id": "Hybrid",
+      "label": "Hybrid",
+      "summary": "Microsoft Entra Connect sync status and domain configuration.",
+      "services": [
+        "Graph"
+      ],
+      "scopes": [
+        "Organization.Read.All",
+        "Domain.Read.All"
+      ],
+      "checkCount": 0,
+      "inProfile": true
+    },
+    {
+      "id": "Identity",
+      "label": "Identity",
+      "summary": "Users, MFA posture, admin roles, Conditional Access, app registrations, consent and password protection.",
+      "services": [
+        "Graph"
+      ],
+      "scopes": [
+        "User.Read.All",
+        "AuditLog.Read.All",
+        "UserAuthenticationMethod.Read.All",
+        "RoleManagement.Read.Directory",
+        "Policy.Read.All",
+        "Application.Read.All",
+        "Domain.Read.All",
+        "Directory.Read.All",
+        "Agreement.Read.All"
+      ],
+      "checkCount": 126,
+      "inProfile": true
+    },
+    {
+      "id": "Intune",
+      "label": "Intune",
+      "summary": "Managed devices, compliance policies and configuration profiles.",
+      "services": [
+        "Graph"
+      ],
+      "scopes": [
+        "DeviceManagementManagedDevices.Read.All",
+        "DeviceManagementConfiguration.Read.All"
+      ],
+      "checkCount": 17,
+      "inProfile": true
+    },
+    {
+      "id": "Inventory",
+      "label": "Inventory",
+      "summary": null,
+      "services": [
+        "Graph",
+        "ExchangeOnline"
+      ],
+      "scopes": [
+        "Group.Read.All",
+        "Team.ReadBasic.All",
+        "TeamMember.Read.All",
+        "Channel.ReadBasic.All",
+        "Reports.Read.All",
+        "Sites.Read.All",
+        "User.Read.All"
+      ],
+      "checkCount": 0,
+      "inProfile": false
+    },
+    {
+      "id": "Licensing",
+      "label": "Licensing",
+      "summary": "SKU allocation and assignment counts. Gates licence-dependent checks.",
+      "services": [
+        "Graph"
+      ],
+      "scopes": [
+        "Organization.Read.All",
+        "User.Read.All"
+      ],
+      "checkCount": 0,
+      "inProfile": true
+    },
+    {
+      "id": "PowerBI",
+      "label": "PowerBI",
+      "summary": "Power BI tenant settings: guest access, external sharing, publish to web.",
+      "services": [],
+      "scopes": [],
+      "checkCount": 26,
+      "inProfile": false
+    },
+    {
+      "id": "Security",
+      "label": "Security",
+      "summary": "Secure Score, Defender for Office 365, DLP and critical exposure checks.",
+      "services": [
+        "Graph",
+        "ExchangeOnline",
+        "Purview"
+      ],
+      "scopes": [
+        "SecurityEvents.Read.All"
+      ],
+      "checkCount": 42,
+      "inProfile": false
+    },
+    {
+      "id": "SOC2",
+      "label": "SOC2",
+      "summary": null,
+      "services": [
+        "Graph",
+        "Purview"
+      ],
+      "scopes": [
+        "Policy.Read.All",
+        "RoleManagement.Read.Directory",
+        "SecurityEvents.Read.All",
+        "SecurityAlert.Read.All",
+        "AuditLog.Read.All",
+        "User.Read.All",
+        "Reports.Read.All",
+        "Directory.Read.All"
+      ],
+      "checkCount": 0,
+      "inProfile": false
+    },
+    {
+      "id": "Tenant",
+      "label": "Tenant",
+      "summary": "Organisation profile, verified domains and security defaults.",
+      "services": [
+        "Graph"
+      ],
+      "scopes": [
+        "Organization.Read.All",
+        "Domain.Read.All",
+        "Policy.Read.All",
+        "User.Read.All",
+        "Group.Read.All"
+      ],
+      "checkCount": 0,
+      "inProfile": true
+    },
+    {
+      "id": "ValueOpportunity",
+      "label": "ValueOpportunity",
+      "summary": null,
+      "services": [
+        "Graph"
+      ],
+      "scopes": [
+        "Organization.Read.All"
+      ],
+      "checkCount": 0,
+      "inProfile": false
+    }
+  ],
+  "permissions": [
+    {
+      "name": "Agreement.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Identity"
+      ],
+      "reason": null,
+      "grantedByUpstreamConsentHelper": false
+    },
+    {
+      "name": "Application.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Identity"
+      ],
+      "reason": "App registrations, service principals, OAuth permission grants",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "AuditLog.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Identity"
+      ],
+      "reason": "Sign-in logs and directory audit events",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "DeviceManagementConfiguration.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Intune"
+      ],
+      "reason": "Configuration profiles, compliance policies, Multi-Admin Approval policies",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "DeviceManagementManagedDevices.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Intune"
+      ],
+      "reason": "Managed device inventory and compliance state",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "Directory.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Identity"
+      ],
+      "reason": "Devices, admin units, role templates",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "Domain.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Tenant",
+        "Identity",
+        "Hybrid"
+      ],
+      "reason": "All domains registered in the tenant",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "Group.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Tenant"
+      ],
+      "reason": "All groups including Microsoft 365 and security groups",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "Organization.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Tenant",
+        "Licensing",
+        "Hybrid"
+      ],
+      "reason": "Tenant org details, verified domains, hybrid config",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "OrgSettings-Forms.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Collaboration"
+      ],
+      "reason": "Microsoft Forms tenant-level settings",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "Policy.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Tenant",
+        "Identity"
+      ],
+      "reason": "Conditional Access, auth methods, token lifetime, password policies",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "RoleManagement.Read.Directory",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Identity"
+      ],
+      "reason": "Entra directory role assignments and PIM eligibility",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "SharePointTenantSettings.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Collaboration"
+      ],
+      "reason": "SharePoint and OneDrive tenant-level settings",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "TeamSettings.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Collaboration"
+      ],
+      "reason": "Teams tenant-level settings and policies",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "TeamworkAppSettings.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Collaboration"
+      ],
+      "reason": "Teams app permission and setup policies",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "User.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Tenant",
+        "Identity",
+        "Licensing"
+      ],
+      "reason": "User profiles, sign-in activity, license assignments",
+      "grantedByUpstreamConsentHelper": true
+    },
+    {
+      "name": "UserAuthenticationMethod.Read.All",
+      "service": "Microsoft Graph",
+      "type": "Delegated",
+      "access": "Read-only",
+      "sections": [
+        "Identity"
+      ],
+      "reason": "MFA and passwordless authentication methods per user",
+      "grantedByUpstreamConsentHelper": true
+    }
+  ],
+  "frameworks": [
+    {
+      "id": "cis-controls-v8",
+      "label": "CIS Controls v8.1",
+      "version": "8.1",
+      "homepageUrl": "https://www.cisecurity.org/controls",
+      "totalControls": 153,
+      "mappedChecks": 255,
+      "profileChecks": 168,
+      "profilePct": 66.0
+    },
+    {
+      "id": "cis-m365-v6",
+      "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+      "version": "6.0.1",
+      "homepageUrl": "https://www.cisecurity.org/benchmark/microsoft_365",
+      "totalControls": 139,
+      "mappedChecks": 166,
+      "profileChecks": 93,
+      "profilePct": 56.0
+    },
+    {
+      "id": "cisa-scuba",
+      "label": "CISA Secure Cloud Business Applications (SCuBA)",
+      "version": "Baselines",
+      "homepageUrl": "https://www.cisa.gov/resources-tools/services/secure-cloud-business-applications-scuba-project",
+      "totalControls": 134,
+      "mappedChecks": 52,
+      "profileChecks": 30,
+      "profilePct": 58.0
+    },
+    {
+      "id": "cmmc",
+      "label": "CMMC 2.0",
+      "version": "2.0",
+      "homepageUrl": "https://dodcio.defense.gov/CMMC/",
+      "totalControls": 110,
+      "mappedChecks": 283,
+      "profileChecks": 194,
+      "profilePct": 69.0
+    },
+    {
+      "id": "essential-eight",
+      "label": "ASD Essential Eight",
+      "version": "2023",
+      "homepageUrl": "https://www.cyber.gov.au/resources-business-and-government/essential-cyber-security/essential-eight",
+      "totalControls": 24,
+      "mappedChecks": 139,
+      "profileChecks": 99,
+      "profilePct": 71.0
+    },
+    {
+      "id": "fedramp",
+      "label": "FedRAMP Rev 5",
+      "version": "Rev 5",
+      "homepageUrl": "https://www.fedramp.gov/",
+      "totalControls": 325,
+      "mappedChecks": 290,
+      "profileChecks": 196,
+      "profilePct": 68.0
+    },
+    {
+      "id": "hipaa",
+      "label": "HIPAA",
+      "version": "Administrative Simplification (Security + Privacy + Breach Notification Rules)",
+      "homepageUrl": "https://www.hhs.gov/hipaa/index.html",
+      "totalControls": 59,
+      "mappedChecks": 166,
+      "profileChecks": 116,
+      "profilePct": 70.0
+    },
+    {
+      "id": "iso-27001",
+      "label": "ISO/IEC 27001:2022",
+      "version": "2022",
+      "homepageUrl": "https://www.iso.org/standard/27001",
+      "totalControls": 93,
+      "mappedChecks": 270,
+      "profileChecks": 181,
+      "profilePct": 67.0
+    },
+    {
+      "id": "iso-27002",
+      "label": "ISO/IEC 27002:2022",
+      "version": "2022",
+      "homepageUrl": "https://www.iso.org/standard/75652.html",
+      "totalControls": 93,
+      "mappedChecks": 270,
+      "profileChecks": 181,
+      "profilePct": 67.0
+    },
+    {
+      "id": "mitre-attack",
+      "label": "MITRE ATT&CK",
+      "version": "v10",
+      "homepageUrl": "https://attack.mitre.org/",
+      "totalControls": 201,
+      "mappedChecks": 273,
+      "profileChecks": 186,
+      "profilePct": 68.0
+    },
+    {
+      "id": "nist-800-53",
+      "label": "NIST SP 800-53 Rev 5",
+      "version": "5.2.0",
+      "homepageUrl": "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final",
+      "totalControls": 1189,
+      "mappedChecks": 290,
+      "profileChecks": 196,
+      "profilePct": 68.0
+    },
+    {
+      "id": "nist-csf",
+      "label": "NIST Cybersecurity Framework 2.0",
+      "version": "2.0",
+      "homepageUrl": "https://www.nist.gov/cyberframework",
+      "totalControls": 106,
+      "mappedChecks": 256,
+      "profileChecks": 170,
+      "profilePct": 66.0
+    },
+    {
+      "id": "pci-dss",
+      "label": "PCI DSS v4.0.1",
+      "version": "4.0.1",
+      "homepageUrl": "https://www.pcisecuritystandards.org/",
+      "totalControls": 63,
+      "mappedChecks": 276,
+      "profileChecks": 186,
+      "profilePct": 67.0
+    },
+    {
+      "id": "soc2",
+      "label": "SOC 2 Trust Services Criteria",
+      "version": "2022",
+      "homepageUrl": "https://www.aicpa-cima.com/resources/landing/system-and-organization-controls-soc-suite-of-services",
+      "totalControls": 11,
+      "mappedChecks": 290,
+      "profileChecks": 196,
+      "profilePct": 68.0
+    },
+    {
+      "id": "stig",
+      "label": "DISA STIG",
+      "version": "M365",
+      "homepageUrl": "https://public.cyber.mil/stigs/",
+      "totalControls": 148,
+      "mappedChecks": 13,
+      "profileChecks": 13,
+      "profilePct": 100.0
+    }
+  ],
+  "unmappedFrameworkKeys": [
+    "eidsca",
+    "gdpr",
+    "iso-27017",
+    "nis2",
+    "nist-800-171"
+  ]
+}
