@@ -92,6 +92,23 @@ Deliberate constraints, all enforced in code and covered by tests:
 | No sensitive logging | `Connect-MgGraph -NoWelcome`; exception messages are surfaced without inner request/response payloads. |
 | Always disconnects | `Disconnect-MgGraph` runs in `finally`, including on failure. |
 
+## End-to-end test through the browser
+
+The planner fetches the catalog at load, so opening `assessments.html` from disk fails
+(`file://` origins are opaque) and the page shows its catalog error banner. Serve it instead:
+
+```powershell
+pwsh -File tools/Serve-Site.ps1          # http://localhost:8080/assessments.html
+```
+
+Then, in the browser: pick a type, choose frameworks, set scope, review the permissions, and
+on step 5 download **both** the run plan and the runner. Step 5 also prints the exact
+commands for what follows, filled in from the published manifest.
+
+The runner finds the downloaded plan on its own — nearest location first (current directory,
+then beside the script, then `~/Downloads`), newest only breaking ties within one folder. So
+after unpacking beside the plan, `-RunPlan` is not needed.
+
 ### Two ways to rehearse without touching a tenant
 
 ```powershell

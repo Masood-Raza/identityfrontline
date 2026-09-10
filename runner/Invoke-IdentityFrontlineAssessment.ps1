@@ -23,7 +23,9 @@
       * Only sections in the plan's profile are runnable.
 
 .PARAMETER RunPlan
-    Path to assessment-run-plan.json, exported from the planner.
+    Path to assessment-run-plan.json, exported from the planner. If omitted, the newest
+    assessment-run-plan*.json in the current directory, beside this script, or in your
+    Downloads folder is used.
 
 .PARAMETER TenantId
     Tenant ID or *.onmicrosoft.com domain. Prompted for if omitted.
@@ -41,10 +43,16 @@
     prove the whole pipeline before pointing it at a real tenant.
 
 .EXAMPLE
-    .\Invoke-IdentityFrontlineAssessment.ps1 -RunPlan .\assessment-run-plan.json -TenantId contoso.onmicrosoft.com
+    .\Invoke-IdentityFrontlineAssessment.ps1 -WhatIfPlan
+    Picks up the plan you just downloaded and validates it. Installs nothing, contacts nothing.
 
 .EXAMPLE
-    .\Invoke-IdentityFrontlineAssessment.ps1 -RunPlan .\assessment-run-plan.json -WhatIfPlan
+    .\Invoke-IdentityFrontlineAssessment.ps1 -DryRun
+    Same, but also exercises the real engine. Still no sign-in.
+
+.EXAMPLE
+    .\Invoke-IdentityFrontlineAssessment.ps1 -TenantId contoso.onmicrosoft.com
+    The real run. Opens a browser for interactive sign-in.
 
 .NOTES
     Assessment engine: M365-Assess (c) Galvnyz, MIT licensed.
@@ -53,7 +61,7 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][string]$RunPlan,
+    [string]$RunPlan,
     [string]$TenantId,
     [string]$OutputFolder,
     [string]$CatalogPath,
@@ -75,6 +83,35 @@ function Write-Warn { param([string]$Message) Write-Host "    $Message" -Foregro
 # 1. Load and validate the run plan against the catalog
 # ==========================================================================================
 Write-Step 'Validating run plan'
+
+# The planner exports the plan through the browser, so it usually lands in Downloads. Look
+# there, beside this script, and in the current directory before asking the user to find it.
+if (-not $RunPlan) {
+    $searchDirs = @(
+        (Get-Location).Path
+        $PSScriptRoot
+        (Join-Path $HOME 'Downloads')
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
+
+    # Nearest location wins, not newest overall: a plan sitting beside you is the one you
+    # meant, even if an older download is still in Downloads. Newest only breaks ties
+    # within a single directory.
+    $found = $null
+    foreach ($d in $searchDirs) {
+        $hits = @(Get-ChildItem -LiteralPath $d -Filter 'assessment-run-plan*.json' -File -ErrorAction SilentlyContinue)
+        if ($hits.Count) { $found = $hits; break }
+    }
+
+    if (-not $found) {
+        throw "No run plan found. Export one from the planner (step 5, 'Download run plan'), or pass -RunPlan <path>.`nLooked in:`n  $($searchDirs -join "`n  ")"
+    }
+
+    $RunPlan = ($found | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+    Write-Host "    Using run plan: $RunPlan" -ForegroundColor DarkGray
+    if ($found.Count -gt 1) {
+        Write-Warn "$($found.Count) run plans in that folder; using the most recent. Pass -RunPlan to choose a different one."
+    }
+}
 
 if (-not (Test-Path -LiteralPath $RunPlan)) { throw "Run plan not found: $RunPlan" }
 if (-not (Test-Path -LiteralPath $CatalogPath)) { throw "Catalog not found: $CatalogPath" }

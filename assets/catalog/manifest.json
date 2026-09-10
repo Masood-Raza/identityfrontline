@@ -1,14 +1,14 @@
 {
   "manifestVersion": "1.0.0",
-  "generatedUtc": "2026-09-10T13:25:57Z",
+  "generatedUtc": "2026-09-10T15:23:00Z",
   "runner": {
-    "version": "1.0.1",
-    "file": "identityfrontline-assessment-runner-1.0.1.zip",
-    "url": "/assets/runner/identityfrontline-assessment-runner-1.0.1.zip",
-    "sha256": "591048d9889fd99b0a5cfb19b8dc9662bac2f434a543e32d402493be13ca9d6e",
-    "sizeBytes": 9157,
+    "version": "1.0.2",
+    "file": "identityfrontline-assessment-runner-1.0.2.zip",
+    "url": "/assets/runner/identityfrontline-assessment-runner-1.0.2.zip",
+    "sha256": "ab565142126882a7598b62c9880d9ddeb9e395445b61ca243bfeae2a41db7db3",
+    "sizeBytes": 9702,
     "signed": false,
-    "verify": "Get-FileHash .\\identityfrontline-assessment-runner-1.0.1.zip -Algorithm SHA256"
+    "verify": "Get-FileHash .\\identityfrontline-assessment-runner-1.0.2.zip -Algorithm SHA256"
   },
   "requires": {
     "powerShell": "7.0",

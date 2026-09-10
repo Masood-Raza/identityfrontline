@@ -104,6 +104,16 @@ ok('download link points at the package',
   $('#downloadBox a')?.getAttribute('href') === man.runner.url,
   $('#downloadBox a')?.getAttribute('href'));
 ok('unsigned build is labelled', $('.unsigned') !== null);
+
+// Quickstart: the page must tell the user exactly what to run.
+const qs = $('#quickstart').textContent;
+ok('quickstart lists the run commands', $$('#quickstart .steps-list li').length >= 5,
+  `got ${$$('#quickstart .steps-list li').length} steps`);
+ok('quickstart names the downloaded zip', qs.includes(man.runner.file));
+ok('quickstart offers the hash check', qs.includes(man.runner.sha256.toUpperCase()));
+ok('quickstart shows -WhatIfPlan before the real run', qs.indexOf('-WhatIfPlan') < qs.indexOf('-TenantId'));
+ok('quickstart shows -DryRun', qs.includes('-DryRun'));
+ok('quickstart does not pass -RunPlan (auto-discovery)', !qs.includes('-RunPlan'));
 ok('catalog provenance shown', $('#catalogMeta').textContent.includes('M365-Assess 2.13.0'));
 
 console.log(`\n${fail === 0 ? 'all DOM checks passed' : fail + ' FAILED'}`);
