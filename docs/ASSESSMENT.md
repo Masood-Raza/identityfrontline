@@ -47,8 +47,13 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
 4. **Connect & run** — enter tenant, sign in with Microsoft. If a scope is missing, a
    *Grant admin consent* button opens Microsoft's consent page in a popup; the user can also
    run with reduced coverage. Progress is shown per data source.
-5. **Results** — pass rate, failures by severity, every finding with remediation, framework
-   coverage, and what could not be collected. Download HTML, CSV or JSON.
+5. **Results** — pass rate, failures by severity, an executive summary, the five findings to
+   fix first, every finding with remediation, framework coverage, and what could not be
+   collected. Download the HTML report, print it to PDF, or export an Excel workbook (summary,
+   findings, a check-by-framework compliance matrix, coverage), CSV or JSON.
+
+Framework selection in step 1 narrows what is *reported* — the coverage table, the mapping
+column, the matrix columns — never what is assessed. Nothing selected means everything.
 
 ## Status model
 
@@ -79,6 +84,13 @@ Unavailable sources are listed on the results page and in the report with the Gr
 
 A new Graph scope must be added to the app registration too — existing customers are then
 prompted for incremental consent on their next run.
+
+## Continuous integration
+
+`.github/workflows/tests.yml` runs the full suite on every pull request and on pushes to any
+branch except `main`, plus a drift job that fetches M365-Assess at the commit recorded in
+`checks.json` and runs `Build-CheckCatalog.ps1 -Check`. The deploy workflow runs the suite as
+a gate before publishing `main`.
 
 ## Testing
 
@@ -116,9 +128,10 @@ Check definitions, severities, remediation and framework mappings derive from
 
 ## Not done yet
 
-- **Never run against a real tenant.** Predicates are tested against mock Graph payloads
-  that follow the documented schemas; real tenants will surface shape differences.
-- **No app registration yet** — sign-in cannot work until Setup is done.
-- **37 identity checks.** Exchange, Intune, SharePoint/Teams, Defender and Purview are not
-  yet implemented; Exchange and Purview are not reachable through Graph alone.
-- **No CI** calling `npm test` or `Build-CheckCatalog.ps1 -Check`.
+- **Validated on one tenant.** Predicates are tested against mock Graph payloads that
+  follow the documented schemas and have run clean on one real tenant; other tenants and
+  licence tiers may still surface shape differences.
+- **37 identity checks.** Intune, SharePoint/Teams/Forms and Secure Score are reachable from
+  the browser and not yet implemented. Exchange and Purview are not reachable through Graph
+  alone and are out of scope for the browser-native flow.
+- **No baseline or drift.** Each run stands alone; nothing is remembered between runs.

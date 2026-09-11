@@ -184,10 +184,32 @@ export function summarise(results) {
   };
 }
 
-export function frameworkRollup(results) {
+// The mappings a result should show under the user's framework selection. Empty = all.
+export function frameworksOf(result, filter) {
+  const all = result.frameworks || {};
+  if (!filter || !filter.length) return all;
+  return Object.fromEntries(Object.entries(all).filter(([k]) => filter.includes(k)));
+}
+
+// Failed checks in the order they should be fixed: severity first, then the ones with a
+// concrete remediation path, then by category so related work sits together.
+const SEV_RANK = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+const hasFix = r => (r.remediation?.portal || r.remediation?.powershell) ? 1 : 0;
+export function prioritise(results, limit = 5) {
+  return results
+    .filter(r => r.status === 'Fail')
+    .sort((a, b) =>
+      (SEV_RANK[a.severity] ?? 9) - (SEV_RANK[b.severity] ?? 9) ||
+      hasFix(b) - hasFix(a) ||
+      String(a.category).localeCompare(String(b.category)) ||
+      a.id.localeCompare(b.id))
+    .slice(0, limit);
+}
+
+export function frameworkRollup(results, filter) {
   const rollup = {};
   for (const r of results) {
-    for (const [key, m] of Object.entries(r.frameworks || {})) {
+    for (const [key, m] of Object.entries(frameworksOf(r, filter))) {
       const e = rollup[key] || (rollup[key] = { label: m.label, pass: 0, fail: 0, unknown: 0, controls: new Set() });
       if (r.status === 'Pass') e.pass++;
       else if (r.status === 'Fail') { e.fail++; String(m.controlId).split(';').forEach(c => e.controls.add(c.trim())); }
@@ -211,7 +233,7 @@ export function frameworkRollup(results) {
 // ---------------------------------------------------------------------------------------
 // Orchestration
 // ---------------------------------------------------------------------------------------
-export async function runAssessment({ token, catalog, tenant, onProgress = () => {} }) {
+export async function runAssessment({ token, catalog, tenant, frameworks = [], onProgress = () => {} }) {
   const needed = [...new Set(CHECKS.flatMap(c => c.needs))];
   const started = new Date();
 
@@ -230,8 +252,11 @@ export async function runAssessment({ token, catalog, tenant, onProgress = () =>
       version: catalog.catalogVersion,
       source: catalog.source
     },
+    // Framework selection narrows what is reported, never what is assessed.
+    frameworkFilter: [...frameworks],
     summary: summarise(results),
-    frameworks: frameworkRollup(results),
+    frameworks: frameworkRollup(results, frameworks),
+    priorities: prioritise(results),
     unavailable: Object.entries(failures).map(([k, v]) => ({ source: k, ...v })),
     results
   };

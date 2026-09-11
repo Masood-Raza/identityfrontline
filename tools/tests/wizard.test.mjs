@@ -92,6 +92,9 @@ ok('frameworks rendered from the check catalog', fw.length === 15, `got ${fw.len
 ok('framework labels are versioned', $$('#frameworks label').some(l => /v6\.0\.1|Rev 5|2022/.test(l.textContent)));
 fw[0].checked = true; fw[0].onchange();
 ok('selecting a framework updates state', main.getState().frameworks.size === 1);
+fw[1].checked = true; fw[1].onchange();
+const chosen = [fw[0].value, fw[1].value];
+ok('two frameworks selected for the run', main.getState().frameworks.size === 2);
 
 // ---- step 2: scope ----------------------------------------------------------------------
 $('#next').click();
@@ -155,6 +158,43 @@ ok('HTML report is self-contained (no scripts, no external URLs)', !/<script|src
 ok('HTML report escapes content', !/<script>alert/.test(rpt));
 ok('HTML report states data never left the browser', /No tenant data was transmitted/.test(rpt));
 
+// ---- framework selection actually narrows the output ------------------------------------
+const rep1 = main.getState().report;
+ok('report records the two selected frameworks', JSON.stringify(rep1.frameworkFilter) === JSON.stringify(chosen), JSON.stringify(rep1.frameworkFilter));
+ok('coverage table shows only the selected frameworks', $$('#frameworkRows tr').length === 2, `got ${$$('#frameworkRows tr').length}`);
+ok('framework note explains the narrowing', /2 frameworks you selected/.test($('#frameworkNote').textContent));
+ok('HTML report says mappings are filtered', /2 selected frameworks/.test(rpt));
+ok('executive summary rendered on page', /passed \d+ of \d+ scored checks/.test($('#execSummary').textContent), $('#execSummary').textContent);
+ok('no priorities on a clean tenant', !visible('priorityWrap'));
+
+// ---- Excel workbook, built for real and read back -----------------------------------------
+const XLSXlib = (await import('xlsx')).default;
+globalThis.XLSX = XLSXlib;
+const { buildWorkbook } = await import('../../assets/app/report.js');
+const wb = buildWorkbook(rep1, XLSXlib);
+ok('workbook has the four sheets', JSON.stringify(wb.SheetNames) === JSON.stringify(['Summary', 'Findings', 'Compliance matrix', 'Framework coverage']), wb.SheetNames.join(','));
+const roundTrip = XLSXlib.read(XLSXlib.write(wb, { bookType: 'xlsx', type: 'array' }), { type: 'array' });
+const matrix = XLSXlib.utils.sheet_to_json(roundTrip.Sheets['Compliance matrix'], { header: 1 });
+ok('matrix has one row per check', matrix.length - 1 === rep1.results.length, `${matrix.length - 1}`);
+ok('matrix columns are the selected frameworks only', matrix[0].length === 4 + chosen.length, matrix[0].join(' | '));
+const findings = XLSXlib.utils.sheet_to_json(roundTrip.Sheets['Findings'], { header: 1 });
+ok('findings sheet carries every result', findings.length - 1 === rep1.results.length);
+ok('findings sheet has an autofilter', !!wb.Sheets['Findings']['!autofilter']);
+const summarySheet = XLSXlib.utils.sheet_to_csv(roundTrip.Sheets['Summary']);
+ok('summary sheet names the tenant and privacy statement', /contoso\.onmicrosoft\.com/.test(summarySheet) && /No tenant data was transmitted/.test(summarySheet));
+$('#dlXlsx').click();
+for (let i = 0; i < 20 && downloads.length < 4; i++) await tick();
+ok('Excel download produced', downloads.some(d => d.endsWith('.xlsx')), downloads.join(','));
+
+// ---- print: hands the self-contained report to a new window ----------------------------
+let printed = false, written = '';
+window.open = () => ({ document: { open() {}, write(h) { written = h; }, close() {} }, focus() {}, print() { printed = true; } });
+$('#btnPrint').click();
+await new Promise(r => setTimeout(r, 400));
+ok('print opens the report in a new window', /Microsoft 365 security assessment/.test(written));
+ok('print dialog invoked', printed);
+ok('report carries print styles', /@media print/.test(written) && /@page/.test(written));
+
 // ---- restart: the two original regressions ----------------------------------------------
 $('#btnRestart').click(); await tick();
 ok('restart returns to step 1', active() === 1);
@@ -178,6 +218,9 @@ ok('unavailable section shown', visible('unavailableWrap'));
 ok('unavailable reason is the Graph error, not a stack trace', /privileges/.test($('#unavailableRows').textContent));
 ok('failures surfaced with severity', $$('#resultRows .status.fail').length > 10);
 ok('remediation shown on failed rows', $$('#resultRows .rem').length > 0);
+ok('fix-first list shown with five items on a failing tenant', visible('priorityWrap') && $$('#priorityList li').length === 5, `${$$('#priorityList li').length}`);
+ok('executive summary names what to address first', /Address first:/.test($('#execSummary').textContent));
+ok('framework selection survives a restart', main.getState().frameworks.size === 2 && $$('#frameworkRows tr').length === 2);
 
 console.log(`\n${fail === 0 ? 'all flow checks passed' : fail + ' FAILED'}`);
 process.exit(fail ? 1 : 0);

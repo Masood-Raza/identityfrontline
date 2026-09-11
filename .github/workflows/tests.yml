@@ -1,0 +1,45 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [ main ]   # main is covered by the deploy workflow's test gate
+
+jobs:
+  test:
+    name: Catalog, engine and flow tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install test dependencies
+        working-directory: tools/tests
+        run: npm install --no-audit --no-fund
+
+      - name: Run tests
+        working-directory: tools/tests
+        run: npm test
+
+  catalog-drift:
+    name: Check catalog matches pinned upstream
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned M365-Assess commit
+        id: pin
+        run: echo "ref=$(jq -r .source.ref assets/catalog/checks.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch M365-Assess at that commit
+        run: |
+          git clone --quiet --filter=blob:none https://github.com/Galvnyz/M365-Assess.git upstream
+          git -C upstream checkout --quiet ${{ steps.pin.outputs.ref }}
+
+      # Fails if checks.js and checks.json have drifted, or if someone hand-edited the catalog.
+      - name: Verify checks.json
+        shell: pwsh
+        run: ./tools/Build-CheckCatalog.ps1 -SourcePath ./upstream -Check

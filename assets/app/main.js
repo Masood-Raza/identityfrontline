@@ -7,7 +7,7 @@ import { CONFIG, isConfigured } from './config.js';
 import * as auth from './auth.js';
 import { missingScopes } from './auth.js';
 import { runAssessment as realRun, REQUIRED_SCOPES } from './engine.js';
-import { sortResults, downloadCsv, downloadJson, downloadHtml, esc } from './report.js';
+import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, printReport, executiveSummary, esc } from './report.js';
 
 // Injectable for tests: the flow can be driven end to end with sign-in and Graph mocked.
 const deps = {
@@ -251,6 +251,7 @@ async function doRun() {
       token: state.token,
       catalog: checkCatalog,
       tenant: { name: state.tenant, id: state.session?.tenantId },
+      frameworks: [...state.frameworks],
       onProgress: ({ phase, current, total, label }) => {
         const p = Math.round((current / total) * 100);
         el('progressBar').style.width = `${p}%`;
@@ -287,6 +288,20 @@ function renderResults(report) {
     .filter(k => s.failedBySeverity[k] > 0)
     .map(k => `<span class="pill ${k.toLowerCase()}">${s.failedBySeverity[k]} ${k}</span>`).join(' ');
   el('sevRow').innerHTML = sev || '<span class="pill none">No failed checks</span>';
+
+  el('execSummary').textContent = executiveSummary(report);
+
+  const top = report.priorities || [];
+  el('priorityList').innerHTML = top.map(r => `
+    <li><b>${esc(r.name)}</b> <span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span>
+      <div class="hint" style="margin:4px 0 0">${esc(r.detail)}</div>
+      ${r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(r.remediation.portal)}</div>` : ''}
+    </li>`).join('');
+  show('priorityWrap', top.length > 0);
+
+  el('frameworkNote').textContent = report.frameworkFilter?.length
+    ? `Showing the ${report.frameworkFilter.length} framework${report.frameworkFilter.length === 1 ? '' : 's'} you selected. Findings are the same regardless of selection.`
+    : 'Showing every framework. Select frameworks in step 1 to narrow this table and the report mappings.';
 
   el('resultRows').innerHTML = sortResults(report.results).map(r => `
     <tr class="s-${r.status.toLowerCase()}">
@@ -326,6 +341,20 @@ function wire() {
   el('dlHtml').onclick = () => state.report && downloadHtml(state.report);
   el('dlCsv').onclick = () => state.report && downloadCsv(state.report);
   el('dlJson').onclick = () => state.report && downloadJson(state.report);
+  el('dlXlsx').onclick = async () => {
+    if (!state.report) return;
+    const b = el('dlXlsx');
+    const label = b.textContent;
+    b.disabled = true; b.textContent = 'Building workbook…';
+    try { await downloadXlsx(state.report); }
+    catch (e) { setStatus(`Excel export failed: ${esc(e.message || e)}`, 'warn'); }
+    finally { b.disabled = false; b.textContent = label; }
+  };
+  el('btnPrint').onclick = () => {
+    if (state.report && !printReport(state.report)) {
+      setStatus('The print window was blocked. Allow popups for this site, or download the HTML report and print it.', 'warn');
+    }
+  };
 
   el('btnRestart').onclick = () => {
     deps.signOut();
