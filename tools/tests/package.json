@@ -2,10 +2,10 @@
   "name": "identityfrontline-assessment-tests",
   "private": true,
   "version": "1.0.0",
-  "description": "Tests for the catalog-driven assessment planner. Kept out of the repo root so the Azure App Service deploy does not treat the site as a Node app.",
+  "description": "Tests for the browser-native assessment: catalog contract, check engine against mock tenants, and the full wizard flow in jsdom. Kept out of the repo root so the Azure App Service deploy does not treat the site as a Node app.",
   "type": "module",
   "scripts": {
-    "test": "node catalog.test.mjs && node wizard.test.mjs"
+    "test": "node catalog.test.mjs && node engine.test.mjs && node wizard.test.mjs"
   },
   "devDependencies": {
     "jsdom": "^26.0.0"

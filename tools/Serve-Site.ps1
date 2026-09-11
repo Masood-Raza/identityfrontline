@@ -3,7 +3,7 @@
     Serves the site locally so the assessment planner can be tested in a real browser.
 
 .DESCRIPTION
-    The planner fetches assets/catalog/catalog.json at load. Opening assessments.html straight
+    The planner loads ES modules and fetches assets/catalog/checks.json. Opening assessments.html straight
     from disk fails that fetch (file:// origins are opaque), so the page shows its catalog
     error banner. This serves the repo over http://localhost so the page behaves exactly as
     it does in production.
