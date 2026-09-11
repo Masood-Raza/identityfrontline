@@ -849,24 +849,16 @@ footer {
   .avatar-ring { width: 100px; height: 100px; font-size: 38px; }
   .cert-item { font-size: 8.5px; letter-spacing: 0.04em; }
 }
-/* Dark identity-security theme */
-:root {
-  --ink: #f5f7ff;
-  --paper: #060b1c;
-  --teal: #35d7ff;
-  --teal-dark: #1aaed9;
-  --teal-pale: rgba(53,215,255,.12);
-  --rule: rgba(147,185,255,.18);
-  --muted: #a9b5cd;
-  --surface: #0e1730;
-  --nav: #080d1f;
-}
+/* Dark chrome, light content (matches assessments.html) */
+:root { --teal: #5a3fd0; --teal-dark: #452fa8; --teal-pale: #ece8fb; --nav: #080d1f; }
 body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36%); }
 .nav-bar, .mobile-nav, .hero-right, .h-stat, .author-section, footer { background: var(--nav); }
 .hero-cta, .sub-btn { background: var(--nav); border: 1px solid var(--rule); }
-.hero-cta:hover, .sub-btn:hover { background: var(--teal); color: #060b1c; }
+.hero-cta:hover, .sub-btn:hover { background: var(--teal); color: #fff; }
 .hero-h1 .accent { display: inline-block; background: linear-gradient(90deg, #35d7ff, #8c6cff, #e95cd7); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.ticker-track span { color: #060b1c; }
+.h-stat-n { color: #35d7ff; }
+.logo em, .nav-links a:hover, .nav-links .active { color: #35d7ff; }
+.callout p { color: #2a2159 !important; }
 </style>
 </head>
 <body id="top">
