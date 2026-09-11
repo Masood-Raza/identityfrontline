@@ -62,5 +62,10 @@ for (const s of REQUIRED_SCOPES) {
   ok(`page does not hard-code scope ${s}`, !html.includes(s));
 }
 
+// ---- hosting: IIS returns 404 for any extension without a MIME mapping -------------------
+const webConfig = readFileSync(join(root, 'web.config'), 'utf8');
+ok('web.config maps .json for IIS', /fileExtension="\.json" mimeType="application\/json/.test(webConfig));
+ok('web.config maps .js for IIS', /fileExtension="\.js" mimeType="text\/javascript/.test(webConfig));
+
 console.log(`\n${fail === 0 ? 'all catalog checks passed' : fail + ' FAILED'}`);
 process.exit(fail ? 1 : 0);
