@@ -8,6 +8,7 @@
     "test": "node catalog.test.mjs && node engine.test.mjs && node wizard.test.mjs"
   },
   "devDependencies": {
-    "jsdom": "^26.0.0"
+    "jsdom": "^26.0.0",
+    "xlsx": "^0.18.5"
   }
 }

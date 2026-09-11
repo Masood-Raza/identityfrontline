@@ -83,6 +83,29 @@ ok('rollup names failing controls',
 ok('rollup sorted worst-first',
   bad.frameworks.every((f, i, a) => i === 0 || (a[i - 1].passRate ?? 101) <= (f.passRate ?? 101)));
 
+// ---- framework filtering and priorities -------------------------------------------------
+const { frameworksOf, prioritise } = await import('../../assets/app/engine.js');
+globalThis.fetch = mockFetch(DEFAULTS);
+const filtered = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, frameworks: ['cis-m365-v6', 'nist-csf'] });
+ok('filter is recorded on the report', JSON.stringify(filtered.frameworkFilter) === JSON.stringify(['cis-m365-v6', 'nist-csf']));
+ok('rollup contains only the selected frameworks',
+  filtered.frameworks.every(f => ['cis-m365-v6', 'nist-csf'].includes(f.id)) && filtered.frameworks.length === 2,
+  filtered.frameworks.map(f => f.id).join(','));
+ok('filter narrows reporting, not assessment', filtered.summary.total === bad.summary.total && filtered.summary.fail === bad.summary.fail);
+ok('empty filter means every framework', bad.frameworks.length > 2);
+const sample = filtered.results.find(r => Object.keys(r.frameworks).length > 3);
+ok('frameworksOf() honours the filter', Object.keys(frameworksOf(sample, ['nist-csf'])).join() === 'nist-csf');
+ok('frameworksOf() with no filter returns everything', Object.keys(frameworksOf(sample, [])).length === Object.keys(sample.frameworks).length);
+
+const top = prioritise(bad.results);
+ok('priorities are capped at five', top.length === 5);
+ok('priorities are all failures', top.every(r => r.status === 'Fail'));
+const rank = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+ok('priorities are ordered by severity', top.every((r, i, a) => i === 0 || rank[a[i - 1].severity] <= rank[r.severity]),
+  top.map(r => r.severity).join(' > '));
+ok('a clean tenant has no priorities', prioritise(good.results).length === 0);
+ok('report carries priorities', Array.isArray(bad.priorities) && bad.priorities.length === 5);
+
 // ---- predicate robustness ---------------------------------------------------------------
 const empty = await run({
   ...HARDENED,

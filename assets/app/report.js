@@ -4,6 +4,8 @@
 // self-contained: no scripts, no external references, safe to open offline or attach to a
 // remediation ticket.
 
+import { frameworksOf } from './engine.js';
+
 const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Unknown'];
 const STATUS_ORDER = { Fail: 0, Unknown: 1, NotApplicable: 2, Pass: 3 };
 
@@ -36,12 +38,52 @@ const csvCell = (v) => {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
+// ---------------------------------------------------------------------------------------
+// Narrative
+// ---------------------------------------------------------------------------------------
+export function executiveSummary(report) {
+  const s = report.summary;
+  const name = report.tenant?.name || 'The tenant';
+  const parts = [];
+
+  if (s.scored === 0) {
+    parts.push(`${name} could not be scored: none of the ${s.total} checks had the data they needed.`);
+  } else {
+    parts.push(`${name} passed ${s.pass} of ${s.scored} scored checks (${s.passRate}%).`);
+  }
+
+  const sev = ['Critical', 'High', 'Medium', 'Low']
+    .filter(k => s.failedBySeverity[k] > 0)
+    .map(k => `${s.failedBySeverity[k]} ${k.toLowerCase()}`);
+  if (s.fail === 0 && s.scored > 0) {
+    parts.push('No failing checks were found in the assessed scope.');
+  } else if (sev.length) {
+    parts.push(`${s.fail} check${s.fail === 1 ? '' : 's'} failed: ${sev.join(', ')}.`);
+  }
+
+  const top = report.priorities || [];
+  if (top.length) {
+    const lead = top.slice(0, 3).map(r => r.name.replace(/^Ensure (that )?/i, '').replace(/\.$/, ''));
+    parts.push(`Address first: ${lead.join('; ')}.`);
+  }
+
+  if (s.unknown > 0) {
+    parts.push(`${s.unknown} check${s.unknown === 1 ? '' : 's'} could not be evaluated and ${s.unknown === 1 ? 'is' : 'are'} excluded from the score${report.unavailable?.length ? ` (${report.unavailable.map(u => u.label.toLowerCase()).join(', ')} not collected)` : ''}.`);
+  }
+
+  parts.push('This is a point-in-time posture snapshot, not a certification.');
+  return parts.join(' ');
+}
+
+const frameworkCell = (r, filter) =>
+  Object.entries(frameworksOf(r, filter)).map(([k, m]) => `${k}:${m.controlId}`).join(' | ');
+
 export function downloadCsv(report) {
   const cols = ['CheckId', 'Name', 'Category', 'Severity', 'Status', 'Detail', 'Remediation', 'Frameworks'];
   const rows = sortResults(report.results).map(r => [
     r.id, r.name, r.category, r.severity, r.status, r.detail,
     r.remediation?.portal || r.remediation?.powershell || '',
-    Object.entries(r.frameworks || {}).map(([k, m]) => `${k}:${m.controlId}`).join(' | ')
+    frameworkCell(r, report.frameworkFilter)
   ]);
   // BOM so Excel opens UTF-8 correctly.
   const csv = '﻿' + [cols, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
@@ -54,6 +96,138 @@ export function downloadJson(report) {
 
 export function downloadHtml(report) {
   download(`assessment-${stamp(report)}.html`, buildHtmlReport(report), 'text/html;charset=utf-8');
+}
+
+// Opens the self-contained report in its own window and hands it to the print dialog, which
+// is where "Save as PDF" lives in every browser. The report carries print styles.
+export function printReport(report) {
+  const w = window.open('', '_blank');
+  if (!w) return false;
+  w.document.open();
+  w.document.write(buildHtmlReport(report));
+  w.document.close();
+  w.focus();
+  // Give the new document a tick to lay out before the dialog snapshots it.
+  setTimeout(() => { try { w.print(); } catch { /* user closed it */ } }, 250);
+  return true;
+}
+
+// ---------------------------------------------------------------------------------------
+// Excel workbook — Summary, Findings, Compliance matrix, Framework coverage
+// ---------------------------------------------------------------------------------------
+const XLSX_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+
+// SheetJS is ~900 KB, so it is loaded the first time someone asks for a workbook, not on page load.
+export function ensureXlsx() {
+  if (typeof XLSX !== 'undefined') return Promise.resolve(XLSX);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = XLSX_CDN;
+    s.crossOrigin = 'anonymous';
+    s.onload = () => (typeof XLSX !== 'undefined') ? resolve(XLSX) : reject(new Error('Excel library did not initialise.'));
+    s.onerror = () => reject(new Error('Could not load the Excel library. Check your network or content blocker.'));
+    document.head.appendChild(s);
+  });
+}
+
+export function buildWorkbook(report, lib) {
+  const X = lib;
+  const wb = X.utils.book_new();
+  const s = report.summary;
+  const filter = report.frameworkFilter;
+  const results = sortResults(report.results);
+
+  // Which frameworks get a column in the matrix: the selection, or every one that appears.
+  const fwIds = filter?.length
+    ? filter
+    : [...new Set(report.results.flatMap(r => Object.keys(r.frameworks || {})))].sort();
+  const fwLabel = {};
+  for (const r of report.results) for (const [k, m] of Object.entries(r.frameworks || {})) fwLabel[k] = m.label;
+
+  // --- Summary ---
+  const summary = [
+    ['Microsoft 365 security assessment'],
+    [],
+    ['Tenant', report.tenant?.name || ''],
+    ['Tenant ID', report.tenant?.id || ''],
+    ['Assessed', new Date(report.started).toLocaleString()],
+    ['Duration (s)', Math.round(report.durationMs / 1000)],
+    [],
+    ['Pass rate', s.passRate === null ? 'n/a' : `${s.passRate}%`],
+    ['Passed', s.pass], ['Failed', s.fail], ['Unknown', s.unknown], ['Not applicable', s.notApplicable],
+    ['Scored checks', s.scored], ['Total checks', s.total],
+    [],
+    ['Failed by severity'],
+    ...['Critical', 'High', 'Medium', 'Low'].map(k => [k, s.failedBySeverity[k]]),
+    [],
+    ['Executive summary'],
+    [executiveSummary(report)],
+    [],
+    ['Fix first'],
+    ...(report.priorities || []).map((r, i) => [`${i + 1}. ${r.name}`, r.severity, r.id]),
+    [],
+    ['Not collected'],
+    ...(report.unavailable?.length ? report.unavailable.map(u => [u.label, u.reason]) : [['(everything collected)']]),
+    [],
+    ['Generated locally in the browser. No tenant data was transmitted to identityfrontline.com.'],
+    [`Control definitions and framework mappings from M365-Assess (c) Galvnyz, MIT licensed. Registry ${report.catalog?.source?.registry?.dataVersion || 'n/a'}.`],
+    ['Posture snapshot and remediation guide, not a certification or formal audit opinion.']
+  ];
+  const wsSummary = X.utils.aoa_to_sheet(summary);
+  wsSummary['!cols'] = [{ wch: 26 }, { wch: 90 }, { wch: 22 }];
+  X.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+  // --- Findings ---
+  const findings = [
+    ['Status', 'Severity', 'Check ID', 'Name', 'Category', 'Detail', 'Fix (portal)', 'Fix (PowerShell)', 'Licensing', 'Frameworks'],
+    ...results.map(r => [
+      r.status, r.severity, r.id, r.name, r.category, r.detail,
+      r.remediation?.portal || '', r.remediation?.powershell || '', r.licensing || '',
+      frameworkCell(r, filter)
+    ])
+  ];
+  const wsFindings = X.utils.aoa_to_sheet(findings);
+  wsFindings['!cols'] = [10, 10, 26, 60, 14, 80, 50, 50, 10, 60].map(w => ({ wch: w }));
+  wsFindings['!autofilter'] = { ref: `A1:J${findings.length}` };
+  wsFindings['!freeze'] = { xSplit: 0, ySplit: 1 };
+  X.utils.book_append_sheet(wb, wsFindings, 'Findings');
+
+  // --- Compliance matrix: one row per check, one column per framework, cell = control IDs ---
+  const matrix = [
+    ['Check ID', 'Name', 'Severity', 'Status', ...fwIds.map(id => fwLabel[id] || id)],
+    ...results.map(r => [
+      r.id, r.name, r.severity, r.status,
+      ...fwIds.map(id => r.frameworks?.[id]?.controlId || '')
+    ])
+  ];
+  const wsMatrix = X.utils.aoa_to_sheet(matrix);
+  wsMatrix['!cols'] = [{ wch: 26 }, { wch: 56 }, { wch: 10 }, { wch: 12 }, ...fwIds.map(() => ({ wch: 28 }))];
+  wsMatrix['!autofilter'] = { ref: X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: matrix.length - 1, c: matrix[0].length - 1 } }) };
+  wsMatrix['!freeze'] = { xSplit: 2, ySplit: 1 };
+  X.utils.book_append_sheet(wb, wsMatrix, 'Compliance matrix');
+
+  // --- Framework coverage ---
+  const coverage = [
+    ['Framework', 'Pass', 'Fail', 'Unknown', 'Scored', 'Pass rate', 'Failing controls'],
+    ...report.frameworks.map(f => [
+      f.label, f.pass, f.fail, f.unknown, f.scored,
+      f.passRate === null ? 'n/a' : `${f.passRate}%`,
+      f.failingControls.join(', ')
+    ])
+  ];
+  const wsCoverage = X.utils.aoa_to_sheet(coverage);
+  wsCoverage['!cols'] = [{ wch: 46 }, 6, 6, 8, 8, 10].map(w => (typeof w === 'number' ? { wch: w } : w)).concat([{ wch: 90 }]);
+  X.utils.book_append_sheet(wb, wsCoverage, 'Framework coverage');
+
+  return wb;
+}
+
+export async function downloadXlsx(report) {
+  const lib = await ensureXlsx();
+  const wb = buildWorkbook(report, lib);
+  const out = lib.write(wb, { bookType: 'xlsx', type: 'array' });
+  download(`assessment-${stamp(report)}.xlsx`, out,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 // ---------------------------------------------------------------------------------------
@@ -77,8 +251,18 @@ export function buildHtmlReport(report) {
         ${r.status === 'Fail' && r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(r.remediation.portal)}</div>` : ''}
         ${r.status === 'Fail' && r.remediation?.powershell ? `<div class="rem"><code>${esc(r.remediation.powershell)}</code></div>` : ''}
       </td>
-      <td class="fw">${Object.entries(r.frameworks || {}).map(([, m]) => esc(m.controlId)).join('<br>')}</td>
+      <td class="fw">${Object.entries(frameworksOf(r, report.frameworkFilter)).map(([, m]) => esc(m.controlId)).join('<br>')}</td>
     </tr>`).join('');
+
+  const priorities = (report.priorities || []).map((r, i) => `
+    <li><b>${esc(r.name)}</b> <span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span>
+      <div class="muted">${esc(r.detail)}</div>
+      ${r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(r.remediation.portal)}</div>` : ''}
+    </li>`).join('');
+
+  const scopeNote = report.frameworkFilter?.length
+    ? `Showing mappings for ${report.frameworkFilter.length} selected framework${report.frameworkFilter.length === 1 ? '' : 's'}.`
+    : 'Showing mappings for every framework.';
 
   const frameworks = report.frameworks.map(f => `
     <tr>
@@ -128,7 +312,10 @@ code{font:12px ui-monospace,Consolas,monospace;background:#f0f2f5;padding:1px 4p
 .muted{color:var(--muted);font-size:13px}
 tr.s-pass td{opacity:.72}
 footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-size:11px;color:var(--muted)}
-@media print{body{background:#fff}header{background:#fff;color:#000;border-bottom:2px solid #000}header p{color:#444}}
+.lead{font-size:15px;line-height:1.7;max-width:900px}
+.priorities{padding-left:22px}.priorities li{margin-bottom:12px}.priorities li>b{font-size:14px}
+@page{margin:14mm}
+@media print{body{background:#fff;font-size:12px}header{background:#fff;color:#000;border-bottom:2px solid #000;padding:0 0 12px}header p{color:#444}main{padding:0;max-width:none}h2{break-after:avoid}tr{break-inside:avoid}table{font-size:11px}th,td{padding:6px 8px}.cards{grid-template-columns:repeat(5,1fr)}.card b{font-size:20px}tr.s-pass td{opacity:1}}
 </style></head><body>
 <header>
   <h1>Microsoft 365 security assessment</h1>
@@ -146,7 +333,13 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-si
   <p class="muted">Pass rate counts only the ${s.scored} checks that could be scored. Unknown and
   not-applicable results are excluded rather than counted as failures.</p>
 
+  <h2>Executive summary</h2>
+  <p class="lead">${esc(executiveSummary(report))}</p>
+
+  ${priorities ? `<h2>Fix first</h2><ol class="priorities">${priorities}</ol>` : ''}
+
   <h2>Findings</h2>
+  <p class="muted">${esc(scopeNote)}</p>
   <table><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
   <tbody>${findings}</tbody></table>
 

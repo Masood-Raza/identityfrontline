@@ -8,7 +8,26 @@ on:
     branches: [ main ]
 
 jobs:
+  # The assessment's tests gate the deploy: a broken planner never reaches production.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install test dependencies
+      working-directory: tools/tests
+      run: npm install --no-audit --no-fund
+
+    - name: Run tests
+      working-directory: tools/tests
+      run: npm test
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
