@@ -480,6 +480,14 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
 .nav-bar, .mobile-nav, .post-hero, .post-footer-section, footer, .sidebar-sub, .cert-table th, .sidebar-widget-title { background: var(--nav); }
 .code-block { background: #0b1228; border-color: var(--rule); }
 .post-hero h1 em { background: linear-gradient(90deg, #35d7ff, #8c6cff, #e95cd7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* Callouts: the dark theme darkens their tint, so their text must be light too. */
+.callout-label { color: #35d7ff; }
+.callout p { color: #d6dff0 !important; }
+.callout-amber .callout-label { color: #f2b84b; }
+.callout-amber p { color: #efe1c3 !important; }
+.callout-orange { background: rgba(224,93,32,.14); }
+.callout-orange .callout-label { color: #ff9a66; }
+.callout-orange p { color: #f3d9cc !important; }
 </style>
 </head>
 <body>
