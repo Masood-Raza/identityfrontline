@@ -135,7 +135,8 @@ export const DEFAULTS = {
 
 export function mockFetch(fixture, { deny = [] } = {}) {
   return async (url) => {
-    const path = decodeURIComponent(String(url)).replace('https://graph.microsoft.com/v1.0', '').split('?')[0];
+    // The same policy fixture serves both the v1.0 and beta reads of authenticationMethodsPolicy.
+    const path = decodeURIComponent(String(url)).replace('https://graph.microsoft.com/v1.0', '').replace('https://graph.microsoft.com/beta', '').split('?')[0];
     if (deny.some(d => path.startsWith(d))) {
       return res({ error: { message: 'Insufficient privileges to complete the operation.' } }, { status: 403 });
     }

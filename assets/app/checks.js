@@ -54,6 +54,14 @@ export const SOURCES = {
     scopes: ['Policy.Read.All'],
     label: 'Authentication methods policy'
   },
+  authMethodsPolicyBeta: {
+    // systemCredentialPreferences and reportSuspiciousActivitySettings are beta-only. Read
+    // them from beta; everything else about the policy stays on v1.0.
+    url: 'https://graph.microsoft.com/beta/policies/authenticationMethodsPolicy',
+    scopes: ['Policy.Read.All'],
+    optional: true,
+    label: 'Authentication methods policy (extended settings)'
+  },
   caPolicies: {
     url: '/identity/conditionalAccess/policies',
     scopes: ['Policy.Read.All'],
@@ -306,10 +314,10 @@ export const CHECKS = [
   },
   {
     id: 'ENTRA-AUTHMETHOD-004',
-    needs: ['authMethodsPolicy'],
+    needs: ['authMethodsPolicyBeta'],
     evaluate: (d) => {
-      const s = d.authMethodsPolicy?.systemCredentialPreferences?.state;
-      if (!s) return unknown('System-preferred MFA setting not present in the policy.');
+      const s = d.authMethodsPolicyBeta?.systemCredentialPreferences?.state;
+      if (!s) return unknown('System-preferred MFA setting was not returned for this tenant.');
       return s === 'enabled'
         ? pass('System-preferred multifactor authentication is enabled.')
         : fail(`System-preferred MFA is "${s}", so users may default to a weaker method.`);
@@ -328,10 +336,10 @@ export const CHECKS = [
   },
   {
     id: 'ENTRA-AUTHMETHOD-006',
-    needs: ['authMethodsPolicy'],
+    needs: ['authMethodsPolicyBeta'],
     evaluate: (d) => {
-      const s = d.authMethodsPolicy?.reportSuspiciousActivitySettings?.state;
-      if (!s) return unknown('Suspicious activity reporting setting not present.');
+      const s = d.authMethodsPolicyBeta?.reportSuspiciousActivitySettings?.state;
+      if (!s) return unknown('Suspicious activity reporting setting was not returned for this tenant.');
       return s === 'enabled'
         ? pass('Users can report suspicious MFA prompts.')
         : fail('Suspicious activity reporting is off, so denied fraudulent prompts are never escalated.');
