@@ -243,6 +243,21 @@ export async function runAssessment({ token, catalog, tenant, frameworks = [], o
   const results = evaluate(data, failures, catalog);
   onProgress({ phase: 'evaluate', current: CHECKS.length, total: CHECKS.length, label: 'Evaluating checks' });
 
+  // Framework selection defines the SCOPE of the report. Every check is still assessed, but
+  // the headline score, the priorities and the primary findings cover only the checks that
+  // map to a selected framework. The rest are kept and reported separately, never hidden.
+  const scopeIds = [...frameworks];
+  for (const r of results) {
+    r.inScope = scopeIds.length === 0 || scopeIds.some(id => r.frameworks && r.frameworks[id]);
+  }
+  const inScope = results.filter(r => r.inScope);
+  const scope = {
+    frameworks: scopeIds.map(id => ({ id, label: catalog.frameworks?.[id]?.label || id })),
+    label: scopeIds.length ? scopeIds.map(id => catalog.frameworks?.[id]?.label || id).join(', ') : 'All frameworks',
+    inScopeCount: inScope.length,
+    outOfScopeCount: results.length - inScope.length
+  };
+
   return {
     tenant,
     started: started.toISOString(),
@@ -252,11 +267,13 @@ export async function runAssessment({ token, catalog, tenant, frameworks = [], o
       version: catalog.catalogVersion,
       source: catalog.source
     },
-    // Framework selection narrows what is reported, never what is assessed.
-    frameworkFilter: [...frameworks],
-    summary: summarise(results),
+    frameworkFilter: scopeIds,
+    scope,
+    // Headline numbers are for the selected scope; summaryAll is the unfiltered view.
+    summary: summarise(inScope),
+    summaryAll: summarise(results),
     frameworks: frameworkRollup(results, frameworks),
-    priorities: prioritise(results),
+    priorities: prioritise(inScope),
     unavailable: Object.entries(failures).map(([k, v]) => ({ source: k, ...v })),
     results
   };

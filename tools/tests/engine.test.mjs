@@ -91,7 +91,23 @@ ok('filter is recorded on the report', JSON.stringify(filtered.frameworkFilter) 
 ok('rollup contains only the selected frameworks',
   filtered.frameworks.every(f => ['cis-m365-v6', 'nist-csf'].includes(f.id)) && filtered.frameworks.length === 2,
   filtered.frameworks.map(f => f.id).join(','));
-ok('filter narrows reporting, not assessment', filtered.summary.total === bad.summary.total && filtered.summary.fail === bad.summary.fail);
+ok('filter never changes what is assessed', filtered.results.length === bad.results.length && filtered.summaryAll.fail === bad.summary.fail);
+ok('every result is flagged in or out of scope', filtered.results.every(r => typeof r.inScope === 'boolean'));
+ok('headline summary covers only in-scope checks',
+  filtered.summary.total === filtered.results.filter(r => r.inScope).length && filtered.summary.total === filtered.scope.inScopeCount);
+ok('in-scope means mapped to at least one selected framework',
+  filtered.results.every(r => r.inScope === (!!r.frameworks['cis-m365-v6'] || !!r.frameworks['nist-csf'])));
+ok('scope carries framework labels', filtered.scope.frameworks.map(f => f.label).join('|').includes('CIS Microsoft 365'));
+ok('out-of-scope checks are counted, not dropped', filtered.scope.inScopeCount + filtered.scope.outOfScopeCount === filtered.results.length);
+ok('priorities come from in-scope checks only', filtered.priorities.every(r => r.inScope));
+ok('unfiltered run: everything in scope and summaryAll equals summary',
+  bad.results.every(r => r.inScope) && bad.summaryAll.passRate === bad.summary.passRate && bad.scope.label === 'All frameworks');
+// The exact discrepancy reported from a real tenant: headline must equal the single selected framework's rate.
+const hipaa = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, frameworks: ['hipaa'] });
+const hipaaRow = hipaa.frameworks.find(f => f.id === 'hipaa');
+ok('single-framework scope: headline pass rate equals that framework\'s coverage rate',
+  hipaa.summary.passRate === hipaaRow.passRate && hipaa.summary.pass === hipaaRow.pass && hipaa.summary.fail === hipaaRow.fail,
+  `headline ${hipaa.summary.passRate}% vs HIPAA row ${hipaaRow.passRate}%`);
 ok('empty filter means every framework', bad.frameworks.length > 2);
 const sample = filtered.results.find(r => Object.keys(r.frameworks).length > 3);
 ok('frameworksOf() honours the filter', Object.keys(frameworksOf(sample, ['nist-csf'])).join() === 'nist-csf');

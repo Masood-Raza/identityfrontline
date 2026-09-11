@@ -7,7 +7,7 @@ import { CONFIG, isConfigured } from './config.js';
 import * as auth from './auth.js';
 import { missingScopes } from './auth.js';
 import { runAssessment as realRun, REQUIRED_SCOPES } from './engine.js';
-import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, printReport, executiveSummary, esc } from './report.js';
+import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, printReport, executiveSummary, scopeLabel, fixText, esc } from './report.js';
 
 // Injectable for tests: the flow can be driven end to end with sign-in and Graph mocked.
 const deps = {
@@ -299,18 +299,39 @@ function renderResults(report) {
     </li>`).join('');
   show('priorityWrap', top.length > 0);
 
-  el('frameworkNote').textContent = report.frameworkFilter?.length
-    ? `Showing the ${report.frameworkFilter.length} framework${report.frameworkFilter.length === 1 ? '' : 's'} you selected. Findings are the same regardless of selection.`
-    : 'Showing every framework. Select frameworks in step 1 to narrow this table and the report mappings.';
+  const scope = scopeLabel(report);
+  const sAll = report.summaryAll || s;
+  el('scopeNote').innerHTML = scope
+    ? `Scored against <b>${esc(scope)}</b>: ${report.scope.inScopeCount} of ${report.results.length} checks map to it. ` +
+      `Across all checks regardless of framework: ${sAll.passRate === null ? 'n/a' : sAll.passRate + '%'} (${sAll.pass} of ${sAll.scored}).`
+    : `Scored across all ${report.results.length} checks. Select frameworks in step 1 to score against a specific framework.`;
 
-  el('resultRows').innerHTML = sortResults(report.results).map(r => `
+  el('frameworkNote').textContent = scope
+    ? `Coverage for ${scope}. Each row counts only the checks that map to that framework, so rates differ from the headline when more than one is selected.`
+    : 'Showing every framework. Each row counts only the checks that map to that framework.';
+
+  const row = (r) => `
     <tr class="s-${r.status.toLowerCase()}">
       <td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span></td>
       <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>
       <td><div class="nm">${esc(r.name)}</div><code>${esc(r.id)}</code></td>
       <td>${esc(r.detail)}${r.status === 'Fail' && r.remediation?.portal
-        ? `<div class="rem"><b>Fix:</b> ${esc(r.remediation.portal)}</div>` : ''}</td>
-    </tr>`).join('');
+        ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}</td>
+    </tr>`;
+  const sorted = sortResults(report.results);
+  el('resultRows').innerHTML = sorted.filter(r => r.inScope !== false).map(row).join('');
+  const others = sorted.filter(r => r.inScope === false);
+  el('findingsTitle').textContent = scope ? `Findings — ${scope}` : 'Findings';
+  if (others.length) {
+    el('otherTitle').textContent = `Other findings — not mapped to ${scope}`;
+    el('otherNote').textContent =
+      `${others.length} check${others.length === 1 ? '' : 's'} were assessed but do not map to the selected framework${report.scope.frameworks.length === 1 ? '' : 's'} ` +
+      `(${others.filter(r => r.status === 'Fail').length} failed). They are excluded from the score above and shown here so nothing is hidden.`;
+    el('otherRows').innerHTML = others.map(row).join('');
+    show('otherWrap');
+  } else {
+    show('otherWrap', false);
+  }
 
   el('frameworkRows').innerHTML = report.frameworks.map(f => `
     <tr><td>${esc(f.label)}</td><td class="num">${f.pass}</td><td class="num">${f.fail}</td>
@@ -325,7 +346,8 @@ function renderResults(report) {
   }
 
   el('runMeta').textContent =
-    `${state.tenant} · ${new Date(report.started).toLocaleString()} · ${(report.durationMs / 1000).toFixed(1)}s`;
+    `${state.tenant} · ${new Date(report.started).toLocaleString()} · ${(report.durationMs / 1000).toFixed(1)}s · ` +
+    (scope ? `Scope: ${scope}` : 'All frameworks');
 }
 
 // ---------------------------------------------------------------------------------------

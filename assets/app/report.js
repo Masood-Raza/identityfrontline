@@ -41,15 +41,38 @@ const csvCell = (v) => {
 // ---------------------------------------------------------------------------------------
 // Narrative
 // ---------------------------------------------------------------------------------------
+const summariseList = (list) => ({
+  pass: list.filter(r => r.status === 'Pass').length,
+  fail: list.filter(r => r.status === 'Fail').length,
+  other: list.filter(r => r.status !== 'Pass' && r.status !== 'Fail').length
+});
+
+// Upstream remediation strings arrive with PowerShell-escaped quotes (''x''); show them plainly.
+export const fixText = (t) => String(t ?? '').replace(/''/g, "'");
+
+// "HIPAA", "HIPAA and SOC 2", "HIPAA, SOC 2 and 2 more", or null when unfiltered.
+export function scopeLabel(report) {
+  const fw = report.scope?.frameworks || [];
+  if (!fw.length) return null;
+  const names = fw.map(f => f.label);
+  if (names.length <= 2) return names.join(' and ');
+  return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+}
+
 export function executiveSummary(report) {
   const s = report.summary;
   const name = report.tenant?.name || 'The tenant';
   const parts = [];
+  const scope = scopeLabel(report);
+
+  if (scope) {
+    parts.push(`Scope: ${scope} — ${report.scope.inScopeCount} of ${report.results.length} checks map to ${report.scope.frameworks.length === 1 ? 'this framework' : 'these frameworks'}.`);
+  }
 
   if (s.scored === 0) {
-    parts.push(`${name} could not be scored: none of the ${s.total} checks had the data they needed.`);
+    parts.push(`${name} could not be scored: none of the ${s.total} checks in scope had the data they needed.`);
   } else {
-    parts.push(`${name} passed ${s.pass} of ${s.scored} scored checks (${s.passRate}%).`);
+    parts.push(`${name} passed ${s.pass} of ${s.scored} scored checks${scope ? ' in scope' : ''} (${s.passRate}%).`);
   }
 
   const sev = ['Critical', 'High', 'Medium', 'Low']
@@ -79,11 +102,11 @@ const frameworkCell = (r, filter) =>
   Object.entries(frameworksOf(r, filter)).map(([k, m]) => `${k}:${m.controlId}`).join(' | ');
 
 export function downloadCsv(report) {
-  const cols = ['CheckId', 'Name', 'Category', 'Severity', 'Status', 'Detail', 'Remediation', 'Frameworks'];
+  const cols = ['CheckId', 'Name', 'Category', 'Severity', 'Status', 'InScope', 'Detail', 'Remediation', 'Frameworks'];
   const rows = sortResults(report.results).map(r => [
-    r.id, r.name, r.category, r.severity, r.status, r.detail,
-    r.remediation?.portal || r.remediation?.powershell || '',
-    frameworkCell(r, report.frameworkFilter)
+    r.id, r.name, r.category, r.severity, r.status, r.inScope === false ? 'No' : 'Yes', r.detail,
+    fixText(r.remediation?.portal || r.remediation?.powershell || ''),
+    frameworkCell(r, r.inScope === false ? [] : report.frameworkFilter)
   ]);
   // BOM so Excel opens UTF-8 correctly.
   const csv = '﻿' + [cols, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
@@ -148,12 +171,17 @@ export function buildWorkbook(report, lib) {
   const summary = [
     ['Microsoft 365 security assessment'],
     [],
+    ['Scope', scopeLabel(report) || 'All frameworks'],
+    ['Checks in scope', report.scope ? report.scope.inScopeCount : report.results.length],
+    ['Checks assessed', report.results.length],
+    [],
     ['Tenant', report.tenant?.name || ''],
     ['Tenant ID', report.tenant?.id || ''],
     ['Assessed', new Date(report.started).toLocaleString()],
     ['Duration (s)', Math.round(report.durationMs / 1000)],
     [],
-    ['Pass rate', s.passRate === null ? 'n/a' : `${s.passRate}%`],
+    ['Pass rate (in scope)', s.passRate === null ? 'n/a' : `${s.passRate}%`],
+    ['Pass rate (all checks)', (report.summaryAll || s).passRate === null ? 'n/a' : `${(report.summaryAll || s).passRate}%`],
     ['Passed', s.pass], ['Failed', s.fail], ['Unknown', s.unknown], ['Not applicable', s.notApplicable],
     ['Scored checks', s.scored], ['Total checks', s.total],
     [],
@@ -179,23 +207,24 @@ export function buildWorkbook(report, lib) {
 
   // --- Findings ---
   const findings = [
-    ['Status', 'Severity', 'Check ID', 'Name', 'Category', 'Detail', 'Fix (portal)', 'Fix (PowerShell)', 'Licensing', 'Frameworks'],
+    ['Status', 'Severity', 'In scope', 'Check ID', 'Name', 'Category', 'Detail', 'Fix (portal)', 'Fix (PowerShell)', 'Licensing', 'Frameworks'],
     ...results.map(r => [
-      r.status, r.severity, r.id, r.name, r.category, r.detail,
-      r.remediation?.portal || '', r.remediation?.powershell || '', r.licensing || '',
-      frameworkCell(r, filter)
+      r.status, r.severity, r.inScope === false ? 'No' : 'Yes', r.id, r.name, r.category, r.detail,
+      fixText(r.remediation?.portal || ''), fixText(r.remediation?.powershell || ''), r.licensing || '',
+      frameworkCell(r, r.inScope === false ? [] : filter)
     ])
   ];
   const wsFindings = X.utils.aoa_to_sheet(findings);
-  wsFindings['!cols'] = [10, 10, 26, 60, 14, 80, 50, 50, 10, 60].map(w => ({ wch: w }));
-  wsFindings['!autofilter'] = { ref: `A1:J${findings.length}` };
+  wsFindings['!cols'] = [10, 10, 8, 26, 60, 14, 80, 50, 50, 10, 60].map(w => ({ wch: w }));
+  wsFindings['!autofilter'] = { ref: `A1:K${findings.length}` };
   wsFindings['!freeze'] = { xSplit: 0, ySplit: 1 };
   X.utils.book_append_sheet(wb, wsFindings, 'Findings');
 
   // --- Compliance matrix: one row per check, one column per framework, cell = control IDs ---
   const matrix = [
     ['Check ID', 'Name', 'Severity', 'Status', ...fwIds.map(id => fwLabel[id] || id)],
-    ...results.map(r => [
+    // Out-of-scope checks have no cell in any selected column, so they add nothing here.
+    ...results.filter(r => r.inScope !== false).map(r => [
       r.id, r.name, r.severity, r.status,
       ...fwIds.map(id => r.frameworks?.[id]?.controlId || '')
     ])
@@ -242,27 +271,35 @@ export function buildHtmlReport(report) {
     .map(k => `<span class="pill ${k.toLowerCase()}">${s.failedBySeverity[k]} ${k}</span>`)
     .join(' ') || '<span class="pill none">No failures</span>';
 
-  const findings = sortResults(report.results).map(r => `
+  const row = (r) => `
     <tr class="s-${r.status.toLowerCase()}">
       <td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span></td>
       <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>
       <td><code>${esc(r.id)}</code><div class="nm">${esc(r.name)}</div></td>
       <td>${esc(r.detail)}
-        ${r.status === 'Fail' && r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(r.remediation.portal)}</div>` : ''}
-        ${r.status === 'Fail' && r.remediation?.powershell ? `<div class="rem"><code>${esc(r.remediation.powershell)}</code></div>` : ''}
+        ${r.status === 'Fail' && r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}
+        ${r.status === 'Fail' && r.remediation?.powershell ? `<div class="rem"><code>${esc(fixText(r.remediation.powershell))}</code></div>` : ''}
       </td>
-      <td class="fw">${Object.entries(frameworksOf(r, report.frameworkFilter)).map(([, m]) => esc(m.controlId)).join('<br>')}</td>
-    </tr>`).join('');
+      <td class="fw">${Object.entries(frameworksOf(r, r.inScope === false ? [] : report.frameworkFilter)).map(([, m]) => esc(m.controlId)).join('<br>')}</td>
+    </tr>`;
+
+  const sorted = sortResults(report.results);
+  const findings = sorted.filter(r => r.inScope !== false).map(row).join('');
+  const others = sorted.filter(r => r.inScope === false);
+  const othersRows = others.map(row).join('');
+  const othersSummary = summariseList(others);
 
   const priorities = (report.priorities || []).map((r, i) => `
     <li><b>${esc(r.name)}</b> <span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span>
       <div class="muted">${esc(r.detail)}</div>
-      ${r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(r.remediation.portal)}</div>` : ''}
+      ${r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}
     </li>`).join('');
 
-  const scopeNote = report.frameworkFilter?.length
-    ? `Showing mappings for ${report.frameworkFilter.length} selected framework${report.frameworkFilter.length === 1 ? '' : 's'}.`
-    : 'Showing mappings for every framework.';
+  const scope = scopeLabel(report);
+  const sAll = report.summaryAll || s;
+  const scopeNote = scope
+    ? `${report.scope.inScopeCount} of ${report.results.length} checks map to ${scope}. Controls shown are for the selected framework${report.scope.frameworks.length === 1 ? '' : 's'} only.`
+    : 'All frameworks. Controls shown are every mapping for each check.';
 
   const frameworks = report.frameworks.map(f => `
     <tr>
@@ -282,7 +319,7 @@ export function buildHtmlReport(report) {
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Security assessment — ${esc(report.tenant?.name || 'tenant')}</title>
+<title>Security assessment — ${esc(report.tenant?.name || 'tenant')}${scope ? ' — ' + esc(scope) : ''}</title>
 <style>
 :root{--ink:#0d1b2a;--muted:#5a6a7d;--rule:#dfe4ea;--bg:#f5f7fa}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
@@ -313,24 +350,27 @@ code{font:12px ui-monospace,Consolas,monospace;background:#f0f2f5;padding:1px 4p
 tr.s-pass td{opacity:.72}
 footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-size:11px;color:var(--muted)}
 .lead{font-size:15px;line-height:1.7;max-width:900px}
+.scope{display:inline-block;font-size:13px;font-weight:400;background:rgba(255,255,255,.12);padding:3px 10px;border-radius:11px;vertical-align:middle;margin-left:8px}
 .priorities{padding-left:22px}.priorities li{margin-bottom:12px}.priorities li>b{font-size:14px}
 @page{margin:14mm}
 @media print{body{background:#fff;font-size:12px}header{background:#fff;color:#000;border-bottom:2px solid #000;padding:0 0 12px}header p{color:#444}main{padding:0;max-width:none}h2{break-after:avoid}tr{break-inside:avoid}table{font-size:11px}th,td{padding:6px 8px}.cards{grid-template-columns:repeat(5,1fr)}.card b{font-size:20px}tr.s-pass td{opacity:1}}
 </style></head><body>
 <header>
-  <h1>Microsoft 365 security assessment</h1>
-  <p>${esc(report.tenant?.name || 'Tenant')}${report.tenant?.id ? ' &middot; ' + esc(report.tenant.id) : ''} &middot; ${esc(when)}</p>
+  <h1>Microsoft 365 security assessment${scope ? ` <span class="scope">${esc(scope)}</span>` : ''}</h1>
+  <p>${esc(report.tenant?.name || 'Tenant')}${report.tenant?.id && report.tenant.id !== report.tenant.name ? ' &middot; ' + esc(report.tenant.id) : ''} &middot; ${esc(when)}${scope ? ` &middot; Scope: ${esc(scope)}` : ' &middot; All frameworks'}</p>
 </header>
 <main>
   <div class="cards">
-    <div class="card"><b>${s.passRate === null ? '—' : s.passRate + '%'}</b><span>Pass rate</span></div>
+    <div class="card"><b>${s.passRate === null ? '—' : s.passRate + '%'}</b><span>Pass rate${scope ? ' — ' + esc(scope) : ''}</span></div>
     <div class="card"><b>${s.pass}</b><span>Passed</span></div>
     <div class="card"><b>${s.fail}</b><span>Failed</span></div>
     <div class="card"><b>${s.unknown}</b><span>Unknown</span></div>
     <div class="card"><b>${s.notApplicable}</b><span>Not applicable</span></div>
   </div>
   <p style="margin-top:14px">${sevRow}</p>
-  <p class="muted">Pass rate counts only the ${s.scored} checks that could be scored. Unknown and
+  <p class="muted">${scope
+    ? `Scored against the ${report.scope.inScopeCount} checks that map to ${esc(scope)}; ${s.scored} of those could be scored. Across all ${report.results.length} checks regardless of framework the pass rate is ${sAll.passRate === null ? 'n/a' : sAll.passRate + '%'} (${sAll.pass} of ${sAll.scored}).`
+    : `Pass rate counts only the ${s.scored} checks that could be scored.`} Unknown and
   not-applicable results are excluded rather than counted as failures.</p>
 
   <h2>Executive summary</h2>
@@ -338,10 +378,18 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-si
 
   ${priorities ? `<h2>Fix first</h2><ol class="priorities">${priorities}</ol>` : ''}
 
-  <h2>Findings</h2>
+  <h2>Findings${scope ? ` — ${esc(scope)}` : ''}</h2>
   <p class="muted">${esc(scopeNote)}</p>
   <table><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
   <tbody>${findings}</tbody></table>
+
+  ${others.length ? `
+  <h2>Other findings — not mapped to ${esc(scope)}</h2>
+  <p class="muted">${others.length} check${others.length === 1 ? '' : 's'} were assessed but do not map to the selected
+  framework${report.scope.frameworks.length === 1 ? '' : 's'}: ${othersSummary.pass} passed, ${othersSummary.fail} failed, ${othersSummary.other} other.
+  They are excluded from the score above and listed here so nothing is hidden. Controls shown are all their mappings.</p>
+  <table><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
+  <tbody>${othersRows}</tbody></table>` : ''}
 
   <h2>Compliance framework coverage</h2>
   <p class="muted">One technical condition maps to many frameworks. These figures reflect only the

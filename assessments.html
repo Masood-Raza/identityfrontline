@@ -54,13 +54,13 @@ tr.s-pass td{opacity:.7}
 
 <div class="panel" data-panel="5"><span class="step-label">Step 5</span><h3>Results</h3><p class="run-meta" id="runMeta"></p>
 <div class="facts score-cards" id="scoreCards"></div>
-<p class="sev-row" id="sevRow"></p><p class="exec-summary" id="execSummary"></p><div id="priorityWrap" hidden><h4 class="results-h">Fix first</h4><ol class="priorities" id="priorityList"></ol></div>
+<p class="sev-row" id="sevRow"></p><p class="hint" id="scopeNote"></p><p class="exec-summary" id="execSummary"></p><div id="priorityWrap" hidden><h4 class="results-h">Fix first</h4><ol class="priorities" id="priorityList"></ol></div>
 <p class="plan-summary" id="planSummary"></p>
 <div class="download-row"><button class="button" id="dlHtml" type="button">Download HTML report</button><button class="button" id="btnPrint" type="button">Print / Save as PDF</button><button class="button secondary" id="dlXlsx" type="button">Excel workbook</button><button class="button secondary" id="dlCsv" type="button">CSV</button><button class="button secondary" id="dlJson" type="button">JSON</button></div>
 <div class="notice"><strong>Confidential.</strong>Reports contain administrator identities, policy configuration and tenant settings. Store them as you would any security assessment and do not upload them to public storage.</div>
-<h4 class="results-h">Findings</h4>
+<h4 class="results-h" id="findingsTitle">Findings</h4>
 <div style="overflow:auto"><table class="permission-table results"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th></tr></thead><tbody id="resultRows"></tbody></table></div>
-<h4 class="results-h">Framework coverage</h4><p class="hint" id="frameworkNote"></p>
+<div id="otherWrap" hidden><h4 class="results-h" id="otherTitle"></h4><p class="hint" id="otherNote"></p><div style="overflow:auto"><table class="permission-table results"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th></tr></thead><tbody id="otherRows"></tbody></table></div></div><h4 class="results-h">Framework coverage</h4><p class="hint" id="frameworkNote"></p>
 <div style="overflow:auto"><table class="permission-table"><thead><tr><th>Framework</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Rate</th></tr></thead><tbody id="frameworkRows"></tbody></table></div>
 <div id="unavailableWrap" hidden><h4 class="results-h">Not collected</h4><p class="hint">These areas could not be read. Dependent checks are Unknown and excluded from the pass rate.</p><ul class="unavailable" id="unavailableRows"></ul></div>
 <div class="actions" style="justify-content:flex-start"><button class="button secondary" id="btnRestart" type="button">Start another assessment</button></div>
