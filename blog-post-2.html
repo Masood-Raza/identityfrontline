@@ -116,14 +116,15 @@ footer{background:var(--ink);padding:24px 52px;display:flex;align-items:center;j
 .footer-copy{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.2)}
 @media(max-width:900px){.nav-bar{padding:0 20px}.nav-links{display:none}.nav-toggle{display:flex}.post-hero{padding:48px 20px 44px}.post-layout{grid-template-columns:1fr;padding:0 20px}.post-body{padding:40px 0;border-right:none}.post-sidebar{padding:0 0 40px;border-top:1px solid var(--rule)}.post-footer-section{padding:52px 20px}.post-footer-grid{grid-template-columns:1fr;gap:40px}footer{flex-direction:column;gap:12px;text-align:center;padding:24px 20px}.arch-flow{flex-direction:column}.arch-arrow{transform:rotate(90deg)}}
 @media(max-width:480px){.post-hero h1{font-size:38px}.post-body h2{font-size:30px}.code-block{font-size:11px;padding:14px 16px}}
-/* Dark chrome, light content (matches assessments.html) */
-:root { --teal: #5a3fd0; --teal-dark: #452fa8; --teal-pale: #ece8fb; --nav: #080d1f; }
+/* Dark identity-security theme */
+:root {
+  --ink: #f5f7ff; --paper: #060b1c; --teal: #35d7ff; --teal-dark: #1aaed9;
+  --teal-pale: rgba(53,215,255,.12); --rule: rgba(147,185,255,.18); --muted: #a9b5cd;
+  --surface: #0e1730; --amber: #f2b84b; --amber-pale: rgba(242,184,75,.12); --nav: #080d1f;
+}
 body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
 .nav-bar,.mobile-nav,.post-hero,.post-footer-section,footer,.sidebar-sub,.arch-box,.code-block,.sidebar-widget-title{background:var(--nav)}
 .post-hero h1 em{background:linear-gradient(90deg,#35d7ff,#8c6cff,#e95cd7);-webkit-background-clip:text;background-clip:text;color:transparent}
-.logo em, .nav-links a:hover, .nav-links .active { color: #35d7ff; }
-.post-hero .post-cat { color: #35d7ff; background: rgba(53,215,255,.12); }
-.callout p { color: #2a2159 !important; }
 </style>
 </head>
 <body>

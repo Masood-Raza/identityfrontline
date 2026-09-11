@@ -221,14 +221,22 @@ footer {
   .post-title { font-size: 22px; }
   footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 20px; }
 }
-/* Dark chrome, light content (matches assessments.html) */
-:root { --teal: #5a3fd0; --teal-dark: #452fa8; --teal-pale: #ece8fb; --nav: #080d1f; }
+/* Dark identity-security theme */
+:root {
+  --ink: #f5f7ff;
+  --paper: #060b1c;
+  --teal: #35d7ff;
+  --teal-dark: #1aaed9;
+  --teal-pale: rgba(53,215,255,.12);
+  --rule: rgba(147,185,255,.18);
+  --muted: #a9b5cd;
+  --nav: #080d1f;
+  --surface: #0e1730;
+}
 body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36%); }
 .nav-bar, .mobile-nav, .hero, footer { background: var(--nav); }
-.post-card:hover { background: rgba(90,63,208,.05); }
+.post-card:hover { background: rgba(53,215,255,.06); }
 .hero h1 em { background: linear-gradient(90deg, #35d7ff, #8c6cff, #e95cd7); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.logo em, .nav-links a:hover, .nav-links .active { color: #35d7ff; }
-.callout p { color: #2a2159 !important; }
 </style>
 </head>
 <body>
