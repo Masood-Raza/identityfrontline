@@ -23,7 +23,7 @@
 // is read by their browser using their token and never reaches this site.
 
 export const CONFIG = {
-  clientId: 'REPLACE_WITH_YOUR_CLIENT_ID',
+  clientId: 'ca9c5d54-e77e-41c0-84a5-f903d5305bc8',
 
   // Where MSAL returns after sign-in. Defaults to this page, which must match a SPA redirect
   // URI registered on the app above.

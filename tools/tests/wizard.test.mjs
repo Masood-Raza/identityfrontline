@@ -77,6 +77,8 @@ const authMock = {
 };
 
 // ---- unconfigured deployment shows setup, never a broken sign-in -------------------------
+// Force the placeholder regardless of what config.js ships with, so the setup path is always tested.
+CONFIG.clientId = 'REPLACE_WITH_YOUR_CLIENT_ID';
 await main.init(authMock);
 await tick();
 ok('setup notice shown when clientId is a placeholder', visible('setupNotice'));
