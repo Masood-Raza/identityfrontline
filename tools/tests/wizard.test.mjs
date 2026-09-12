@@ -55,6 +55,9 @@ globalThis.fetch = async (url, opts) => {
   if (String(url).includes('checks.json')) {
     return { ok: true, status: 200, json: async () => JSON.parse(checksJson) };
   }
+  if (String(url).includes('app-tiers.json')) {
+    return { ok: true, status: 200, json: async () => JSON.parse(readFileSync(join(root, 'assets/catalog/app-tiers.json'), 'utf8')) };
+  }
   return graph(url, opts);
 };
 
@@ -103,7 +106,7 @@ ok('two frameworks selected for the run', main.getState().frameworks.size === 2)
 // ---- step 2: scope ----------------------------------------------------------------------
 $('#next').click();
 ok('step 2 active', active() === 2);
-ok('three areas rendered with check counts', $$('#scopeAreas .choice').length === 3 && /37 checks/.test($('#scopeAreas').textContent));
+ok('four areas rendered with check counts', $$('#scopeAreas .choice').length === 4 && /37 checks/.test($('#scopeAreas').textContent));
 ok('identity is preselected', $$('#scopeAreas input:checked').map(i => i.value).join() === 'identity');
 ok('unreachable areas disclosed', $$('#scopeSoon .soon-item').length === 4);
 // Add Collaboration. Permissions must follow the selection.

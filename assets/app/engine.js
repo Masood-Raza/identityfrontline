@@ -114,6 +114,28 @@ async function fetchGlobalAdmins(token) {
     `/directoryRoles/${role.id}/members?$select=id,displayName,userPrincipalName,onPremisesSyncEnabled,accountEnabled`);
 }
 
+// Application permissions are app roles on the Microsoft Graph service principal. Resolve its
+// role catalogue, then list every principal assigned any of them, in two hops.
+const GRAPH_APP_ID = '00000003-0000-0000-c000-000000000000';
+async function fetchGraphAppRoles(token) {
+  const res = await graphFetch(token, `/servicePrincipals?$filter=appId eq '${GRAPH_APP_ID}'&$select=id,appRoles`);
+  const sp = (res.value || [])[0];
+  if (!sp) return { names: {}, byPrincipal: {} };
+  const names = {};
+  for (const r of (sp.appRoles || [])) names[r.id] = r.value;
+  const assigned = await graphAll(token, `/servicePrincipals/${sp.id}/appRoleAssignedTo?$top=999`);
+  const byPrincipal = {};
+  for (const a of assigned) (byPrincipal[a.principalId] = byPrincipal[a.principalId] || []).push(a.appRoleId);
+  return { names, byPrincipal };
+}
+
+// Static data shipped with the site, fetched relative to the page without a token.
+async function fetchLocal(path) {
+  const res = await fetch(path, { cache: 'no-cache' });
+  if (!res.ok) throw new GraphError(`Could not load ${path} (HTTP ${res.status}).`, res.status);
+  return res.json();
+}
+
 // ---------------------------------------------------------------------------------------
 // Collection
 // ---------------------------------------------------------------------------------------
@@ -129,6 +151,8 @@ export async function collect(token, sourceNames, onProgress = () => {}) {
 
     try {
       if (src.derived === 'globalAdmins')  data[name] = await fetchGlobalAdmins(token);
+      else if (src.derived === 'graphAppRoles') data[name] = await fetchGraphAppRoles(token);
+      else if (src.local)                  data[name] = await fetchLocal(src.local);
       else if (src.count)                  data[name] = parseInt(await graphFetch(token, src.url, { raw: true }), 10);
       else if (src.collection)             data[name] = await graphAll(token, src.url);
       else                                 data[name] = await graphFetch(token, src.url);

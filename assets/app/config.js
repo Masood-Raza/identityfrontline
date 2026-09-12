@@ -14,6 +14,7 @@
 //                     Policy.Read.All, RoleManagement.Read.Directory, User.Read.All
 //        Collaboration: SharePointTenantSettings.Read.All, TeamworkAppSettings.Read.All,
 //                       OrgSettings-Forms.Read.All
+//        Privileged:  Application.Read.All, AccessReview.Read.All
 //        Intune:      DeviceManagementConfiguration.Read.All,
 //                     DeviceManagementServiceConfig.Read.All, DeviceManagementManagedDevices.Read.All
 //      Only the scopes for the areas a user selects are requested at sign-in, but the

@@ -55,7 +55,7 @@ export const HARDENED = {
   '/policies/authorizationPolicy': {
     guestUserRoleId: '2af84b1e-32c8-42b7-82bc-daa82404023b',
     allowInvitesFrom: 'adminsAndGuestInviters',
-    defaultUserRolePermissions: { permissionGrantPoliciesAssigned: [] }
+    defaultUserRolePermissions: { permissionGrantPoliciesAssigned: [], allowedToCreateApps: false }
   },
   '/policies/adminConsentRequestPolicy': { isEnabled: true, notifyReviewers: true, reviewers: [{ query: 'x' }] },
   '/policies/authenticationMethodsPolicy': {
@@ -81,9 +81,9 @@ export const HARDENED = {
   '/directoryRoles': { value: [{ id: 'role1', roleTemplateId: '62e90394-69f5-4237-9190-012177145e10' }] },
   '/directoryRoles/role1/members': {
     value: [
-      { displayName: 'Alice Admin', userPrincipalName: 'alice@contoso.com', onPremisesSyncEnabled: false },
-      { displayName: 'BreakGlass One', userPrincipalName: 'breakglass1@contoso.com', onPremisesSyncEnabled: false },
-      { displayName: 'BreakGlass Two', userPrincipalName: 'breakglass2@contoso.com', onPremisesSyncEnabled: false }
+      { id: 'u-alice', displayName: 'Alice Admin', userPrincipalName: 'alice@contoso.com', onPremisesSyncEnabled: false },
+      { id: 'u-bg1', displayName: 'BreakGlass One', userPrincipalName: 'breakglass1@contoso.com', onPremisesSyncEnabled: false },
+      { id: 'u-bg2', displayName: 'BreakGlass Two', userPrincipalName: 'breakglass2@contoso.com', onPremisesSyncEnabled: false }
     ]
   },
   '/users/$count': '0',
@@ -101,7 +101,7 @@ export const DEFAULTS = {
   '/policies/authorizationPolicy': {
     guestUserRoleId: '10dae51f-b6af-4016-8d66-8c2a99b929b3',
     allowInvitesFrom: 'everyone',
-    defaultUserRolePermissions: { permissionGrantPoliciesAssigned: ['ManagePermissionGrantsForSelf.microsoft-user-default-legacy'] }
+    defaultUserRolePermissions: { permissionGrantPoliciesAssigned: ['ManagePermissionGrantsForSelf.microsoft-user-default-legacy'], allowedToCreateApps: true }
   },
   '/policies/adminConsentRequestPolicy': { isEnabled: false, notifyReviewers: false, reviewers: [] },
   '/policies/authenticationMethodsPolicy': {
@@ -121,7 +121,7 @@ export const DEFAULTS = {
   '/directoryRoles': { value: [{ id: 'role1', roleTemplateId: '62e90394-69f5-4237-9190-012177145e10' }] },
   '/directoryRoles/role1/members': {
     value: Array.from({ length: 7 }, (_, i) => ({
-      displayName: `Admin ${i}`, userPrincipalName: `admin${i}@fabrikam.com`, onPremisesSyncEnabled: true
+      id: `u-admin${i}`, displayName: `Admin ${i}`, userPrincipalName: `admin${i}@fabrikam.com`, onPremisesSyncEnabled: true
     }))
   },
   '/users/$count': '42',
@@ -136,11 +136,12 @@ export const DEFAULTS = {
 export function mockFetch(fixture, { deny = [] } = {}) {
   return async (url) => {
     // The same policy fixture serves both the v1.0 and beta reads of authenticationMethodsPolicy.
-    const path = decodeURIComponent(String(url)).replace('https://graph.microsoft.com/v1.0', '').replace('https://graph.microsoft.com/beta', '').split('?')[0];
+    const stripped = decodeURIComponent(String(url)).replace('https://graph.microsoft.com/v1.0', '').replace('https://graph.microsoft.com/beta', '');
+    const path = stripped.split('?')[0];
     if (deny.some(d => path.startsWith(d))) {
       return res({ error: { message: 'Insufficient privileges to complete the operation.' } }, { status: 403 });
     }
-    const body = fixture[path];
+    const body = fixture[stripped] !== undefined ? fixture[stripped] : fixture[path];
     if (body === undefined) return res({ error: { message: `no fixture for ${path}` } }, { status: 404 });
     if (typeof body === 'string') return res(null, { text: body });
     return res(body);
@@ -242,4 +243,92 @@ Object.assign(DEFAULTS, {
     // Exists but is not assigned: must not count.
     profile('windows10GeneralConfiguration', 'Unassigned restrictions', { storageBlockRemovableStorage: true }, false)
   ] }
+});
+
+// ---- Sprint 3: applications & privileged access ------------------------------------------
+import { readFileSync as _rf } from 'node:fs';
+import { fileURLToPath as _fu } from 'node:url';
+import { dirname as _dn, join as _jn } from 'node:path';
+const APP_TIERS = JSON.parse(_rf(_jn(_dn(_fu(import.meta.url)), '..', '..', 'assets', 'catalog', 'app-tiers.json'), 'utf8'));
+
+const GRAPH_SP = "/servicePrincipals?$filter=appId eq '00000003-0000-0000-c000-000000000000'&$select=id,appRoles";
+const OWNERS = '/servicePrincipals?$select=id&$expand=owners($select=id,displayName)&$top=999';
+const SIGNINS = '/servicePrincipals?$select=id,signInActivity&$top=999';
+const PIM_GA = "/policies/roleManagementPolicyAssignments?$filter=scopeId eq '/' and scopeType eq 'DirectoryRole' and roleDefinitionId eq '62e90394-69f5-4237-9190-012177145e10'&$expand=policy($expand=rules)";
+const PIM_PRA = "/policies/roleManagementPolicyAssignments?$filter=scopeId eq '/' and scopeType eq 'DirectoryRole' and roleDefinitionId eq 'e8611ab8-c189-46e8-94e1-60213ab1f814'&$expand=policy($expand=rules)";
+const MS_TENANT = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a';
+const future = new Date(Date.now() + 180 * 86400000).toISOString();
+const past = new Date(Date.now() - 30 * 86400000).toISOString();
+const recent = new Date(Date.now() - 2 * 86400000).toISOString();
+const graphRoles = { value: [{ id: 'graph-sp', appRoles: [
+  { id: 'r-dirrw', value: 'Directory.ReadWrite.All' }, { id: 'r-mailrw', value: 'Mail.ReadWrite' }, { id: 'r-userread', value: 'User.Read.All' },
+  ...Array.from({ length: 12 }, (_, i) => ({ id: `r-many${i}`, value: `Some.Read.${i}` }))
+] }] };
+const pimRules = (ok) => [{ policy: { rules: [
+  { id: 'Approval_EndUser_Assignment', setting: { isApprovalRequired: ok } },
+  { id: 'Expiration_EndUser_Assignment', maximumDuration: ok ? 'PT4H' : 'PT8H' },
+  { id: 'Enablement_EndUser_Assignment', enabledRules: ok ? ['MultiFactorAuthentication', 'Justification'] : [] },
+  { id: 'Expiration_Admin_Eligibility', isExpirationRequired: ok, maximumDuration: 'P365D' },
+  { id: 'Notification_Admin_EndUser_Assignment', isDefaultRecipientsEnabled: ok, notificationRecipients: [] }
+] } }];
+
+Object.assign(HARDENED, {
+  'assets/catalog/app-tiers.json': APP_TIERS,
+  '/organization': { value: [{ id: 't1', displayName: 'Contoso' }] },
+  '/applications': { value: [{ id: 'a1', appId: 'app-1', displayName: 'Line of business', signInAudience: 'AzureADMyOrg', web: { redirectUris: ['https://app.contoso.com/auth'] } }] },
+  '/servicePrincipals': { value: [
+    { id: 'sp1', appId: 'app-1', displayName: 'Line of business', appOwnerOrganizationId: 't1', servicePrincipalType: 'Application', accountEnabled: true, keyCredentials: [{ endDateTime: future }], passwordCredentials: [] },
+    { id: 'sp-ms', appId: 'ms-1', displayName: 'Microsoft Graph Command Line Tools', appOwnerOrganizationId: MS_TENANT, servicePrincipalType: 'Application', accountEnabled: true, keyCredentials: [], passwordCredentials: [] },
+    { id: 'mi1', appId: 'mi-1', displayName: 'func-identity', appOwnerOrganizationId: 't1', servicePrincipalType: 'ManagedIdentity', accountEnabled: true }
+  ] },
+  [GRAPH_SP]: graphRoles,
+  '/servicePrincipals/graph-sp/appRoleAssignedTo': { value: [
+    { principalId: 'sp1', appRoleId: 'r-userread' }, { principalId: 'sp-ms', appRoleId: 'r-dirrw' }, { principalId: 'mi1', appRoleId: 'r-userread' }
+  ] },
+  [OWNERS]: { value: [{ id: 'sp1', owners: [{ id: 'u-alice', displayName: 'Alice Admin' }] }, { id: 'sp-ms', owners: [] }, { id: 'mi1', owners: [] }] },
+  [SIGNINS]: { value: [{ id: 'sp1', signInActivity: { lastSignInDateTime: recent } }] },
+  '/oauth2PermissionGrants': { value: [] },
+  '/roleManagement/directory/roleAssignments': { value: [] },
+  '/policies/defaultAppManagementPolicy': { isEnabled: true },
+  '/roleManagement/directory/roleEligibilityScheduleInstances': { value: [{ principalId: 'u-alice' }, { principalId: 'u-bg1' }, { principalId: 'u-bg2' }] },
+  '/identityGovernance/accessReviews/definitions': { value: [
+    { displayName: 'Quarterly guest review', scope: { query: "/users?$filter=(userType eq 'Guest')", queryType: 'MicrosoftGraph' } },
+    { displayName: 'Global Administrator review', scope: { query: '/roleManagement/directory/roleDefinitions/62e90394-69f5-4237-9190-012177145e10', queryType: 'MicrosoftGraph' } }
+  ] },
+  [PIM_GA]: { value: pimRules(true) },
+  [PIM_PRA]: { value: pimRules(true) }
+});
+
+Object.assign(DEFAULTS, {
+  'assets/catalog/app-tiers.json': APP_TIERS,
+  '/organization': { value: [{ id: 't2', displayName: 'Fabrikam' }] },
+  '/applications': { value: [
+    { id: 'a1', appId: 'app-1', displayName: 'Dev tool', signInAudience: 'AzureADMultipleOrgs', web: { redirectUris: ['http://localhost:3000/', 'http://prod.fabrikam.com/cb', 'https://*.fabrikam.com/cb'] } }
+  ] },
+  '/servicePrincipals': { value: [
+    // Third-party, foreign, impersonating Microsoft, secret-only, expired, no owner, no sign-in, tier 0 + tier 1, holds a role.
+    { id: 'sp-bad', appId: 'bad-1', displayName: 'Microsoft Teams Helper', appOwnerOrganizationId: 'evil-tenant', servicePrincipalType: 'Application', accountEnabled: true, keyCredentials: [], passwordCredentials: [{ endDateTime: past }] },
+    // Internal app with a tier 0 permission, both credential types, and an owner.
+    { id: 'sp-int', appId: 'int-1', displayName: 'Internal automation', appOwnerOrganizationId: 't2', servicePrincipalType: 'Application', accountEnabled: true, keyCredentials: [{ endDateTime: future }], passwordCredentials: [{ endDateTime: future }] },
+    // Over-permissioned app.
+    { id: 'sp-many', appId: 'many-1', displayName: 'Everything app', appOwnerOrganizationId: 't2', servicePrincipalType: 'Application', accountEnabled: true, keyCredentials: [], passwordCredentials: [] },
+    // Managed identity with a dangerous permission and a directory role.
+    { id: 'mi-bad', appId: 'mi-2', displayName: 'vm-identity', appOwnerOrganizationId: 't2', servicePrincipalType: 'ManagedIdentity', accountEnabled: true }
+  ] },
+  [GRAPH_SP]: graphRoles,
+  '/servicePrincipals/graph-sp/appRoleAssignedTo': { value: [
+    { principalId: 'sp-bad', appRoleId: 'r-dirrw' }, { principalId: 'sp-bad', appRoleId: 'r-mailrw' },
+    { principalId: 'sp-int', appRoleId: 'r-dirrw' },
+    { principalId: 'mi-bad', appRoleId: 'r-dirrw' },
+    ...Array.from({ length: 12 }, (_, i) => ({ principalId: 'sp-many', appRoleId: `r-many${i}` }))
+  ] },
+  [OWNERS]: { value: [{ id: 'sp-bad', owners: [] }, { id: 'sp-int', owners: [{ id: 'u-admin0', displayName: 'Admin 0' }] }, { id: 'sp-many', owners: [] }, { id: 'mi-bad', owners: [] }] },
+  [SIGNINS]: { value: [{ id: 'sp-int', signInActivity: { lastSignInDateTime: recent } }] },
+  '/oauth2PermissionGrants': { value: [{ clientId: 'sp-bad', scope: 'User.Read Mail.ReadWrite' }] },
+  '/roleManagement/directory/roleAssignments': { value: [{ principalId: 'sp-bad', roleDefinitionId: 'x' }, { principalId: 'sp-int', roleDefinitionId: 'x' }, { principalId: 'mi-bad', roleDefinitionId: 'x' }] },
+  '/policies/defaultAppManagementPolicy': { isEnabled: false },
+  '/roleManagement/directory/roleEligibilityScheduleInstances': { value: [] },
+  '/identityGovernance/accessReviews/definitions': { value: [] },
+  [PIM_GA]: { value: pimRules(false) },
+  [PIM_PRA]: { value: pimRules(false) }
 });

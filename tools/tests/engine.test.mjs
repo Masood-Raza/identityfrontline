@@ -126,19 +126,21 @@ const { scopesFor, checksFor, ALL_SCOPES } = await import('../../assets/app/engi
 const { AREAS } = await import('../../assets/app/checks.js');
 const ALL = AREAS.map(a => a.id);
 
-ok('three areas defined', ALL.join() === 'identity,collaboration,intune', ALL.join());
+ok('four areas defined', ALL.join() === 'identity,collaboration,intune,privileged', ALL.join());
 ok('identity alone needs six scopes', scopesFor(['identity']).length === 6);
-ok('every area together needs twelve scopes', ALL_SCOPES.length === 12, ALL_SCOPES.join(', '));
+ok('every area together needs fourteen scopes', ALL_SCOPES.length === 14, ALL_SCOPES.join(', '));
+ok('privileged access adds exactly Application.Read.All and AccessReview.Read.All',
+  scopesFor(['identity', 'privileged']).filter(s => !scopesFor(['identity']).includes(s)).join() === 'AccessReview.Read.All,Application.Read.All');
 ok('scopes grow only with the areas selected', scopesFor(['identity', 'collaboration']).length === 9 && scopesFor(['identity', 'collaboration']).includes('OrgSettings-Forms.Read.All'));
 ok('no scope is requested that no check uses', !ALL_SCOPES.includes('TeamSettings.Read.All'));
 ok('no area requests a write scope', !ALL_SCOPES.some(s => /\.(Read)?Write|FullControl/i.test(s)));
 ok('empty area selection falls back to identity', checksFor([]).length === checksFor(['identity']).length);
-ok('66 checks across all areas', checksFor(ALL).length === 66, String(checksFor(ALL).length));
+ok('102 checks across all areas', checksFor(ALL).length === 102, String(checksFor(ALL).length));
 ok('default run is identity only', good.results.length === 37 && good.results.every(r => r.area === 'identity'));
 
 globalThis.fetch = mockFetch(HARDENED);
 const goodAll = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL });
-ok('hardened tenant, all areas: 66 evaluated', goodAll.results.length === 66);
+ok('hardened tenant, all areas: 102 evaluated', goodAll.results.length === 102);
 ok('hardened tenant, all areas: nothing unavailable', goodAll.unavailable.length === 0, goodAll.unavailable.map(u => `${u.source}: ${u.reason}`).join('; '));
 ok('hardened tenant, all areas: no failures or warnings',
   goodAll.summary.fail === 0 && goodAll.summary.warning === 0,
@@ -167,6 +169,29 @@ ok('Warnings appear in priorities after Fails',
   badAll2.priorities.every(r => r.status === 'Fail' || r.status === 'Warning'));
 ok('review-only settings are Unknown, not Fail',
   ['SPO-LOOP-001', 'TEAMS-APPS-001', 'FORMS-CONFIG-005'].every(id => badAll2.results.find(r => r.id === id)?.status === 'Unknown'));
+
+// ---- Sprint 3: applications & privileged access ----------------------------------------
+for (const id of ['ENTRA-APPREG-001', 'ENTRA-APPS-001', 'ENTRA-APPREG-003', 'ENTRA-APPREG-004',
+  'ENTRA-ENTAPP-002', 'ENTRA-ENTAPP-003', 'ENTRA-ENTAPP-004', 'ENTRA-ENTAPP-005', 'ENTRA-ENTAPP-008', 'ENTRA-ENTAPP-015', 'ENTRA-ENTAPP-016', 'ENTRA-ENTAPP-020',
+  'ENTRA-PIM-001', 'ENTRA-PIM-002', 'ENTRA-PIM-003', 'ENTRA-PIM-004', 'ENTRA-PIM-005', 'ENTRA-PIM-008', 'ENTRA-PIM-009']) {
+  ok(`default tenant flags ${id}`, bFailAll.has(id), badAll2.results.find(r => r.id === id)?.status + ': ' + badAll2.results.find(r => r.id === id)?.detail);
+}
+for (const id of ['ENTRA-APPREG-002', 'ENTRA-ENTAPP-006', 'ENTRA-ENTAPP-007', 'ENTRA-ENTAPP-009', 'ENTRA-ENTAPP-010', 'ENTRA-ENTAPP-012', 'ENTRA-ENTAPP-013', 'ENTRA-ENTAPP-014', 'ENTRA-ENTAPP-017', 'ENTRA-ENTAPP-018', 'ENTRA-ENTAPP-019', 'ENTRA-PIM-006', 'ENTRA-PIM-007', 'ENTRA-PIM-010']) {
+  ok(`default tenant warns on ${id}`, bWarnAll.has(id), badAll2.results.find(r => r.id === id)?.status + ': ' + badAll2.results.find(r => r.id === id)?.detail);
+}
+ok('multi-tenant registrations are surfaced for review, not failed', badAll2.results.find(r => r.id === 'ENTRA-ENTAPP-021')?.status === 'Unknown');
+ok('Microsoft first-party apps with Tier 0 permissions are not counted as foreign findings',
+  goodAll.results.find(r => r.id === 'ENTRA-ENTAPP-003')?.status === 'Pass');
+ok('impersonation names the app ID', /bad-1/.test(badAll2.results.find(r => r.id === 'ENTRA-ENTAPP-020')?.detail));
+ok('PIM eligibility makes admins non-permanent', /PIM-eligible/.test(goodAll.results.find(r => r.id === 'ENTRA-PIM-001')?.detail));
+ok('activation duration parsed from ISO 8601', /8 hours/.test(badAll2.results.find(r => r.id === 'ENTRA-PIM-006')?.detail));
+
+// No PIM licence: policies absent -> Unknown with the licence hint, never Fail.
+globalThis.fetch = mockFetch(HARDENED, { deny: ['/policies/roleManagementPolicyAssignments'] });
+const noPim = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ['privileged'] });
+const pimChecks = noPim.results.filter(r => /^ENTRA-PIM-00[4-9]|ENTRA-PIM-010/.test(r.id));
+ok('PIM policies denied: activation checks are Unknown', pimChecks.every(r => r.status === 'Unknown'), pimChecks.map(r => r.id + '=' + r.status).join(','));
+ok('PIM policies denied: eligibility check still evaluates', noPim.results.find(r => r.id === 'ENTRA-PIM-001')?.status === 'Pass');
 
 // Optional source: Autopilot denied must not make auto-discovery Unknown.
 globalThis.fetch = mockFetch(HARDENED, { deny: ['/deviceManagement/windowsAutopilotDeploymentProfiles'] });

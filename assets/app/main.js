@@ -137,7 +137,9 @@ function renderPermissions() {
     'OrgSettings-Forms.Read.All': 'Microsoft Forms external sharing and phishing protection settings',
     'DeviceManagementConfiguration.Read.All': 'Intune compliance policies and configuration profiles',
     'DeviceManagementServiceConfig.Read.All': 'Intune enrolment restrictions and Autopilot profiles',
-    'DeviceManagementManagedDevices.Read.All': 'Enrolled device counts and categories'
+    'DeviceManagementManagedDevices.Read.All': 'Enrolled device counts and categories',
+    'Application.Read.All': 'App registrations, enterprise applications, their credentials, owners and permissions',
+    'AccessReview.Read.All': 'Whether access reviews exist for guests and privileged roles'
   };
   el('permissions').innerHTML = requiredScopes().map(s => `
     <tr><td><code>${esc(s)}</code></td><td>Delegated</td>
