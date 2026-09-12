@@ -9,9 +9,16 @@
 //        Redirect URI:         Single-page application (SPA) -> https://<your-domain>/assessments.html
 //                              Add http://localhost:8080/assessments.html for local testing.
 //
-//   2. API permissions > Add a permission > Microsoft Graph > Delegated:
-//        AuditLog.Read.All, Directory.Read.All, Domain.Read.All,
-//        Policy.Read.All, RoleManagement.Read.Directory, User.Read.All
+//   2. API permissions > Add a permission > Microsoft Graph > Delegated (all read-only):
+//        Identity:    AuditLog.Read.All, Directory.Read.All, Domain.Read.All,
+//                     Policy.Read.All, RoleManagement.Read.Directory, User.Read.All
+//        SharePoint:  SharePointTenantSettings.Read.All
+//        Teams:       TeamSettings.Read.All, TeamworkAppSettings.Read.All
+//        Forms:       OrgSettings-Forms.Read.All
+//        Intune:      DeviceManagementConfiguration.Read.All,
+//                     DeviceManagementServiceConfig.Read.All, DeviceManagementManagedDevices.Read.All
+//      Only the scopes for the areas a user selects are requested at sign-in, but the
+//      registration must carry all of them or consent for those areas will fail.
 //      Do NOT add application permissions. This app never runs unattended.
 //
 //   3. Overview > copy the Application (client) ID into clientId below.

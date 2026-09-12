@@ -146,3 +146,100 @@ export function mockFetch(fixture, { deny = [] } = {}) {
     return res(body);
   };
 }
+
+// ---- Sprint 2 areas: SharePoint, Teams, Forms, Intune ------------------------------------
+// One SharePoint fixture serves both the v1.0 and beta reads (the mock strips both prefixes).
+const profile = (type, name, extra, assigned = true) =>
+  ({ '@odata.type': `#microsoft.graph.${type}`, displayName: name, assignments: assigned ? [{ id: 'grp' }] : [], ...extra });
+
+Object.assign(HARDENED, {
+  '/admin/sharepoint/settings': {
+    sharingCapability: 'existingExternalUserSharingOnly', isResharingByExternalUsersEnabled: false,
+    sharingDomainRestrictionMode: 'allowList', defaultSharingLinkType: 'specificPeople',
+    externalUserExpirationRequired: true, externalUserExpireInDays: 30,
+    emailAttestationRequired: true, emailAttestationReAuthDays: 15, defaultLinkPermission: 'view',
+    isUnmanagedSyncAppForTenantRestricted: true, isMacSyncAppEnabled: false, isLoopEnabled: false,
+    oneDriveLoopSharingCapability: 'disabled', isLegacyAuthProtocolsEnabled: false,
+    isB2BIntegrationEnabled: true, oneDriveSharingCapability: 'disabled', disallowInfectedFileDownload: true
+  },
+  '/policies/activityBasedTimeoutPolicies': { value: [{ id: 'idle-1' }] },
+  '/teamwork/teamsAppSettings': { isChatResourceSpecificConsentEnabled: false },
+  '/teamwork/teamsClientConfiguration': {
+    allowTeamsConsumer: false, allowTeamsConsumerInbound: false, allowPublicUsers: false,
+    allowDropBox: false, allowBox: false, allowGoogleDrive: false, allowShareFile: false, allowEgnyte: false,
+    allowEmailIntoChannel: false, allowFederatedUsers: true, allowedDomains: ['partner.example']
+  },
+  '/teamwork/teamsMeetingPolicy': {
+    allowAnonymousUsersToJoinMeeting: false, allowAnonymousUsersToStartMeeting: false,
+    autoAdmittedUsers: 'EveryoneInCompanyExcludingGuests', allowPSTNUsersToBypassLobby: false,
+    allowExternalParticipantGiveRequestControl: false, meetingChatEnabledType: 'EnabledExceptAnonymous',
+    designatedPresenterRoleMode: 'OrganizerOnlyUserOverride', allowExternalNonTrustedMeetingChat: false,
+    allowCloudRecording: false
+  },
+  '/admin/forms/settings': {
+    isExternalSendFormEnabled: false, isExternalShareCollaborationEnabled: false, isExternalShareResultEnabled: false,
+    isPhishingScanEnabled: true, isRecordIdentityByDefaultEnabled: true, isBingImageVideoSearchEnabled: false
+  },
+  '/deviceManagement/settings': { deviceComplianceCheckinThresholdDays: 30 },
+  '/deviceManagement/deviceEnrollmentConfigurations': { value: [
+    { '@odata.type': '#microsoft.graph.deviceEnrollmentPlatformRestrictionsConfiguration',
+      iosRestriction: { personalDeviceEnrollmentBlocked: true }, androidRestriction: { personalDeviceEnrollmentBlocked: true }, windowsRestriction: { personalDeviceEnrollmentBlocked: true } },
+    { '@odata.type': '#microsoft.graph.deviceEnrollmentWindowsAutoEnrollmentConfiguration' }
+  ] },
+  '/deviceManagement/windowsAutopilotDeploymentProfiles': { value: [{ displayName: 'Corporate Autopilot' }] },
+  '/deviceManagement/managedDeviceOverview': { enrolledDeviceCount: 120 },
+  '/deviceManagement/deviceCategories': { value: [{ displayName: 'Corporate' }] },
+  '/deviceManagement/deviceCompliancePolicies': { value: [
+    { '@odata.type': '#microsoft.graph.iosCompliancePolicy', displayName: 'iOS baseline', storageRequireEncryption: true },
+    { '@odata.type': '#microsoft.graph.androidWorkProfileCompliancePolicy', displayName: 'Android baseline', storageRequireEncryption: true }
+  ] },
+  '/deviceManagement/deviceConfigurations': { value: [
+    profile('windows10GeneralConfiguration', 'Device restrictions', { storageBlockRemovableStorage: true, usbBlocked: true }),
+    profile('windows10CustomConfiguration', 'FIPS policy', { omaSettings: [{ omaUri: './Device/Vendor/MSFT/Policy/Config/Cryptography/AllowFipsAlgorithmPolicy', value: 1 }] }),
+    profile('windows10CustomConfiguration', 'WDAC policy', { omaSettings: [{ omaUri: './Vendor/MSFT/ApplicationControl/Policies/x/Policy', value: 'x' }] }),
+    profile('windows10VpnConfiguration', 'Always-On VPN', { alwaysOn: true, enableSplitTunneling: false }),
+    profile('windowsWifiEnterpriseEAPConfiguration', 'Corp Wi-Fi', { eapType: 'eapTls', wifiSecurityType: 'wpa2Enterprise' })
+  ] }
+});
+
+Object.assign(DEFAULTS, {
+  '/admin/sharepoint/settings': {
+    sharingCapability: 'externalUserAndGuestSharing', isResharingByExternalUsersEnabled: true,
+    sharingDomainRestrictionMode: 'none', defaultSharingLinkType: 'anyone',
+    externalUserExpirationRequired: true, externalUserExpireInDays: 90,
+    emailAttestationRequired: false, defaultLinkPermission: 'edit',
+    isUnmanagedSyncAppForTenantRestricted: false, isMacSyncAppEnabled: true, isLoopEnabled: true,
+    oneDriveLoopSharingCapability: 'externalUserAndGuestSharing', isLegacyAuthProtocolsEnabled: true,
+    isB2BIntegrationEnabled: false, oneDriveSharingCapability: 'externalUserAndGuestSharing', disallowInfectedFileDownload: false
+  },
+  '/policies/activityBasedTimeoutPolicies': { value: [] },
+  '/teamwork/teamsAppSettings': { isChatResourceSpecificConsentEnabled: true },
+  '/teamwork/teamsClientConfiguration': {
+    allowTeamsConsumer: true, allowTeamsConsumerInbound: true, allowPublicUsers: true,
+    allowDropBox: true, allowBox: false, allowGoogleDrive: true, allowShareFile: false, allowEgnyte: false,
+    allowEmailIntoChannel: true, allowFederatedUsers: true, allowedDomains: []
+  },
+  '/teamwork/teamsMeetingPolicy': {
+    allowAnonymousUsersToJoinMeeting: true, allowAnonymousUsersToStartMeeting: true,
+    autoAdmittedUsers: 'Everyone', allowPSTNUsersToBypassLobby: true,
+    allowExternalParticipantGiveRequestControl: true, meetingChatEnabledType: 'Enabled',
+    designatedPresenterRoleMode: 'EveryoneUserOverride', allowExternalNonTrustedMeetingChat: true,
+    allowCloudRecording: true
+  },
+  '/admin/forms/settings': {
+    isExternalSendFormEnabled: true, isExternalShareCollaborationEnabled: true, isExternalShareResultEnabled: true,
+    isPhishingScanEnabled: false, isRecordIdentityByDefaultEnabled: false, isBingImageVideoSearchEnabled: true
+  },
+  '/deviceManagement/settings': { deviceComplianceCheckinThresholdDays: 90 },
+  '/deviceManagement/deviceEnrollmentConfigurations': { value: [] },
+  '/deviceManagement/windowsAutopilotDeploymentProfiles': { value: [] },
+  '/deviceManagement/managedDeviceOverview': { enrolledDeviceCount: 0 },
+  '/deviceManagement/deviceCategories': { value: [] },
+  '/deviceManagement/deviceCompliancePolicies': { value: [
+    { '@odata.type': '#microsoft.graph.iosCompliancePolicy', displayName: 'iOS default', storageRequireEncryption: false }
+  ] },
+  '/deviceManagement/deviceConfigurations': { value: [
+    // Exists but is not assigned: must not count.
+    profile('windows10GeneralConfiguration', 'Unassigned restrictions', { storageBlockRemovableStorage: true }, false)
+  ] }
+});

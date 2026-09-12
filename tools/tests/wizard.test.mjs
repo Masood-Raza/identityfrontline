@@ -72,7 +72,11 @@ let consentCalls = 0;
 const authMock = {
   signIn: async () => ({ username: 'admin@contoso.com', tenantId: 'tid-1' }),
   getToken: async () => ({ token: 'tok', grantedScopes: [...granted] }),
-  requestAdminConsent: async () => { consentCalls++; granted = [...granted, 'AuditLog.Read.All']; return { completed: true }; },
+  requestAdminConsent: async () => {
+    consentCalls++;
+    granted = [...granted, 'AuditLog.Read.All', 'SharePointTenantSettings.Read.All', 'TeamSettings.Read.All', 'TeamworkAppSettings.Read.All'];
+    return { completed: true };
+  },
   signOut: () => {}
 };
 
@@ -99,15 +103,24 @@ ok('two frameworks selected for the run', main.getState().frameworks.size === 2)
 // ---- step 2: scope ----------------------------------------------------------------------
 $('#next').click();
 ok('step 2 active', active() === 2);
-ok('identity scope rendered with check count', /37 checks/.test($('#scopeAreas').textContent));
-ok('coming-next areas disclosed', $$('#scopeSoon .soon-item').length === 4);
+ok('five areas rendered with check counts', $$('#scopeAreas .choice').length === 5 && /37 checks/.test($('#scopeAreas').textContent));
+ok('identity is preselected', $$('#scopeAreas input:checked').map(i => i.value).join() === 'identity');
+ok('unreachable areas disclosed', $$('#scopeSoon .soon-item').length === 2);
+// Add SharePoint and Teams. Permissions must follow the selection.
+for (const id of ['sharepoint', 'teams']) { const i = $$('#scopeAreas input').find(x => x.value === id); i.checked = true; i.onchange(); }
+ok('three areas selected', main.getState().areas.size === 3);
+const idOnly = $$('#scopeAreas input').find(x => x.value === 'identity'); idOnly.checked = false; idOnly.onchange();
+ok('identity can be deselected while other areas remain', main.getState().areas.size === 2 && !main.getState().areas.has('identity'));
+idOnly.checked = true; idOnly.onchange();
+ok('identity re-added', main.getState().areas.size === 3);
 
 // ---- step 3: permissions ----------------------------------------------------------------
 $('#next').click();
 ok('step 3 active', active() === 3);
 const permRows = $$('#permissions tr');
-ok('exactly 6 permissions previewed', permRows.length === 6, `got ${permRows.length}`);
-ok('every permission is read-only', $$('#permissions .read-only').length === 6);
+ok('permissions follow the area selection: 9 for identity + SharePoint + Teams', permRows.length === 9, `got ${permRows.length}`);
+ok('every permission is read-only', $$('#permissions .read-only').length === 9);
+ok('SharePoint scope has a stated reason', $('#permissions').textContent.includes('SharePointTenantSettings.Read.All') && /sharing/i.test($('#permissions').textContent));
 ok('AuditLog.Read.All has a stated reason', $('#permissions').textContent.includes('MFA registration'));
 ok('step 3 button leads to sign-in', $('#next').textContent.includes('sign-in'));
 
@@ -140,7 +153,7 @@ ok('consent button hidden once granted', !visible('btnConsent'));
 $('#btnRun').click();
 for (let i = 0; i < 40 && active() !== 5; i++) await tick();
 ok('run lands on results', active() === 5);
-ok('score cards rendered', $$('#scoreCards .fact').length === 5);
+ok('score cards rendered, including partial', $$('#scoreCards .fact').length === 6 && /Warning/.test($('#scoreCards').textContent));
 ok('hardened tenant shows 100% pass rate', $('#scoreCards').textContent.includes('100%'));
 ok('in-scope findings listed', $$('#resultRows tr').length === main.getState().report.scope.inScopeCount, `got ${$$('#resultRows tr').length}`);
 ok('framework rollup rendered', $$('#frameworkRows tr').length > 0);
@@ -172,7 +185,9 @@ ok('HTML report lists out-of-scope findings separately', /Other findings — not
 ok('page states the scope', $('#scopeNote').textContent.includes(labels[0]) && /Across all checks/.test($('#scopeNote').textContent));
 ok('page findings title names the scope', $('#findingsTitle').textContent.includes(labels[0]));
 ok('page shows out-of-scope findings in their own section', visible('otherWrap') && $$('#otherRows tr').length > 0);
-ok('in-scope plus other rows equal all checks', $$('#resultRows tr').length + $$('#otherRows tr').length === 37);
+ok('in-scope plus other rows equal all checks for three areas (71)', $$('#resultRows tr').length + $$('#otherRows tr').length === 71, String($$('#resultRows tr').length + $$('#otherRows tr').length));
+ok('results include SharePoint and Teams checks', /SPO-SHARING-001/.test($('#resultRows').textContent + $('#otherRows').textContent) && /TEAMS-MEETING-001/.test($('#resultRows').textContent + $('#otherRows').textContent));
+ok('run metadata names the areas', /SharePoint & OneDrive/.test($('#runMeta').textContent));
 ok('run metadata names the scope', $('#runMeta').textContent.includes('Scope: '));
 ok('executive summary rendered on page', /passed \d+ of \d+ scored checks/.test($('#execSummary').textContent), $('#execSummary').textContent);
 ok('no priorities on a clean tenant', !visible('priorityWrap'));
@@ -227,6 +242,8 @@ ok('degraded run still reaches results', active() === 5);
 ok('unavailable section shown', visible('unavailableWrap'));
 ok('unavailable reason is the Graph error, not a stack trace', /privileges/.test($('#unavailableRows').textContent));
 ok('failures surfaced with severity', $$('#resultRows .status.fail').length > 10);
+ok('partial compliance shown as Warning rows', $$('#resultRows .status.warning').length + $$('#otherRows .status.warning').length > 0);
+ok('sev row carries the partial pill', /partial/.test($('#sevRow').textContent));
 ok('remediation shown on failed rows', $$('#resultRows .rem').length > 0);
 ok('fix-first list shown with five items on a failing tenant', visible('priorityWrap') && $$('#priorityList li').length === 5, `${$$('#priorityList li').length}`);
 ok('executive summary names what to address first', /Address first:/.test($('#execSummary').textContent));
