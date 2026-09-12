@@ -146,6 +146,19 @@ foreach ($key in ($frameworkLabel.Keys | Sort-Object)) {
     }
 }
 
+# Permission tiers and Microsoft first-party IDs, shipped as static data for the browser.
+$tierSrc  = Get-Content -LiteralPath (Join-Path $moduleRoot 'controls/tier0-permissions.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$fpSrc    = Get-Content -LiteralPath (Join-Path $moduleRoot 'controls/microsoft-first-party-appids.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$tiers = [ordered]@{
+  source              = 'M365-Assess controls/tier0-permissions.json and microsoft-first-party-appids.json (MIT, (c) Galvnyz)'
+  tier0               = @($tierSrc.permissions | ForEach-Object { $_.permission } | Sort-Object -Unique)
+  tier1               = @($tierSrc.tier1DataAccess | Sort-Object -Unique)
+  firstPartyAppIds    = @($fpSrc.appIds | ForEach-Object { $_.appId } | Sort-Object -Unique)
+  firstPartyTenantIds = @($fpSrc.ownerTenantIds | ForEach-Object { $_.id } | Sort-Object -Unique)
+}
+$tiersJson = $tiers | ConvertTo-Json -Depth 4
+$tiersPath = Join-Path (Split-Path -Parent $OutputPath) 'app-tiers.json'
+
 $json = $out | ConvertTo-Json -Depth 12
 
 if ($Check) {
@@ -155,6 +168,9 @@ if ($Check) {
     if (($current -replace $pattern, '').Trim() -ne ($json -replace $pattern, '').Trim()) {
         throw "Check catalog is out of date. Regenerate with: pwsh -File tools/Build-CheckCatalog.ps1 -SourcePath <path>"
     }
+    if (-not (Test-Path -LiteralPath $tiersPath) -or (Get-Content -LiteralPath $tiersPath -Raw -Encoding UTF8).Trim() -ne $tiersJson.Trim()) {
+        throw "app-tiers.json is out of date. Regenerate with: pwsh -File tools/Build-CheckCatalog.ps1 -SourcePath <path>"
+    }
     Write-Host 'Check catalog is up to date.' -ForegroundColor Green
     return
 }
@@ -162,6 +178,8 @@ if ($Check) {
 $dir = Split-Path -Parent $OutputPath
 if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
 $json | Set-Content -LiteralPath $OutputPath -Encoding UTF8
+$tiersJson | Set-Content -LiteralPath $tiersPath -Encoding UTF8
+Write-Host ("App tier data written to {0}: {1} tier 0, {2} tier 1, {3} first-party app IDs" -f $tiersPath, $tiers.tier0.Count, $tiers.tier1.Count, $tiers.firstPartyAppIds.Count)
 
 Write-Host "Check catalog written to $OutputPath" -ForegroundColor Green
 Write-Host ("  {0} checks: {1}" -f $checks.Count, (($severityOrder | ForEach-Object { "$($bySeverity[$_]) $_" }) -join ', '))

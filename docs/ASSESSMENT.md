@@ -18,6 +18,7 @@ component.
 
  assets/catalog/checks.json   generated: name, severity, rationale, remediation and framework
                               mappings for every implemented check, from the M365-Assess registry
+ assets/catalog/app-tiers.json generated: Tier 0/1 permission lists, Microsoft first-party IDs
 ```
 
 ## Setup (one-time, only you can do this)
@@ -32,14 +33,14 @@ Sign-in needs an Entra app registration that customers consent to. It lives in y
 2. **API permissions → Add → Microsoft Graph → Delegated**, all read-only:
    - Identity: `AuditLog.Read.All`, `Directory.Read.All`, `Domain.Read.All`, `Policy.Read.All`,
      `RoleManagement.Read.Directory`, `User.Read.All`
-   - SharePoint: `SharePointTenantSettings.Read.All`
-   - Teams: `TeamSettings.Read.All`, `TeamworkAppSettings.Read.All`
-   - Forms: `OrgSettings-Forms.Read.All`
+   - Collaboration: `SharePointTenantSettings.Read.All`, `TeamworkAppSettings.Read.All`,
+     `OrgSettings-Forms.Read.All`
    - Intune: `DeviceManagementConfiguration.Read.All`, `DeviceManagementServiceConfig.Read.All`,
      `DeviceManagementManagedDevices.Read.All`
+   - Applications & privileged access: `Application.Read.All`, `AccessReview.Read.All`
 
    Only the scopes for the areas a user selects are requested at sign-in (identity alone is
-   six), but the registration must carry all thirteen. Do **not** add application
+   six), but the registration must carry all fourteen. Do **not** add application
    permissions — the app never runs unattended.
 3. Copy the **Application (client) ID** into `assets/app/config.js`.
 4. Recommended: [publisher verification](https://learn.microsoft.com/entra/identity-platform/publisher-verification-overview),
@@ -50,11 +51,14 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
 ## The user's journey
 
 1. **Frameworks** — pick which to report against; the same findings map to each.
-2. **Scope** — pick areas: identity & access (always on), SharePoint & OneDrive, Teams, Forms,
-   Intune & devices. Each area adds only the permissions it needs. Exchange and Purview are
-   listed as not assessable from the browser: they have no Graph API.
+2. **Scope** — pick areas: identity & access (always on), collaboration (SharePoint, OneDrive,
+   Teams app consent, Forms), Intune & devices, and applications & privileged access
+   (enterprise apps, service principals, PIM, access reviews). Each area adds only the permissions it
+   needs. What Graph cannot reach is listed on the page rather than left implied: Exchange,
+   Purview, Teams meeting and external-access policy, and SharePoint link defaults and guest
+   expiry.
 3. **Permissions** — the delegated read-only scopes the selected areas need (six for identity
-   alone, thirteen for everything), each with its reason.
+   alone, fourteen for everything), each with its reason.
 4. **Connect & run** — enter tenant, sign in with Microsoft. If a scope is missing, a
    *Grant admin consent* button opens Microsoft's consent page in a popup; the user can also
    run with reduced coverage. Progress is shown per data source.
@@ -144,9 +148,14 @@ Check definitions, severities, remediation and framework mappings derive from
 - **Validated on one tenant.** Predicates are tested against mock Graph payloads that
   follow the documented schemas and have run clean on one real tenant; other tenants and
   licence tiers may still surface shape differences.
-- **89 checks across five areas.** SharePoint, Teams, Forms and Intune have been validated
-  against mock payloads only, not a real tenant. Secure Score and Defender alerts are
-  reachable and not yet implemented. Exchange and Purview are not reachable through Graph.
+- **102 checks across four areas.** Applications & privileged access has been validated
+  against mock payloads only. Tier 0/1 permission lists and Microsoft first-party app IDs
+  ship as `assets/catalog/app-tiers.json`, generated from the upstream controls.
+- **Previously:** A real-tenant run of the collaboration area found that
+  eight SharePoint settings and fifteen Teams policies M365-Assess reads optimistically do
+  not exist in Graph at any version; those checks were removed rather than left permanently
+  Unknown. Intune has been validated against mock payloads only. Secure Score and Defender
+  alerts are reachable and not yet implemented.
 - **Teams meeting policy, Forms settings and several Intune reads use Graph beta.** They
   are the same endpoints M365-Assess uses, but beta can change shape without notice.
 - **No baseline or drift.** Each run stands alone; nothing is remembered between runs.

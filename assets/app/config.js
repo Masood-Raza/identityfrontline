@@ -12,9 +12,9 @@
 //   2. API permissions > Add a permission > Microsoft Graph > Delegated (all read-only):
 //        Identity:    AuditLog.Read.All, Directory.Read.All, Domain.Read.All,
 //                     Policy.Read.All, RoleManagement.Read.Directory, User.Read.All
-//        SharePoint:  SharePointTenantSettings.Read.All
-//        Teams:       TeamSettings.Read.All, TeamworkAppSettings.Read.All
-//        Forms:       OrgSettings-Forms.Read.All
+//        Collaboration: SharePointTenantSettings.Read.All, TeamworkAppSettings.Read.All,
+//                       OrgSettings-Forms.Read.All
+//        Privileged:  Application.Read.All, AccessReview.Read.All
 //        Intune:      DeviceManagementConfiguration.Read.All,
 //                     DeviceManagementServiceConfig.Read.All, DeviceManagementManagedDevices.Read.All
 //      Only the scopes for the areas a user selects are requested at sign-in, but the

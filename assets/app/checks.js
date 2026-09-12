@@ -19,11 +19,10 @@ export const warn = (detail) => ({ status: 'Warning', detail });
 // Assessment areas. Each check belongs to exactly one; the user picks which areas to run and
 // only the permissions those areas need are requested.
 export const AREAS = [
-  { id: 'identity',   label: 'Identity & access',     summary: 'Conditional Access, MFA, administrators, consent, guests, passwords and authentication methods.' },
-  { id: 'sharepoint', label: 'SharePoint & OneDrive', summary: 'External sharing, link defaults, guest expiry, sync restrictions and legacy authentication.' },
-  { id: 'teams',      label: 'Microsoft Teams',       summary: 'External and consumer access, meeting lobby, presenters, recording and third-party storage.' },
-  { id: 'forms',      label: 'Microsoft Forms',       summary: 'External responses and collaboration, phishing scanning and respondent identity.' },
-  { id: 'intune',     label: 'Intune & devices',      summary: 'Enrolment restrictions, compliance thresholds, encryption, removable media, VPN and Wi-Fi profiles.' }
+  { id: 'identity',      label: 'Identity & access', summary: 'Conditional Access, MFA, administrators, consent, guests, passwords and authentication methods.' },
+  { id: 'collaboration', label: 'Collaboration',     summary: 'SharePoint and OneDrive sharing, sync and legacy authentication; Teams app consent; Microsoft Forms external access and phishing protection.' },
+  { id: 'intune',        label: 'Intune & devices',  summary: 'Enrolment restrictions, compliance thresholds, encryption, removable media, VPN and Wi-Fi profiles.' },
+  { id: 'privileged',    label: 'Applications & privileged access', summary: 'Enterprise apps and service principals: credentials, dangerous and Tier 0 permissions, owners, impersonation. PIM: eligibility, activation approval, MFA, duration, notifications. Access reviews.' }
 ];
 
 const SPO_SHARING = {
@@ -41,6 +40,36 @@ const boolFlag = (obj, key, expected, okMsg, badMsg) => {
   const v = obj[key];
   if (v === undefined || v === null) return unknown(`${key} was not returned for this tenant.`);
   return v === expected ? pass(okMsg) : fail(badMsg);
+};
+
+// ---- Applications & privileged access helpers ----
+const GA_ROLE = '62e90394-69f5-4237-9190-012177145e10';
+const redirectUris = (a, includePublic = true) => [
+  ...(a.web?.redirectUris || []), ...(a.spa?.redirectUris || []),
+  ...(includePublic ? (a.publicClient?.redirectUris || []) : [])];
+const names = (arr) => arr.map(x => x.displayName).slice(0, 5).join(', ') + (arr.length > 5 ? ` and ${arr.length - 5} more` : '');
+const list = (arr) => arr.slice(0, 5).join('; ') + (arr.length > 5 ? ` and ${arr.length - 5} more` : '');
+const regularApps = d => (d.servicePrincipals || []).filter(sp => sp.servicePrincipalType !== 'ManagedIdentity');
+const managedIdentities = d => (d.servicePrincipals || []).filter(sp => sp.servicePrincipalType === 'ManagedIdentity');
+const hasCreds = sp => (sp.keyCredentials || []).length > 0 || (sp.passwordCredentials || []).length > 0;
+const tenantId = d => (d.organization || [])[0]?.id;
+// Microsoft's own multi-tenant apps are foreign by definition; they are expected, not findings.
+const isFirstParty = (d, sp) => d.appTiers.firstPartyAppIds.includes(sp.appId) || d.appTiers.firstPartyTenantIds.includes(sp.appOwnerOrganizationId);
+const thirdPartyForeign = d => {
+  const tid = tenantId(d);
+  return regularApps(d).filter(sp => sp.accountEnabled === true && sp.appOwnerOrganizationId && sp.appOwnerOrganizationId !== tid && !isFirstParty(d, sp));
+};
+// Application permissions (app roles on the Graph service principal) held by a principal, by name.
+const appPerms = (d, sp) => (d.graphAppRoles?.byPrincipal?.[sp.id] || []).map(id => d.graphAppRoles.names[id]).filter(Boolean);
+const appRoleCount = (d, id) => (d.graphAppRoles?.byPrincipal?.[id] || []).length;
+const roleCount = (d, id) => (d.roleAssignments || []).filter(a => a.principalId === id).length;
+const owners = (d, id) => (d.spOwners || []).find(s => s.id === id)?.owners || [];
+const pimRule = (assignments, ruleId) => ((assignments || [])[0]?.policy?.rules || []).find(r => r.id === ruleId) || null;
+// ISO 8601 duration to hours: PT8H, PT30M, P365D.
+const isoHours = (iso) => {
+  const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?$/.exec(iso || '');
+  if (!m) return null;
+  return (+(m[1] || 0)) * 24 + (+(m[2] || 0)) + (+(m[3] || 0)) / 60;
 };
 
 // A configuration profile counts only if it exists AND is assigned to something.
@@ -68,8 +97,9 @@ const GUEST_ROLE = {
 // ---------------------------------------------------------------------------------------
 export const SOURCES = {
   organization: {
-    url: '/organization',
-    scopes: ['Organization.Read.All'],
+    url: '/organization?$select=id,displayName',
+    scopes: ['Directory.Read.All'],
+    collection: true,
     label: 'Tenant profile'
   },
   securityDefaults: {
@@ -142,33 +172,13 @@ export const SOURCES = {
     scopes: ['SharePointTenantSettings.Read.All'],
     label: 'SharePoint tenant settings'
   },
-  spoSettingsBeta: {
-    url: 'https://graph.microsoft.com/beta/admin/sharepoint/settings',
-    scopes: ['SharePointTenantSettings.Read.All'],
-    optional: true,
-    label: 'SharePoint tenant settings (extended)'
-  },
-  idleTimeoutPolicies: {
-    url: '/policies/activityBasedTimeoutPolicies',
-    scopes: ['Policy.Read.All'],
-    collection: true,
-    label: 'Idle session timeout policies'
-  },
   // ---- Teams ----
+  // Meeting and external-access policies have no Graph endpoint (they need Teams PowerShell);
+  // only the tenant-wide app settings are readable, and the consent flag lives on beta.
   teamsAppSettings: {
-    url: '/teamwork/teamsAppSettings',
+    url: 'https://graph.microsoft.com/beta/teamwork/teamsAppSettings',
     scopes: ['TeamworkAppSettings.Read.All'],
     label: 'Teams app settings'
-  },
-  teamsClientConfig: {
-    url: 'https://graph.microsoft.com/beta/teamwork/teamsClientConfiguration',
-    scopes: ['TeamSettings.Read.All'],
-    label: 'Teams client configuration'
-  },
-  teamsMeetingPolicy: {
-    url: 'https://graph.microsoft.com/beta/teamwork/teamsMeetingPolicy',
-    scopes: ['TeamSettings.Read.All'],
-    label: 'Teams meeting policy'
   },
   // ---- Forms ----
   formsSettings: {
@@ -217,6 +227,90 @@ export const SOURCES = {
     scopes: ['DeviceManagementConfiguration.Read.All'],
     collection: true,
     label: 'Device configuration profiles'
+  },
+  // ---- Applications & privileged access ----
+  applications: {
+    url: '/applications?$select=id,appId,displayName,signInAudience,web,spa,publicClient&$top=999',
+    scopes: ['Application.Read.All'],
+    collection: true,
+    label: 'App registrations'
+  },
+  servicePrincipals: {
+    url: '/servicePrincipals?$select=id,appId,displayName,appOwnerOrganizationId,servicePrincipalType,keyCredentials,passwordCredentials,accountEnabled&$top=999',
+    scopes: ['Application.Read.All'],
+    collection: true,
+    label: 'Enterprise applications'
+  },
+  spOwners: {
+    url: '/servicePrincipals?$select=id&$expand=owners($select=id,displayName)&$top=999',
+    scopes: ['Application.Read.All'],
+    collection: true,
+    optional: true,
+    label: 'Application owners'
+  },
+  spSignIns: {
+    // Entra ID P1. Absent otherwise; the two checks that need it go Unknown.
+    url: 'https://graph.microsoft.com/beta/servicePrincipals?$select=id,signInActivity&$top=999',
+    scopes: ['Application.Read.All', 'AuditLog.Read.All'],
+    collection: true,
+    optional: true,
+    label: 'Application sign-in activity'
+  },
+  graphAppRoles: {
+    // Two hops by the engine: the Graph service principal's app roles, then who holds them.
+    derived: 'graphAppRoles',
+    scopes: ['Application.Read.All'],
+    label: 'Application permissions granted'
+  },
+  oauth2Grants: {
+    url: '/oauth2PermissionGrants?$top=999',
+    scopes: ['Directory.Read.All'],
+    collection: true,
+    label: 'Delegated permission grants'
+  },
+  roleAssignments: {
+    url: '/roleManagement/directory/roleAssignments?$top=999',
+    scopes: ['RoleManagement.Read.Directory'],
+    collection: true,
+    label: 'Directory role assignments'
+  },
+  appManagementPolicy: {
+    url: '/policies/defaultAppManagementPolicy',
+    scopes: ['Policy.Read.All'],
+    label: 'Default app management policy'
+  },
+  appTiers: {
+    // Static data shipped with the site: Tier 0/1 permission lists and Microsoft's first-party
+    // app and tenant IDs, from the M365-Assess controls (MIT).
+    local: 'assets/catalog/app-tiers.json',
+    scopes: [],
+    label: 'Permission tier data'
+  },
+  gaEligible: {
+    // Entra ID P2. Without PIM, every Global Administrator is a permanent assignment.
+    url: "/roleManagement/directory/roleEligibilityScheduleInstances?$filter=roleDefinitionId eq '62e90394-69f5-4237-9190-012177145e10'",
+    scopes: ['RoleManagement.Read.Directory'],
+    collection: true,
+    optional: true,
+    label: 'PIM-eligible Global Administrators'
+  },
+  accessReviews: {
+    url: '/identityGovernance/accessReviews/definitions?$top=100',
+    scopes: ['AccessReview.Read.All'],
+    collection: true,
+    label: 'Access review definitions'
+  },
+  pimPolicyGA: {
+    url: "/policies/roleManagementPolicyAssignments?$filter=scopeId eq '/' and scopeType eq 'DirectoryRole' and roleDefinitionId eq '62e90394-69f5-4237-9190-012177145e10'&$expand=policy($expand=rules)",
+    scopes: ['RoleManagement.Read.Directory'],
+    collection: true,
+    label: 'PIM policy: Global Administrator'
+  },
+  pimPolicyPRA: {
+    url: "/policies/roleManagementPolicyAssignments?$filter=scopeId eq '/' and scopeType eq 'DirectoryRole' and roleDefinitionId eq 'e8611ab8-c189-46e8-94e1-60213ab1f814'&$expand=policy($expand=rules)",
+    scopes: ['RoleManagement.Read.Directory'],
+    collection: true,
+    label: 'PIM policy: Privileged Role Administrator'
   },
   registrationDetails: {
     // Entra ID P1/P2. Absent on Business Basic/Standard tenants -> dependent checks go Unknown.
@@ -755,7 +849,7 @@ export const CHECKS = [
   // =====================================================================================
   {
     id: 'SPO-SHARING-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.sharingCapability;
@@ -769,7 +863,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-SHARING-002',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isResharingByExternalUsersEnabled;
@@ -779,7 +873,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-SHARING-003',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.sharingDomainRestrictionMode;
@@ -790,59 +884,8 @@ export const CHECKS = [
     }
   },
   {
-    id: 'SPO-SHARING-004',
-    area: 'sharepoint',
-    needs: ['spoSettings'],
-    evaluate: (d) => {
-      const v = d.spoSettings?.defaultSharingLinkType;
-      if (!v) return unknown('Default sharing link type not returned.');
-      if (v === 'specificPeople') return pass('Default sharing link is "specific people".');
-      if (v === 'anyone') return fail('Default sharing link is "anyone" — links are anonymous unless the sender changes them.');
-      if (v === 'organization') return warn('Default sharing link is "people in the organisation". "Specific people" is recommended.');
-      return unknown(`Unrecognised link type "${v}".`);
-    }
-  },
-  {
-    id: 'SPO-SHARING-005',
-    area: 'sharepoint',
-    needs: ['spoSettings'],
-    evaluate: (d) => {
-      const req = d.spoSettings?.externalUserExpirationRequired;
-      const days = d.spoSettings?.externalUserExpireInDays;
-      if (req === undefined || req === null) return unknown('Guest expiration setting not returned.');
-      if (!req) return fail('Guest access to sites and OneDrive never expires.');
-      return days <= 30 ? pass(`Guest access expires after ${days} days.`)
-                        : warn(`Guest access expires after ${days} days; 30 or fewer is recommended.`);
-    }
-  },
-  {
-    id: 'SPO-SHARING-006',
-    area: 'sharepoint',
-    needs: ['spoSettings'],
-    evaluate: (d) => {
-      const req = d.spoSettings?.emailAttestationRequired;
-      const days = d.spoSettings?.emailAttestationReAuthDays;
-      if (req === undefined || req === null) return unknown('Verification-code reauthentication setting not returned.');
-      if (!req) return fail('Guests using verification codes are never asked to reauthenticate.');
-      return days <= 30 ? pass(`Verification-code guests must reauthenticate every ${days} days.`)
-                        : warn(`Verification-code reauthentication is every ${days} days; 30 or fewer is recommended.`);
-    }
-  },
-  {
-    id: 'SPO-SHARING-007',
-    area: 'sharepoint',
-    needs: ['spoSettings'],
-    evaluate: (d) => {
-      const v = d.spoSettings?.defaultLinkPermission;
-      if (!v) return unknown('Default link permission not returned.');
-      if (v === 'view') return pass('Default sharing link permission is view-only.');
-      if (v === 'edit') return warn('Default sharing link permission is edit.');
-      return unknown(`Unrecognised link permission "${v}".`);
-    }
-  },
-  {
     id: 'SPO-SYNC-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isUnmanagedSyncAppForTenantRestricted;
@@ -852,7 +895,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-ACCESS-002',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isUnmanagedSyncAppForTenantRestricted;
@@ -862,7 +905,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-SYNC-002',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isMacSyncAppEnabled;
@@ -872,7 +915,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-LOOP-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isLoopEnabled;
@@ -882,29 +925,22 @@ export const CHECKS = [
     }
   },
   {
-    id: 'SPO-LOOP-002',
-    area: 'sharepoint',
+    id: 'SPO-SESSION-001',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
-      const v = d.spoSettings?.oneDriveLoopSharingCapability;
-      if (!v) return unknown('OneDrive Loop sharing capability not returned.');
-      if (v === 'disabled' || v === 'existingExternalUserSharingOnly') return pass(`Loop sharing from OneDrive: ${SPO_SHARING[v] || v}.`);
-      return warn(`Loop sharing from OneDrive: ${SPO_SHARING[v] || v}. Restrict to existing guests or disable.`);
-    }
-  },
-  {
-    id: 'SPO-SESSION-001',
-    area: 'sharepoint',
-    needs: ['idleTimeoutPolicies'],
-    evaluate: (d) => {
-      const n = (d.idleTimeoutPolicies || []).length;
-      return n > 0 ? pass(`${n} idle session timeout ${n === 1 ? 'policy is' : 'policies are'} configured.`)
-                   : warn('No idle session timeout policy is configured for unmanaged devices.');
+      const i = d.spoSettings?.idleSessionSignOut;
+      if (!i || i.isEnabled === undefined || i.isEnabled === null) return unknown('Idle session sign-out setting not returned.');
+      if (!i.isEnabled) return fail('Idle session sign-out is disabled, so sessions on unmanaged devices never time out.');
+      const hours = (i.signOutAfterInSeconds || 0) / 3600;
+      return hours > 0 && hours <= 3
+        ? pass(`Idle sessions are signed out after ${hours % 1 ? hours.toFixed(1) : hours} hour${hours === 1 ? '' : 's'}.`)
+        : warn(`Idle session sign-out is enabled but set to ${hours % 1 ? hours.toFixed(1) : hours} hours; 3 or fewer is recommended.`);
     }
   },
   {
     id: 'SPO-AUTH-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isLegacyAuthProtocolsEnabled;
@@ -914,41 +950,8 @@ export const CHECKS = [
     }
   },
   {
-    id: 'SPO-B2B-001',
-    area: 'sharepoint',
-    needs: ['spoSettingsBeta'],
-    evaluate: (d) => {
-      const v = d.spoSettingsBeta?.isB2BIntegrationEnabled;
-      if (v === undefined || v === null) return unknown('B2B integration setting not returned.');
-      return v ? pass('SharePoint and OneDrive use Entra B2B for external users.')
-               : fail('Entra B2B integration is off, so external users are not governed by Entra guest policies.');
-    }
-  },
-  {
-    id: 'SPO-OD-001',
-    area: 'sharepoint',
-    needs: ['spoSettingsBeta'],
-    evaluate: (d) => {
-      const v = d.spoSettingsBeta?.oneDriveSharingCapability;
-      if (!v) return unknown('OneDrive sharing capability not returned.');
-      if (v === 'disabled' || v === 'existingExternalUserSharingOnly') return pass(`OneDrive external sharing: ${SPO_SHARING[v] || v}.`);
-      if (v === 'externalUserSharingOnly') return warn(`OneDrive external sharing: ${SPO_SHARING[v] || v}.`);
-      return fail(`OneDrive external sharing: ${SPO_SHARING[v] || v}. Anonymous links are permitted from personal storage.`);
-    }
-  },
-  {
-    id: 'SPO-MALWARE-002',
-    area: 'sharepoint',
-    needs: ['spoSettingsBeta'],
-    evaluate: (d) => {
-      const v = d.spoSettingsBeta?.disallowInfectedFileDownload;
-      if (v === undefined || v === null) return unknown('Infected file download setting not returned.');
-      return v ? pass('Files detected as malware cannot be downloaded.') : fail('Users can still download files flagged as malware.');
-    }
-  },
-  {
     id: 'SPO-ACCESS-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['caPolicies'],
     evaluate: (d) => {
       const hit = enabledPolicies(d).find(p => {
@@ -965,7 +968,7 @@ export const CHECKS = [
   // =====================================================================================
   {
     id: 'TEAMS-APPS-001',
-    area: 'teams',
+    area: 'collaboration',
     needs: ['teamsAppSettings'],
     evaluate: (d) => {
       const v = d.teamsAppSettings?.isChatResourceSpecificConsentEnabled;
@@ -974,184 +977,40 @@ export const CHECKS = [
                : pass('Chat resource-specific consent is disabled.');
     }
   },
-  {
-    id: 'TEAMS-EXTACCESS-001',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => boolFlag(d.teamsClientConfig, 'allowTeamsConsumer', false,
-      'Communication with personal (unmanaged) Teams accounts is disabled.',
-      'Users can communicate with personal Teams accounts, which are outside any organisational control.')
-  },
-  {
-    id: 'TEAMS-EXTACCESS-002',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => boolFlag(d.teamsClientConfig, 'allowTeamsConsumerInbound', false,
-      'Personal Teams accounts cannot start conversations with your users.',
-      'Personal Teams accounts can initiate conversations with your users — a phishing entry point.')
-  },
-  {
-    id: 'TEAMS-EXTACCESS-003',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => {
-      const c = d.teamsClientConfig;
-      if (!c) return unknown('Teams client configuration not returned.');
-      const fed = c.allowFederatedUsers;
-      const domains = c.allowedDomains || [];
-      if (fed === false) return pass('External (federated) access is disabled.');
-      if (domains.length) return pass(`External access is limited to ${domains.length} allowed domain${domains.length === 1 ? '' : 's'}.`);
-      return fail('External access is open to every domain.');
-    }
-  },
-  {
-    id: 'TEAMS-EXTACCESS-004',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => boolFlag(d.teamsClientConfig, 'allowPublicUsers', false,
-      'Communication with Skype consumer users is disabled.',
-      'Users can communicate with Skype consumer accounts.')
-  },
-  {
-    id: 'TEAMS-CLIENT-001',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => {
-      const c = d.teamsClientConfig;
-      if (!c) return unknown('Teams client configuration not returned.');
-      const on = ['allowDropBox', 'allowBox', 'allowGoogleDrive', 'allowShareFile', 'allowEgnyte']
-        .filter(k => c[k] === true).map(k => k.replace(/^allow/, ''));
-      return on.length ? fail(`Third-party cloud storage is enabled in Teams: ${on.join(', ')}.`)
-                       : pass('No third-party cloud storage providers are enabled in Teams.');
-    }
-  },
-  {
-    id: 'TEAMS-CLIENT-002',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => boolFlag(d.teamsClientConfig, 'allowEmailIntoChannel', false,
-      'Email into channels is disabled.',
-      'Users can email content directly into Teams channels, bypassing mail hygiene.')
-  },
-  {
-    id: 'TEAMS-MEETING-001',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowAnonymousUsersToJoinMeeting', false,
-      'Anonymous users cannot join meetings.',
-      'Anonymous users can join meetings.')
-  },
-  {
-    id: 'TEAMS-MEETING-002',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowAnonymousUsersToStartMeeting', false,
-      'Anonymous users cannot start meetings.',
-      'Anonymous users and dial-in callers can start meetings without an organiser present.')
-  },
-  {
-    id: 'TEAMS-MEETING-003',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => {
-      const v = d.teamsMeetingPolicy?.autoAdmittedUsers;
-      if (!v) return unknown('Lobby bypass setting not returned.');
-      const good = ['EveryoneInCompanyExcludingGuests', 'EveryoneInSameAndFederatedCompany', 'OrganizerOnly', 'InvitedUsers'];
-      return good.includes(v) ? pass(`Lobby bypass: ${v}.`) : fail(`Lobby bypass is "${v}", so people outside the organisation skip the lobby.`);
-    }
-  },
-  {
-    id: 'TEAMS-MEETING-004',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowPSTNUsersToBypassLobby', false,
-      'Dial-in callers wait in the lobby.',
-      'Dial-in callers bypass the lobby.')
-  },
-  {
-    id: 'TEAMS-MEETING-005',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => {
-      const v = d.teamsMeetingPolicy?.allowExternalParticipantGiveRequestControl;
-      if (v === undefined || v === null) return unknown('External control setting not returned.');
-      return v ? warn('External participants can give or request control of shared content.')
-               : pass('External participants cannot give or request control.');
-    }
-  },
-  {
-    id: 'TEAMS-MEETING-006',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => {
-      const v = d.teamsMeetingPolicy?.meetingChatEnabledType;
-      if (!v) return unknown('Meeting chat setting not returned.');
-      return v === 'Enabled' ? fail('Meeting chat is enabled for everyone, including anonymous attendees.')
-                             : pass(`Meeting chat: ${v}.`);
-    }
-  },
-  {
-    id: 'TEAMS-MEETING-007',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => {
-      const v = d.teamsMeetingPolicy?.designatedPresenterRoleMode;
-      if (!v) return unknown('Presenter role setting not returned.');
-      return v === 'OrganizerOnlyUserOverride' ? pass('Only organisers and co-organisers present by default.')
-                                                : fail(`Default presenter role is "${v}", so any attendee can present.`);
-    }
-  },
-  {
-    id: 'TEAMS-MEETING-008',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowExternalNonTrustedMeetingChat', false,
-      'Chat with external non-trusted meeting participants is off.',
-      'External non-trusted participants can use meeting chat.')
-  },
-  {
-    id: 'TEAMS-MEETING-009',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowCloudRecording', false,
-      'Cloud recording is off by default.',
-      'Cloud recording is on by default.')
-  },
-
   // =====================================================================================
   // Microsoft Forms
   // =====================================================================================
   {
     id: 'FORMS-CONFIG-001',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => boolFlag(d.formsSettings, 'isExternalSendFormEnabled', false,
       'External users cannot respond to forms.', 'Forms can be sent to and answered by external users.')
   },
   {
     id: 'FORMS-CONFIG-002',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => boolFlag(d.formsSettings, 'isExternalShareCollaborationEnabled', false,
       'External users cannot collaborate on forms.', 'External users can be added as form collaborators.')
   },
   {
     id: 'FORMS-CONFIG-003',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => boolFlag(d.formsSettings, 'isExternalShareResultEnabled', false,
       'Form results cannot be shared externally.', 'Form results can be shared with external users.')
   },
   {
     id: 'FORMS-CONFIG-004',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
-    evaluate: (d) => boolFlag(d.formsSettings, 'isPhishingScanEnabled', true,
+    evaluate: (d) => boolFlag(d.formsSettings, 'isInOrgFormsPhishingScanEnabled', true,
       'Phishing protection scanning is enabled for forms.', 'Phishing protection scanning is disabled for forms.')
   },
   {
     id: 'FORMS-CONFIG-005',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => {
       const v = d.formsSettings?.isRecordIdentityByDefaultEnabled;
@@ -1162,13 +1021,13 @@ export const CHECKS = [
   },
   {
     id: 'FORMS-CONFIG-006',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => {
-      const v = d.formsSettings?.isBingImageVideoSearchEnabled;
+      const v = d.formsSettings?.isBingImageSearchEnabled;
       if (v === undefined || v === null) return unknown('Bing search setting not returned.');
-      return v ? unknown('Bing image and video search is enabled in Forms. Review against your data-handling policy.')
-               : pass('Bing image and video search is disabled in Forms.');
+      return v ? unknown('Bing image search is enabled in Forms. Review against your data-handling policy.')
+               : pass('Bing image search is disabled in Forms.');
     }
   },
 
@@ -1321,6 +1180,405 @@ export const CHECKS = [
     evaluate: (d) => assignedProfile(d.deviceConfigs,
       p => /windowsWifiEnterpriseEAPConfiguration/i.test(p['@odata.type'] || '') && p.eapType === 'eapTls' && p.wifiSecurityType === 'wpa2Enterprise',
       'Enterprise Wi-Fi with EAP-TLS and WPA2-Enterprise is configured', 'No Wi-Fi profile enforces EAP-TLS with WPA2-Enterprise.')
+  },
+  // =====================================================================================
+  // Applications & service principals
+  // =====================================================================================
+  {
+    id: 'ENTRA-APPREG-001',
+    area: 'privileged',
+    needs: ['authorizationPolicy'],
+    evaluate: (d) => {
+      const v = d.authorizationPolicy?.defaultUserRolePermissions?.allowedToCreateApps;
+      if (v === undefined || v === null) return unknown('App registration permission not returned.');
+      return v ? fail('Any user can register applications.') : pass('Only administrators can register applications.');
+    }
+  },
+  {
+    id: 'ENTRA-APPS-001',
+    area: 'privileged',
+    needs: ['authorizationPolicy'],
+    evaluate: (d) => {
+      const v = d.authorizationPolicy?.defaultUserRolePermissions?.allowedToCreateApps;
+      if (v === undefined || v === null) return unknown('App registration permission not returned.');
+      return v ? fail('Users can integrate third-party applications by registering them.') : pass('Users cannot register third-party applications.');
+    }
+  },
+  {
+    id: 'ENTRA-APPREG-002',
+    area: 'privileged',
+    needs: ['applications'],
+    evaluate: (d) => {
+      const hits = (d.applications || []).filter(a => redirectUris(a).some(u => /localhost|127\.0\.0\.1|\[::1\]/i.test(u)));
+      return hits.length ? warn(`${hits.length} app registration${hits.length === 1 ? ' has' : 's have'} localhost redirect URIs: ${names(hits)}.`)
+                         : pass('No app registration has a localhost redirect URI.');
+    }
+  },
+  {
+    id: 'ENTRA-APPREG-003',
+    area: 'privileged',
+    needs: ['applications'],
+    evaluate: (d) => {
+      const hits = (d.applications || []).filter(a => redirectUris(a, false).some(u => /^http:\/\//i.test(u) && !/localhost|127\.0\.0\.1/i.test(u)));
+      return hits.length ? fail(`${hits.length} app registration${hits.length === 1 ? ' has' : 's have'} plain-HTTP redirect URIs: ${names(hits)}.`)
+                         : pass('No app registration uses a plain-HTTP redirect URI.');
+    }
+  },
+  {
+    id: 'ENTRA-APPREG-004',
+    area: 'privileged',
+    needs: ['applications'],
+    evaluate: (d) => {
+      const hits = (d.applications || []).filter(a => redirectUris(a, false).some(u => u.includes('*')));
+      return hits.length ? fail(`${hits.length} app registration${hits.length === 1 ? ' has' : 's have'} wildcard redirect URIs: ${names(hits)}.`)
+                         : pass('No app registration uses a wildcard redirect URI.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-021',
+    area: 'privileged',
+    needs: ['applications'],
+    evaluate: (d) => {
+      const hits = (d.applications || []).filter(a => ['AzureADMultipleOrgs', 'AzureADandPersonalMicrosoftAccount'].includes(a.signInAudience));
+      return hits.length ? unknown(`${hits.length} multi-tenant app registration${hits.length === 1 ? '' : 's'}: ${names(hits)}. Review that each is intended to be used from other tenants.`)
+                         : pass('No app registration is multi-tenant.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-001',
+    area: 'privileged',
+    needs: ['servicePrincipals'],
+    evaluate: (d) => {
+      const apps = regularApps(d).filter(sp => sp.accountEnabled === true && hasCreds(sp));
+      if (!apps.length) return pass('No enabled application holds a secret or certificate.');
+      return apps.length > 10
+        ? warn(`${apps.length} enabled applications hold secrets or certificates. Review whether each still needs a credential.`)
+        : pass(`${apps.length} enabled application${apps.length === 1 ? '' : 's'} hold${apps.length === 1 ? 's' : ''} a secret or certificate.`);
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-002',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'spSignIns'],
+    evaluate: (d) => {
+      const cutoff = Date.now() - 90 * 86400000;
+      const seen = new Map((d.spSignIns || []).map(s => [s.id, s.signInActivity?.lastSignInDateTime]));
+      const hits = regularApps(d).filter(sp => sp.accountEnabled === true && hasCreds(sp))
+        .filter(sp => { const t = seen.get(sp.id); return !t || Date.parse(t) < cutoff; });
+      return hits.length ? fail(`${hits.length} credentialed app${hits.length === 1 ? '' : 's'} with no sign-in in 90 days: ${names(hits)}. Unused credentials are pure exposure.`)
+                         : pass('Every credentialed application has signed in within 90 days.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-003',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'graphAppRoles', 'organization', 'appTiers'],
+    evaluate: (d) => {
+      const hits = [];
+      for (const sp of thirdPartyForeign(d)) for (const p of appPerms(d, sp)) if (d.appTiers.tier0.includes(p)) hits.push(`${sp.displayName}: ${p}`);
+      return hits.length ? fail(`${hits.length} Tier 0 permission${hits.length === 1 ? '' : 's'} granted to third-party apps: ${list(hits)}.`)
+                         : pass('No third-party application holds a Tier 0 application permission.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-011',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'graphAppRoles', 'organization', 'appTiers'],
+    evaluate: (d) => {
+      const hits = [];
+      for (const sp of thirdPartyForeign(d)) for (const p of appPerms(d, sp)) if (d.appTiers.tier1.includes(p)) hits.push(`${sp.displayName}: ${p}`);
+      return hits.length ? warn(`${hits.length} Tier 1 data-access permission${hits.length === 1 ? '' : 's'} granted to third-party apps: ${list(hits)}.`)
+                         : pass('No third-party application holds Tier 1 mail, file or site permissions.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-004',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'oauth2Grants', 'organization', 'appTiers'],
+    evaluate: (d) => {
+      const dangerous = ['Directory.ReadWrite.All', 'RoleManagement.ReadWrite.Directory', 'Mail.ReadWrite', 'Files.ReadWrite.All', 'User.ReadWrite.All', 'AppRoleAssignment.ReadWrite.All'];
+      const hits = [];
+      for (const sp of thirdPartyForeign(d)) {
+        for (const g of (d.oauth2Grants || []).filter(g => g.clientId === sp.id)) {
+          for (const s of String(g.scope || '').split(/\s+/)) if (dangerous.includes(s)) hits.push(`${sp.displayName}: ${s}`);
+        }
+      }
+      return hits.length ? fail(`${hits.length} dangerous delegated permission${hits.length === 1 ? '' : 's'} consented to third-party apps: ${list(hits)}.`)
+                         : pass('No third-party application holds a dangerous delegated permission.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-005',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'roleAssignments', 'organization', 'appTiers'],
+    evaluate: (d) => {
+      const hits = thirdPartyForeign(d).filter(sp => roleCount(d, sp.id) > 0).map(sp => `${sp.displayName} (${roleCount(d, sp.id)} role${roleCount(d, sp.id) === 1 ? '' : 's'})`);
+      return hits.length ? fail(`${hits.length} third-party app${hits.length === 1 ? '' : 's'} hold Entra directory roles: ${list(hits)}.`)
+                         : pass('No third-party application holds an Entra directory role.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-006',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'graphAppRoles'],
+    evaluate: (d) => {
+      const hits = regularApps(d).filter(sp => sp.accountEnabled === true && appRoleCount(d, sp.id) > 10).map(sp => `${sp.displayName} (${appRoleCount(d, sp.id)})`);
+      return hits.length ? warn(`${hits.length} app${hits.length === 1 ? '' : 's'} hold more than ten application permissions: ${list(hits)}.`)
+                         : pass('No application holds more than ten application permissions.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-007',
+    area: 'privileged',
+    needs: ['appManagementPolicy'],
+    evaluate: (d) => {
+      const on = d.appManagementPolicy?.isEnabled;
+      if (on === undefined || on === null) return unknown('Default app management policy not returned.');
+      return on ? pass('The default app management policy is enabled.') : warn('No default app management policy is enforced, so credential lifetime and property locks are not controlled.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-008',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'graphAppRoles', 'appTiers'],
+    evaluate: (d) => {
+      const all = [...d.appTiers.tier0, ...d.appTiers.tier1];
+      const hits = [];
+      for (const mi of managedIdentities(d)) for (const p of appPerms(d, mi)) if (all.includes(p)) hits.push(`${mi.displayName}: ${p}`);
+      return hits.length ? fail(`${hits.length} dangerous permission${hits.length === 1 ? '' : 's'} on managed identities: ${list(hits)}.`)
+                         : pass('No managed identity holds a dangerous application permission.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-009',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'roleAssignments'],
+    evaluate: (d) => {
+      const hits = managedIdentities(d).filter(mi => roleCount(d, mi.id) > 0).map(mi => `${mi.displayName} (${roleCount(d, mi.id)})`);
+      return hits.length ? warn(`${hits.length} managed identit${hits.length === 1 ? 'y holds' : 'ies hold'} Entra directory roles: ${list(hits)}.`)
+                         : pass('No managed identity holds an Entra directory role.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-010',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'graphAppRoles', 'organization', 'appTiers'],
+    evaluate: (d) => {
+      const tid = tenantId(d);
+      const hits = [];
+      for (const sp of (d.servicePrincipals || []).filter(sp => sp.appOwnerOrganizationId === tid && sp.servicePrincipalType !== 'ManagedIdentity')) {
+        for (const p of appPerms(d, sp)) if (d.appTiers.tier0.includes(p)) hits.push(`${sp.displayName}: ${p}`);
+      }
+      return hits.length ? warn(`${hits.length} Tier 0 permission${hits.length === 1 ? '' : 's'} held by your own apps — each is a Global Administrator escalation path: ${list(hits)}.`)
+                         : pass('No internal application holds a Tier 0 permission.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-012',
+    area: 'privileged',
+    needs: ['servicePrincipals'],
+    evaluate: (d) => {
+      const hits = regularApps(d).filter(sp => sp.accountEnabled === true && (sp.passwordCredentials || []).length && !(sp.keyCredentials || []).length);
+      return hits.length ? warn(`${hits.length} app${hits.length === 1 ? '' : 's'} authenticate with client secrets only: ${names(hits)}. Certificates are harder to leak.`)
+                         : pass('No enabled application relies solely on a client secret.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-013',
+    area: 'privileged',
+    needs: ['servicePrincipals'],
+    evaluate: (d) => {
+      const now = Date.now();
+      const expired = c => c?.endDateTime && Date.parse(c.endDateTime) < now;
+      const hits = regularApps(d).filter(sp => (sp.passwordCredentials || []).some(expired) || (sp.keyCredentials || []).some(expired));
+      return hits.length ? warn(`${hits.length} app${hits.length === 1 ? '' : 's'} still carr${hits.length === 1 ? 'ies' : 'y'} expired credentials: ${names(hits)}.`)
+                         : pass('No application carries an expired credential.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-014',
+    area: 'privileged',
+    needs: ['servicePrincipals'],
+    evaluate: (d) => {
+      const hits = regularApps(d).filter(sp => (sp.passwordCredentials || []).length && (sp.keyCredentials || []).length);
+      return hits.length ? warn(`${hits.length} app${hits.length === 1 ? '' : 's'} hold both a secret and a certificate: ${names(hits)}. Retire the secret.`)
+                         : pass('No application holds both credential types.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-015',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'roleAssignments'],
+    evaluate: (d) => {
+      const hits = regularApps(d).filter(sp => (sp.passwordCredentials || []).length && roleCount(d, sp.id) > 0).map(sp => `${sp.displayName} (${roleCount(d, sp.id)} role${roleCount(d, sp.id) === 1 ? '' : 's'})`);
+      return hits.length ? fail(`${hits.length} service principal${hits.length === 1 ? '' : 's'} combine a client secret with a permanent directory role: ${list(hits)}. A leaked secret is a leaked admin.`)
+                         : pass('No service principal combines a client secret with a directory role.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-016',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'graphAppRoles', 'spOwners', 'appTiers'],
+    evaluate: (d) => {
+      const hits = regularApps(d).filter(sp => appPerms(d, sp).some(p => d.appTiers.tier0.includes(p)) && owners(d, sp.id).length)
+        .map(sp => `${sp.displayName} (owners: ${owners(d, sp.id).map(o => o.displayName || o.id).join(', ')})`);
+      return hits.length ? fail(`${hits.length} Tier 0 app${hits.length === 1 ? '' : 's'} have owners who can add credentials and impersonate them: ${list(hits)}.`)
+                         : pass('No Tier 0 application has owners assigned.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-017',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'roleAssignments', 'spOwners'],
+    evaluate: (d) => {
+      const hits = regularApps(d).filter(sp => roleCount(d, sp.id) > 0 && owners(d, sp.id).length)
+        .map(sp => `${sp.displayName} (owners: ${owners(d, sp.id).map(o => o.displayName || o.id).join(', ')})`);
+      return hits.length ? warn(`${hits.length} role-holding app${hits.length === 1 ? '' : 's'} have owners: ${list(hits)}.`)
+                         : pass('No application holding a directory role has owners assigned.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-018',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'spOwners'],
+    evaluate: (d) => {
+      const hits = regularApps(d).filter(sp => hasCreds(sp) && !owners(d, sp.id).length);
+      return hits.length ? warn(`${hits.length} credentialed app${hits.length === 1 ? ' has' : 's have'} no owner: ${names(hits)}. Nobody is accountable for rotating them.`)
+                         : pass('Every credentialed application has at least one owner.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-019',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'graphAppRoles', 'spSignIns', 'appTiers'],
+    evaluate: (d) => {
+      const seen = new Map((d.spSignIns || []).map(s => [s.id, s.signInActivity?.lastSignInDateTime]));
+      // Microsoft's first-party apps hold Tier 0 permissions by design and their activity is not
+      // yours to remove; only apps you could actually retire are findings here.
+      const hits = regularApps(d).filter(sp => !isFirstParty(d, sp) && appPerms(d, sp).some(p => d.appTiers.tier0.includes(p)) && !seen.get(sp.id));
+      return hits.length ? warn(`${hits.length} Tier 0 app${hits.length === 1 ? '' : 's'} show no sign-in activity: ${names(hits)}. Unused privilege should be removed.`)
+                         : pass('Every Tier 0 application shows sign-in activity.');
+    }
+  },
+  {
+    id: 'ENTRA-ENTAPP-020',
+    area: 'privileged',
+    needs: ['servicePrincipals', 'organization', 'appTiers'],
+    evaluate: (d) => {
+      const ms = ['Microsoft Teams', 'Microsoft Graph', 'Microsoft Office', 'Microsoft Azure', 'Microsoft Intune', 'Microsoft Exchange', 'Microsoft SharePoint', 'Microsoft Outlook', 'Microsoft OneDrive', 'Microsoft Defender'];
+      const hits = thirdPartyForeign(d).filter(sp => ms.some(n => sp.displayName === n || (sp.displayName || '').startsWith(n + ' ')));
+      return hits.length ? fail(`${hits.length} third-party app${hits.length === 1 ? '' : 's'} use Microsoft product names: ${hits.map(sp => `${sp.displayName} (${sp.appId})`).slice(0, 3).join('; ')}. Classic consent-phishing lure.`)
+                         : pass('No third-party application impersonates a Microsoft product name.');
+    }
+  },
+
+  // =====================================================================================
+  // Privileged Identity Management
+  // =====================================================================================
+  {
+    id: 'ENTRA-PIM-001',
+    area: 'privileged',
+    needs: ['globalAdmins', 'gaEligible'],
+    evaluate: (d) => {
+      const eligible = new Set((d.gaEligible || []).map(e => e.principalId));
+      const permanent = (d.globalAdmins || []).filter(m => !eligible.has(m.id));
+      if (!permanent.length) return pass(`All ${(d.globalAdmins || []).length} Global Administrators are PIM-eligible rather than permanently assigned.`);
+      return fail(`${permanent.length} permanent Global Administrator assignment${permanent.length === 1 ? '' : 's'}: ${permanent.map(m => m.userPrincipalName || m.displayName).slice(0, 5).join(', ')}. Use PIM eligibility so privilege is activated, not standing.`);
+    }
+  },
+  {
+    id: 'ENTRA-PIM-002',
+    area: 'privileged',
+    needs: ['accessReviews'],
+    evaluate: (d) => {
+      const hits = (d.accessReviews || []).filter(r => /guest/i.test(`${r.displayName} ${r.scope?.query || ''} ${r.scope?.queryType || ''}`) || /userType eq 'Guest'/i.test(r.scope?.query || ''));
+      return hits.length ? pass(`${hits.length} access review${hits.length === 1 ? '' : 's'} cover guest users.`)
+                         : fail('No access review targets guest users.');
+    }
+  },
+  {
+    id: 'ENTRA-PIM-003',
+    area: 'privileged',
+    needs: ['accessReviews'],
+    evaluate: (d) => {
+      const hits = (d.accessReviews || []).filter(r => /roleManagement|directoryRole/i.test(r.scope?.query || '') || /role/i.test(r.scope?.queryType || ''));
+      return hits.length ? pass(`${hits.length} access review${hits.length === 1 ? '' : 's'} cover privileged roles.`)
+                         : fail('No access review targets privileged directory roles.');
+    }
+  },
+  {
+    id: 'ENTRA-PIM-004',
+    area: 'privileged',
+    needs: ['pimPolicyGA'],
+    evaluate: (d) => {
+      const r = pimRule(d.pimPolicyGA, 'Approval_EndUser_Assignment');
+      if (!r) return unknown('Global Administrator activation policy not returned. PIM requires Entra ID P2.');
+      return r.setting?.isApprovalRequired ? pass('Global Administrator activation requires approval.') : fail('Global Administrator can be activated without approval.');
+    }
+  },
+  {
+    id: 'ENTRA-PIM-005',
+    area: 'privileged',
+    needs: ['pimPolicyPRA'],
+    evaluate: (d) => {
+      const r = pimRule(d.pimPolicyPRA, 'Approval_EndUser_Assignment');
+      if (!r) return unknown('Privileged Role Administrator activation policy not returned. PIM requires Entra ID P2.');
+      return r.setting?.isApprovalRequired ? pass('Privileged Role Administrator activation requires approval.') : fail('Privileged Role Administrator can be activated without approval.');
+    }
+  },
+  {
+    id: 'ENTRA-PIM-006',
+    area: 'privileged',
+    needs: ['pimPolicyGA'],
+    evaluate: (d) => {
+      const r = pimRule(d.pimPolicyGA, 'Expiration_EndUser_Assignment');
+      if (!r) return unknown('Global Administrator activation policy not returned. PIM requires Entra ID P2.');
+      const h = isoHours(r.maximumDuration);
+      if (h === null) return unknown(`Activation duration "${r.maximumDuration}" could not be read.`);
+      return h <= 4 ? pass(`Global Administrator activations last at most ${h} hours.`) : warn(`Global Administrator activations can last ${h} hours; 4 or fewer is recommended.`);
+    }
+  },
+  {
+    id: 'ENTRA-PIM-007',
+    area: 'privileged',
+    needs: ['pimPolicyGA'],
+    evaluate: (d) => {
+      const r = pimRule(d.pimPolicyGA, 'Enablement_EndUser_Assignment');
+      if (!r) return unknown('Global Administrator activation policy not returned. PIM requires Entra ID P2.');
+      return (r.enabledRules || []).includes('Justification') ? pass('Justification is required to activate Global Administrator.') : warn('Global Administrator can be activated without a justification.');
+    }
+  },
+  {
+    id: 'ENTRA-PIM-008',
+    area: 'privileged',
+    needs: ['pimPolicyGA'],
+    evaluate: (d) => {
+      const r = pimRule(d.pimPolicyGA, 'Enablement_EndUser_Assignment');
+      if (!r) return unknown('Global Administrator activation policy not returned. PIM requires Entra ID P2.');
+      return (r.enabledRules || []).includes('MultiFactorAuthentication') ? pass('MFA is required to activate Global Administrator.') : fail('Global Administrator can be activated without MFA.');
+    }
+  },
+  {
+    id: 'ENTRA-PIM-009',
+    area: 'privileged',
+    needs: ['pimPolicyGA'],
+    evaluate: (d) => {
+      const r = pimRule(d.pimPolicyGA, 'Expiration_Admin_Eligibility');
+      if (!r) return unknown('Global Administrator assignment policy not returned. PIM requires Entra ID P2.');
+      return r.isExpirationRequired ? pass(`Eligible Global Administrator assignments expire (maximum ${isoHours(r.maximumDuration) !== null ? Math.round(isoHours(r.maximumDuration) / 24) + ' days' : r.maximumDuration}).`)
+                                    : fail('Eligible Global Administrator assignments can be permanent.');
+    }
+  },
+  {
+    id: 'ENTRA-PIM-010',
+    area: 'privileged',
+    needs: ['pimPolicyGA'],
+    evaluate: (d) => {
+      const r = pimRule(d.pimPolicyGA, 'Notification_Admin_EndUser_Assignment');
+      if (!r) return unknown('Global Administrator notification policy not returned. PIM requires Entra ID P2.');
+      const on = r.isDefaultRecipientsEnabled || (r.notificationRecipients || []).length > 0;
+      return on ? pass('Administrators are notified when Global Administrator is activated.') : warn('Nobody is notified when Global Administrator is activated.');
+    }
   }
 ];
 

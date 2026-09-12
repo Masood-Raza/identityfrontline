@@ -50,11 +50,15 @@ const needName = (n) => n.replace(/^\?/, '');
 ok('every need resolves to a source', CHECKS.every(c => c.needs.every(n => SOURCES[needName(n)])),
   [...new Set(CHECKS.flatMap(c => c.needs))].filter(n => !SOURCES[needName(n)]).join(', '));
 ok('every check has an evaluate()', CHECKS.every(c => typeof c.evaluate === 'function'));
-ok('every source declares scopes', Object.values(SOURCES).every(s => s.scopes?.length));
+ok('every Graph source declares scopes; local data needs none', Object.values(SOURCES).every(s => s.local ? Array.isArray(s.scopes) : s.scopes?.length));
 ok('every source has a user-facing label', Object.values(SOURCES).every(s => s.label));
 ok('scopes are all read-only', REQUIRED_SCOPES.every(s => !/\.(Read)?Write|FullControl|AccessAsUser/i.test(s)), REQUIRED_SCOPES.join(', '));
 ok('identity scope set is the expected six', REQUIRED_SCOPES.length === 6, REQUIRED_SCOPES.join(', '));
-ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'sharepoint', 'teams', 'forms', 'intune'].includes(c.area)));
+ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'collaboration', 'intune', 'privileged'].includes(c.area)));
+const tiers = JSON.parse(readFileSync(join(root, 'assets/catalog/app-tiers.json'), 'utf8'));
+ok('app tier data shipped with tier 0, tier 1 and first-party lists',
+  tiers.tier0.length > 30 && tiers.tier1.length >= 4 && tiers.firstPartyAppIds.length > 200 && tiers.firstPartyTenantIds.length === 4);
+ok('tier 0 list contains the obvious escalation permissions', ['RoleManagement.ReadWrite.Directory', 'AppRoleAssignment.ReadWrite.All', 'Directory.ReadWrite.All'].every(p => tiers.tier0.includes(p)));
 
 // ---- the page hard-codes nothing the catalog provides ------------------------------------
 // The versioned labels come from the catalog; prose may still name a framework in passing.

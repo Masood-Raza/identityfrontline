@@ -115,6 +115,8 @@ function renderScope() {
 
   el('scopeSoon').innerHTML = [
     ['Exchange &amp; email security', 'Mail flow, anti-phishing, SPF/DKIM/DMARC. Not reachable through Microsoft Graph.'],
+    ['Teams meetings &amp; external access', 'Lobby, presenters, recording, federation and consumer access. Not reachable through Microsoft Graph.'],
+    ['SharePoint link defaults &amp; guest expiry', 'Default link type, guest expiry, verification-code reauthentication. Not reachable through Microsoft Graph.'],
     ['Defender &amp; Purview', 'Defender for Office policies, DLP and retention. Not reachable through Microsoft Graph.']
   ].map(([t, d]) => `<p class="soon-item"><b>${t}</b> — ${d}</p>`).join('');
 }
@@ -131,12 +133,13 @@ function renderPermissions() {
     'Domain.Read.All': 'Verified domains and password expiry configuration',
     'AuditLog.Read.All': 'MFA registration report',
     'SharePointTenantSettings.Read.All': 'SharePoint and OneDrive sharing, sync and authentication settings',
-    'TeamSettings.Read.All': 'Teams external access and meeting policy',
     'TeamworkAppSettings.Read.All': 'Teams app consent settings',
     'OrgSettings-Forms.Read.All': 'Microsoft Forms external sharing and phishing protection settings',
     'DeviceManagementConfiguration.Read.All': 'Intune compliance policies and configuration profiles',
     'DeviceManagementServiceConfig.Read.All': 'Intune enrolment restrictions and Autopilot profiles',
-    'DeviceManagementManagedDevices.Read.All': 'Enrolled device counts and categories'
+    'DeviceManagementManagedDevices.Read.All': 'Enrolled device counts and categories',
+    'Application.Read.All': 'App registrations, enterprise applications, their credentials, owners and permissions',
+    'AccessReview.Read.All': 'Whether access reviews exist for guests and privileged roles'
   };
   el('permissions').innerHTML = requiredScopes().map(s => `
     <tr><td><code>${esc(s)}</code></td><td>Delegated</td>
