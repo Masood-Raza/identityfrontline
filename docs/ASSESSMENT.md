@@ -29,10 +29,18 @@ Sign-in needs an Entra app registration that customers consent to. It lives in y
    - Supported account types: **Accounts in any organizational directory (multitenant)**
    - Redirect URI: platform **Single-page application**, value `https://<your-domain>/assessments.html`
    - Add a second SPA redirect `http://localhost:8080/assessments.html` for local testing
-2. **API permissions → Add → Microsoft Graph → Delegated**, exactly these six:
-   `AuditLog.Read.All`, `Directory.Read.All`, `Domain.Read.All`, `Policy.Read.All`,
-   `RoleManagement.Read.Directory`, `User.Read.All`.
-   Do **not** add application permissions — the app never runs unattended.
+2. **API permissions → Add → Microsoft Graph → Delegated**, all read-only:
+   - Identity: `AuditLog.Read.All`, `Directory.Read.All`, `Domain.Read.All`, `Policy.Read.All`,
+     `RoleManagement.Read.Directory`, `User.Read.All`
+   - SharePoint: `SharePointTenantSettings.Read.All`
+   - Teams: `TeamSettings.Read.All`, `TeamworkAppSettings.Read.All`
+   - Forms: `OrgSettings-Forms.Read.All`
+   - Intune: `DeviceManagementConfiguration.Read.All`, `DeviceManagementServiceConfig.Read.All`,
+     `DeviceManagementManagedDevices.Read.All`
+
+   Only the scopes for the areas a user selects are requested at sign-in (identity alone is
+   six), but the registration must carry all thirteen. Do **not** add application
+   permissions — the app never runs unattended.
 3. Copy the **Application (client) ID** into `assets/app/config.js`.
 4. Recommended: [publisher verification](https://learn.microsoft.com/entra/identity-platform/publisher-verification-overview),
    so the consent screen shows a verified publisher instead of an "unverified" warning.
@@ -42,8 +50,11 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
 ## The user's journey
 
 1. **Frameworks** — pick which to report against; the same findings map to each.
-2. **Scope** — identity & access in this release; other areas listed as coming.
-3. **Permissions** — the six delegated read-only scopes, each with its reason.
+2. **Scope** — pick areas: identity & access (always on), SharePoint & OneDrive, Teams, Forms,
+   Intune & devices. Each area adds only the permissions it needs. Exchange and Purview are
+   listed as not assessable from the browser: they have no Graph API.
+3. **Permissions** — the delegated read-only scopes the selected areas need (six for identity
+   alone, thirteen for everything), each with its reason.
 4. **Connect & run** — enter tenant, sign in with Microsoft. If a scope is missing, a
    *Grant admin consent* button opens Microsoft's consent page in a popup; the user can also
    run with reduced coverage. Progress is shown per data source.
@@ -63,6 +74,7 @@ Copied from M365-Assess so a partial run is honest rather than punitive:
 |---|---|---|
 | Condition met | Pass | yes |
 | Condition not met | Fail | yes |
+| Partially met (e.g. guest expiry on but set to 90 days) | Warning | yes — as not-passed |
 | Source unreadable (missing consent, unlicensed, error) | Unknown | **no** |
 | Check does not apply (e.g. security defaults on) | NotApplicable | **no** |
 
@@ -73,7 +85,8 @@ Unavailable sources are listed on the results page and in the report with the Gr
 1. Pick a `checkId` from the M365-Assess registry (`controls/registry.json`) — the framework
    mappings come from there and are the valuable part.
 2. Add it to `CHECKS` in `assets/app/checks.js`: declare `needs` (existing or new `SOURCES`)
-   and write `evaluate(d)` returning `pass()`, `fail()`, `unknown()` or `na()`. Never throw.
+   and write `evaluate(d)` returning `pass()`, `fail()`, `warn()`, `unknown()` or `na()`. Set its
+   `area`. Never throw.
 3. Regenerate the catalog:
    ```powershell
    git clone https://github.com/Galvnyz/M365-Assess
@@ -131,7 +144,9 @@ Check definitions, severities, remediation and framework mappings derive from
 - **Validated on one tenant.** Predicates are tested against mock Graph payloads that
   follow the documented schemas and have run clean on one real tenant; other tenants and
   licence tiers may still surface shape differences.
-- **37 identity checks.** Intune, SharePoint/Teams/Forms and Secure Score are reachable from
-  the browser and not yet implemented. Exchange and Purview are not reachable through Graph
-  alone and are out of scope for the browser-native flow.
+- **89 checks across five areas.** SharePoint, Teams, Forms and Intune have been validated
+  against mock payloads only, not a real tenant. Secure Score and Defender alerts are
+  reachable and not yet implemented. Exchange and Purview are not reachable through Graph.
+- **Teams meeting policy, Forms settings and several Intune reads use Graph beta.** They
+  are the same endpoints M365-Assess uses, but beta can change shape without notice.
 - **No baseline or drift.** Each run stands alone; nothing is remembered between runs.

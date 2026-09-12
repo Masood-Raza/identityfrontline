@@ -7,7 +7,7 @@
 import { frameworksOf } from './engine.js';
 
 const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Unknown'];
-const STATUS_ORDER = { Fail: 0, Unknown: 1, NotApplicable: 2, Pass: 3 };
+const STATUS_ORDER = { Fail: 0, Warning: 1, Unknown: 2, NotApplicable: 3, Pass: 4 };
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -44,7 +44,8 @@ const csvCell = (v) => {
 const summariseList = (list) => ({
   pass: list.filter(r => r.status === 'Pass').length,
   fail: list.filter(r => r.status === 'Fail').length,
-  other: list.filter(r => r.status !== 'Pass' && r.status !== 'Fail').length
+  warning: list.filter(r => r.status === 'Warning').length,
+  other: list.filter(r => !['Pass', 'Fail', 'Warning'].includes(r.status)).length
 });
 
 // Upstream remediation strings arrive with PowerShell-escaped quotes (''x''); show them plainly.
@@ -64,7 +65,9 @@ export function executiveSummary(report) {
   const name = report.tenant?.name || 'The tenant';
   const parts = [];
   const scope = scopeLabel(report);
+  const areas = (report.areas || []).map(a => a.label);
 
+  if (areas.length) parts.push(`Areas assessed: ${areas.join(', ')}.`);
   if (scope) {
     parts.push(`Scope: ${scope} — ${report.scope.inScopeCount} of ${report.results.length} checks map to ${report.scope.frameworks.length === 1 ? 'this framework' : 'these frameworks'}.`);
   }
@@ -78,11 +81,12 @@ export function executiveSummary(report) {
   const sev = ['Critical', 'High', 'Medium', 'Low']
     .filter(k => s.failedBySeverity[k] > 0)
     .map(k => `${s.failedBySeverity[k]} ${k.toLowerCase()}`);
-  if (s.fail === 0 && s.scored > 0) {
+  if (s.fail === 0 && !s.warning && s.scored > 0) {
     parts.push('No failing checks were found in the assessed scope.');
   } else if (sev.length) {
     parts.push(`${s.fail} check${s.fail === 1 ? '' : 's'} failed: ${sev.join(', ')}.`);
   }
+  if (s.warning) parts.push(`${s.warning} check${s.warning === 1 ? ' is' : 's are'} partially compliant.`);
 
   const top = report.priorities || [];
   if (top.length) {
@@ -171,6 +175,7 @@ export function buildWorkbook(report, lib) {
   const summary = [
     ['Microsoft 365 security assessment'],
     [],
+    ['Areas assessed', (report.areas || []).map(a => a.label).join(', ')],
     ['Scope', scopeLabel(report) || 'All frameworks'],
     ['Checks in scope', report.scope ? report.scope.inScopeCount : report.results.length],
     ['Checks assessed', report.results.length],
@@ -182,7 +187,7 @@ export function buildWorkbook(report, lib) {
     [],
     ['Pass rate (in scope)', s.passRate === null ? 'n/a' : `${s.passRate}%`],
     ['Pass rate (all checks)', (report.summaryAll || s).passRate === null ? 'n/a' : `${(report.summaryAll || s).passRate}%`],
-    ['Passed', s.pass], ['Failed', s.fail], ['Unknown', s.unknown], ['Not applicable', s.notApplicable],
+    ['Passed', s.pass], ['Failed', s.fail], ['Partially compliant', s.warning || 0], ['Unknown', s.unknown], ['Not applicable', s.notApplicable],
     ['Scored checks', s.scored], ['Total checks', s.total],
     [],
     ['Failed by severity'],
@@ -237,15 +242,15 @@ export function buildWorkbook(report, lib) {
 
   // --- Framework coverage ---
   const coverage = [
-    ['Framework', 'Pass', 'Fail', 'Unknown', 'Scored', 'Pass rate', 'Failing controls'],
+    ['Framework', 'Pass', 'Fail', 'Partial', 'Unknown', 'Scored', 'Pass rate', 'Failing controls'],
     ...report.frameworks.map(f => [
-      f.label, f.pass, f.fail, f.unknown, f.scored,
+      f.label, f.pass, f.fail, f.warning || 0, f.unknown, f.scored,
       f.passRate === null ? 'n/a' : `${f.passRate}%`,
       f.failingControls.join(', ')
     ])
   ];
   const wsCoverage = X.utils.aoa_to_sheet(coverage);
-  wsCoverage['!cols'] = [{ wch: 46 }, 6, 6, 8, 8, 10].map(w => (typeof w === 'number' ? { wch: w } : w)).concat([{ wch: 90 }]);
+  wsCoverage['!cols'] = [{ wch: 46 }, 6, 6, 8, 8, 8, 10].map(w => (typeof w === 'number' ? { wch: w } : w)).concat([{ wch: 90 }]);
   X.utils.book_append_sheet(wb, wsCoverage, 'Framework coverage');
 
   return wb;
@@ -270,6 +275,8 @@ export function buildHtmlReport(report) {
     .filter(k => s.failedBySeverity[k] > 0)
     .map(k => `<span class="pill ${k.toLowerCase()}">${s.failedBySeverity[k]} ${k}</span>`)
     .join(' ') || '<span class="pill none">No failures</span>';
+  const warnPill = s.warning ? ` <span class="pill warning">${s.warning} partial</span>` : '';
+  const areaLine = (report.areas || []).map(a => esc(a.label)).join(', ');
 
   const row = (r) => `
     <tr class="s-${r.status.toLowerCase()}">
@@ -277,8 +284,8 @@ export function buildHtmlReport(report) {
       <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>
       <td><code>${esc(r.id)}</code><div class="nm">${esc(r.name)}</div></td>
       <td>${esc(r.detail)}
-        ${r.status === 'Fail' && r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}
-        ${r.status === 'Fail' && r.remediation?.powershell ? `<div class="rem"><code>${esc(fixText(r.remediation.powershell))}</code></div>` : ''}
+        ${(r.status === 'Fail' || r.status === 'Warning') && r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}
+        ${(r.status === 'Fail' || r.status === 'Warning') && r.remediation?.powershell ? `<div class="rem"><code>${esc(fixText(r.remediation.powershell))}</code></div>` : ''}
       </td>
       <td class="fw">${Object.entries(frameworksOf(r, r.inScope === false ? [] : report.frameworkFilter)).map(([, m]) => esc(m.controlId)).join('<br>')}</td>
     </tr>`;
@@ -306,6 +313,7 @@ export function buildHtmlReport(report) {
       <td>${esc(f.label)}</td>
       <td class="num">${f.pass}</td>
       <td class="num">${f.fail}</td>
+      <td class="num">${f.warning || 0}</td>
       <td class="num">${f.passRate === null ? '—' : f.passRate + '%'}</td>
       <td class="fw">${esc(f.failingControls.slice(0, 12).join(', '))}${f.failingControls.length > 12 ? ` +${f.failingControls.length - 12} more` : ''}</td>
     </tr>`).join('');
@@ -332,14 +340,14 @@ h2{font-size:19px;margin:34px 0 12px;padding-bottom:7px;border-bottom:1px solid 
 .card b{display:block;font-size:28px;line-height:1.1}.card span{font-size:12px;color:var(--muted)}
 .pill{display:inline-block;padding:3px 10px;border-radius:11px;font-size:12px;margin-right:5px}
 .pill.critical{background:#4a0d18;color:#fff}.pill.high{background:#fde2e2;color:#8c1d1d}
-.pill.medium{background:#fff3d6;color:#7a4f00}.pill.low{background:#e6eef7;color:#274b6d}.pill.none{background:#e5f5ee;color:#146c55}
+.pill.medium{background:#fff3d6;color:#7a4f00}.pill.warning{background:#fff3d6;color:#7a4f00}.pill.low{background:#e6eef7;color:#274b6d}.pill.none{background:#e5f5ee;color:#146c55}
 table{width:100%;border-collapse:collapse;background:#fff;font-size:13px;margin-top:10px}
 th{background:#eef1f5;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 th,td{padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
 td.num{text-align:right;font-variant-numeric:tabular-nums}
 .status{font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap}
 .status.pass{background:#e5f5ee;color:#146c55}.status.fail{background:#fde2e2;color:#8c1d1d}
-.status.unknown{background:#eceff3;color:#5a6a7d}.status.notapplicable{background:#f2f2f2;color:#888}
+.status.warning{background:#fff3d6;color:#7a4f00}.status.unknown{background:#eceff3;color:#5a6a7d}.status.notapplicable{background:#f2f2f2;color:#888}
 .sev{font-size:11px;white-space:nowrap}.sev.critical{color:#8c1d1d;font-weight:700}.sev.high{color:#b03030}
 .sev.medium{color:#7a4f00}.sev.low{color:#4a6580}
 code{font:12px ui-monospace,Consolas,monospace;background:#f0f2f5;padding:1px 4px;border-radius:2px}
@@ -357,17 +365,18 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-si
 </style></head><body>
 <header>
   <h1>Microsoft 365 security assessment${scope ? ` <span class="scope">${esc(scope)}</span>` : ''}</h1>
-  <p>${esc(report.tenant?.name || 'Tenant')}${report.tenant?.id && report.tenant.id !== report.tenant.name ? ' &middot; ' + esc(report.tenant.id) : ''} &middot; ${esc(when)}${scope ? ` &middot; Scope: ${esc(scope)}` : ' &middot; All frameworks'}</p>
+  <p>${esc(report.tenant?.name || 'Tenant')}${report.tenant?.id && report.tenant.id !== report.tenant.name ? ' &middot; ' + esc(report.tenant.id) : ''} &middot; ${esc(when)}${areaLine ? ` &middot; ${areaLine}` : ''}${scope ? ` &middot; Scope: ${esc(scope)}` : ' &middot; All frameworks'}</p>
 </header>
 <main>
   <div class="cards">
     <div class="card"><b>${s.passRate === null ? '—' : s.passRate + '%'}</b><span>Pass rate${scope ? ' — ' + esc(scope) : ''}</span></div>
     <div class="card"><b>${s.pass}</b><span>Passed</span></div>
     <div class="card"><b>${s.fail}</b><span>Failed</span></div>
+    <div class="card"><b>${s.warning || 0}</b><span>Partial</span></div>
     <div class="card"><b>${s.unknown}</b><span>Unknown</span></div>
     <div class="card"><b>${s.notApplicable}</b><span>Not applicable</span></div>
   </div>
-  <p style="margin-top:14px">${sevRow}</p>
+  <p style="margin-top:14px">${sevRow}${warnPill}</p>
   <p class="muted">${scope
     ? `Scored against the ${report.scope.inScopeCount} checks that map to ${esc(scope)}; ${s.scored} of those could be scored. Across all ${report.results.length} checks regardless of framework the pass rate is ${sAll.passRate === null ? 'n/a' : sAll.passRate + '%'} (${sAll.pass} of ${sAll.scored}).`
     : `Pass rate counts only the ${s.scored} checks that could be scored.`} Unknown and
@@ -394,7 +403,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-si
   <h2>Compliance framework coverage</h2>
   <p class="muted">One technical condition maps to many frameworks. These figures reflect only the
   ${s.total} checks in this assessment, not each framework in full.</p>
-  <table><thead><tr><th>Framework</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Rate</th><th>Failing controls</th></tr></thead>
+  <table><thead><tr><th>Framework</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Partial</th><th class="num">Rate</th><th>Failing controls</th></tr></thead>
   <tbody>${frameworks}</tbody></table>
 
   ${unavailable}

@@ -6,7 +6,8 @@
 import { CONFIG, isConfigured } from './config.js';
 import * as auth from './auth.js';
 import { missingScopes } from './auth.js';
-import { runAssessment as realRun, REQUIRED_SCOPES } from './engine.js';
+import { runAssessment as realRun, scopesFor, ALL_SCOPES, checksFor } from './engine.js';
+import { AREAS } from './checks.js';
 import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, printReport, executiveSummary, scopeLabel, fixText, esc } from './report.js';
 
 // Injectable for tests: the flow can be driven end to end with sign-in and Graph mocked.
@@ -19,12 +20,13 @@ const deps = {
 };
 
 const el = (id) => document.getElementById(id);
+const requiredScopes = () => scopesFor([...state.areas]);
 const show = (id, on = true) => { const n = el(id); if (n) n.hidden = !on; };
 
 const state = {
   step: 1,
   frameworks: new Set(),
-  scope: new Set(['Identity']),
+  areas: new Set(['identity']),
   tenant: '',
   session: null,
   token: null,
@@ -52,7 +54,7 @@ async function boot() {
 
   if (!isConfigured()) {
     show('setupNotice');
-    el('setupScopes').textContent = REQUIRED_SCOPES.join(', ');
+    el('setupScopes').textContent = ALL_SCOPES.join(', ');
     el('setupRedirect').textContent = CONFIG.redirectUri;
   }
 
@@ -68,7 +70,7 @@ function renderMeta() {
   const c = checkCatalog;
   el('catalogMeta').textContent =
     `${c.counts.implemented} checks · registry ${c.source.registry.dataVersion} · ` +
-    `${Object.keys(c.frameworks).length} frameworks · ${REQUIRED_SCOPES.length} read-only permissions`;
+    `${AREAS.length} areas · ${Object.keys(c.frameworks).length} frameworks · up to ${ALL_SCOPES.length} read-only permissions`;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -92,21 +94,28 @@ function renderFrameworks() {
 // Step 2 — scope
 // ---------------------------------------------------------------------------------------
 function renderScope() {
-  const bySeverity = checkCatalog.counts.bySeverity;
-  el('scopeAreas').innerHTML = `
-    <label class="choice selected">
-      <input type="checkbox" value="Identity" checked>
-      <b>Identity &amp; access</b>
-      <small>${checkCatalog.counts.implemented} checks across Conditional Access, MFA, administrators,
-      consent, guests, passwords and authentication methods.
-      ${bySeverity.Critical + bySeverity.High} rated high or critical.</small>
-    </label>`;
+  const counts = {};
+  for (const a of AREAS) counts[a.id] = checksFor([a.id]).length;
+
+  el('scopeAreas').innerHTML = AREAS.map(a => `
+    <label class="choice${state.areas.has(a.id) ? ' selected' : ''}">
+      <input type="checkbox" value="${esc(a.id)}"${state.areas.has(a.id) ? ' checked' : ''}>
+      <b>${esc(a.label)}</b>
+      <small>${esc(a.summary)} <em>${counts[a.id]} checks · ${scopesFor([a.id]).length} permissions.</em></small>
+    </label>`).join('');
+
+  el('scopeAreas').querySelectorAll('input').forEach(i => i.onchange = () => {
+    i.checked ? state.areas.add(i.value) : state.areas.delete(i.value);
+    // Never let the selection go empty: identity is the floor.
+    if (!state.areas.size) { state.areas.add('identity'); renderScope(); return; }
+    i.closest('.choice').classList.toggle('selected', i.checked);
+    renderPermissions();
+    updateSummary();
+  });
 
   el('scopeSoon').innerHTML = [
-    ['Exchange &amp; email security', 'Mail flow, anti-phishing, SPF/DKIM/DMARC.'],
-    ['Intune &amp; devices', 'Compliance policies and configuration profiles.'],
-    ['SharePoint, Teams &amp; Forms', 'External sharing and collaboration controls.'],
-    ['Defender &amp; Purview', 'Secure Score, DLP and retention.']
+    ['Exchange &amp; email security', 'Mail flow, anti-phishing, SPF/DKIM/DMARC. Not reachable through Microsoft Graph.'],
+    ['Defender &amp; Purview', 'Defender for Office policies, DLP and retention. Not reachable through Microsoft Graph.']
   ].map(([t, d]) => `<p class="soon-item"><b>${t}</b> — ${d}</p>`).join('');
 }
 
@@ -120,13 +129,20 @@ function renderPermissions() {
     'RoleManagement.Read.Directory': 'Who holds Global Administrator and other privileged roles',
     'User.Read.All': 'User and guest account counts',
     'Domain.Read.All': 'Verified domains and password expiry configuration',
-    'AuditLog.Read.All': 'MFA registration report'
+    'AuditLog.Read.All': 'MFA registration report',
+    'SharePointTenantSettings.Read.All': 'SharePoint and OneDrive sharing, sync and authentication settings',
+    'TeamSettings.Read.All': 'Teams external access and meeting policy',
+    'TeamworkAppSettings.Read.All': 'Teams app consent settings',
+    'OrgSettings-Forms.Read.All': 'Microsoft Forms external sharing and phishing protection settings',
+    'DeviceManagementConfiguration.Read.All': 'Intune compliance policies and configuration profiles',
+    'DeviceManagementServiceConfig.Read.All': 'Intune enrolment restrictions and Autopilot profiles',
+    'DeviceManagementManagedDevices.Read.All': 'Enrolled device counts and categories'
   };
-  el('permissions').innerHTML = REQUIRED_SCOPES.map(s => `
+  el('permissions').innerHTML = requiredScopes().map(s => `
     <tr><td><code>${esc(s)}</code></td><td>Delegated</td>
     <td>${esc(why[s] || '')}</td>
     <td><span class="read-only">Read-only</span></td></tr>`).join('');
-  el('scopeCount').textContent = REQUIRED_SCOPES.length;
+  el('scopeCount').textContent = requiredScopes().length;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -149,10 +165,11 @@ function goto(n) {
 
 function updateSummary() {
   const n = state.frameworks.size;
+  const areaLabels = AREAS.filter(a => state.areas.has(a.id)).map(a => a.label);
   el('planSummary').innerHTML =
-    `<b>${checkCatalog.counts.implemented}</b> checks · ` +
+    `<b>${checksFor([...state.areas]).length}</b> checks across <b>${areaLabels.join(', ')}</b> · ` +
     `<b>${n || Object.keys(checkCatalog.frameworks).length}</b> framework${n === 1 ? '' : 's'}` +
-    `${n ? '' : ' (all)'} · <b>${REQUIRED_SCOPES.length}</b> read-only permissions`;
+    `${n ? '' : ' (all)'} · <b>${requiredScopes().length}</b> read-only permissions`;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -181,12 +198,12 @@ async function doSignIn() {
   state.tenant = tenant;
   busy(true, 'Waiting for the Microsoft sign-in window…');
   try {
-    state.session = await deps.signIn(REQUIRED_SCOPES, tenant);
-    const t = await deps.getToken(REQUIRED_SCOPES);
+    state.session = await deps.signIn(requiredScopes(), tenant);
+    const t = await deps.getToken(requiredScopes());
     state.token = t.token;
     state.granted = t.grantedScopes;
 
-    const missing = missingScopes(REQUIRED_SCOPES, state.granted);
+    const missing = missingScopes(requiredScopes(), state.granted);
     el('signedInAs').textContent = state.session.username || state.session.name || 'signed in';
     show('signedInRow');
 
@@ -212,13 +229,13 @@ async function doSignIn() {
 async function doConsent() {
   busy(true, 'Waiting for the administrator consent window…');
   try {
-    const outcome = await deps.requestAdminConsent(state.tenant, REQUIRED_SCOPES);
+    const outcome = await deps.requestAdminConsent(state.tenant, requiredScopes());
     if (outcome.completed) {
       setStatus('Consent granted. Re-acquiring a token with the new permissions…', 'info');
-      const t = await deps.getToken(REQUIRED_SCOPES);
+      const t = await deps.getToken(requiredScopes());
       state.token = t.token;
       state.granted = t.grantedScopes;
-      const missing = missingScopes(REQUIRED_SCOPES, state.granted);
+      const missing = missingScopes(requiredScopes(), state.granted);
       if (missing.length) {
         setStatus(`Consent recorded, but these are still missing: ${missing.map(m => `<code>${esc(m)}</code>`).join(', ')}.`, 'warn');
       } else {
@@ -244,7 +261,7 @@ async function doRun() {
   show('progressWrap');
   try {
     // Refresh the token so a long-running planning session cannot hit an expired one.
-    const t = await deps.getToken(REQUIRED_SCOPES);
+    const t = await deps.getToken(requiredScopes());
     state.token = t.token;
 
     state.report = await deps.runAssessment({
@@ -252,6 +269,7 @@ async function doRun() {
       catalog: checkCatalog,
       tenant: { name: state.tenant, id: state.session?.tenantId },
       frameworks: [...state.frameworks],
+      areas: [...state.areas],
       onProgress: ({ phase, current, total, label }) => {
         const p = Math.round((current / total) * 100);
         el('progressBar').style.width = `${p}%`;
@@ -280,6 +298,7 @@ function renderResults(report) {
     [s.passRate === null ? '—' : s.passRate + '%', 'Pass rate'],
     [s.pass, 'Passed'],
     [s.fail, 'Failed'],
+    [s.warning, 'Warning'],
     [s.unknown, 'Unknown'],
     [s.notApplicable, 'N/A']
   ].map(([v, l]) => `<div class="fact"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
@@ -287,7 +306,8 @@ function renderResults(report) {
   const sev = ['Critical', 'High', 'Medium', 'Low']
     .filter(k => s.failedBySeverity[k] > 0)
     .map(k => `<span class="pill ${k.toLowerCase()}">${s.failedBySeverity[k]} ${k}</span>`).join(' ');
-  el('sevRow').innerHTML = sev || '<span class="pill none">No failed checks</span>';
+  el('sevRow').innerHTML = (sev || '<span class="pill none">No failed checks</span>') +
+    (s.warning ? ` <span class="pill warning">${s.warning} partial</span>` : '');
 
   el('execSummary').textContent = executiveSummary(report);
 
@@ -326,7 +346,7 @@ function renderResults(report) {
     el('otherTitle').textContent = `Other findings — not mapped to ${scope}`;
     el('otherNote').textContent =
       `${others.length} check${others.length === 1 ? '' : 's'} were assessed but do not map to the selected framework${report.scope.frameworks.length === 1 ? '' : 's'} ` +
-      `(${others.filter(r => r.status === 'Fail').length} failed). They are excluded from the score above and shown here so nothing is hidden.`;
+      `(${others.filter(r => r.status === 'Fail' || r.status === 'Warning').length} failed or partial). They are excluded from the score above and shown here so nothing is hidden.`;
     el('otherRows').innerHTML = others.map(row).join('');
     show('otherWrap');
   } else {
@@ -335,6 +355,7 @@ function renderResults(report) {
 
   el('frameworkRows').innerHTML = report.frameworks.map(f => `
     <tr><td>${esc(f.label)}</td><td class="num">${f.pass}</td><td class="num">${f.fail}</td>
+    <td class="num">${f.warning || 0}</td>
     <td class="num">${f.passRate === null ? '—' : f.passRate + '%'}</td></tr>`).join('');
 
   if (report.unavailable.length) {
@@ -347,6 +368,7 @@ function renderResults(report) {
 
   el('runMeta').textContent =
     `${state.tenant} · ${new Date(report.started).toLocaleString()} · ${(report.durationMs / 1000).toFixed(1)}s · ` +
+    `${(report.areas || []).map(a => a.label).join(', ')} · ` +
     (scope ? `Scope: ${scope}` : 'All frameworks');
 }
 

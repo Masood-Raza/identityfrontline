@@ -8,7 +8,23 @@
 // depending on it reports Unknown with the reason. Unknown and NotApplicable are excluded
 // from the pass rate rather than counted as failures, so a partial run is still honest.
 
-import { CHECKS, SOURCES, unknown } from './checks.js';
+import { CHECKS, SOURCES, AREAS, unknown } from './checks.js';
+
+// Which checks run for a set of selected areas. Empty selection means identity only.
+export function checksFor(areas) {
+  const set = new Set(areas && areas.length ? areas : ['identity']);
+  return CHECKS.filter(c => set.has(c.area));
+}
+
+// A need written as '?name' is optional: it is fetched, but its absence does not make the
+// check Unknown. Used where a secondary source merely adds evidence.
+const needName = (n) => n.startsWith('?') ? n.slice(1) : n;
+const isRequired = (n) => !n.startsWith('?');
+
+export function scopesFor(areas) {
+  const needs = new Set(checksFor(areas).flatMap(c => c.needs.map(needName)));
+  return [...new Set([...needs].flatMap(n => SOURCES[n].scopes))].sort();
+}
 
 const GRAPH = 'https://graph.microsoft.com/v1.0';
 const ROLE_GLOBAL_ADMIN = '62e90394-69f5-4237-9190-012177145e10';
@@ -121,14 +137,14 @@ export async function collect(token, sourceNames, onProgress = () => {}) {
 // ---------------------------------------------------------------------------------------
 // Evaluation
 // ---------------------------------------------------------------------------------------
-export function evaluate(data, failures, catalog) {
+export function evaluate(data, failures, catalog, checks = CHECKS) {
   const meta = new Map(catalog.checks.map(c => [c.id, c]));
 
-  return CHECKS.map(check => {
+  return checks.map(check => {
     const info = meta.get(check.id) || { id: check.id, name: check.id, severity: 'Unknown', frameworks: {} };
 
-    // A check whose data never arrived is Unknown, never Fail.
-    const missing = check.needs.filter(n => data[n] === null || data[n] === undefined);
+    // A check whose required data never arrived is Unknown, never Fail.
+    const missing = check.needs.filter(isRequired).filter(n => data[n] === null || data[n] === undefined);
     let verdict;
     if (missing.length) {
       const why = missing.map(n => failures[n]?.reason || 'not collected');
@@ -144,6 +160,7 @@ export function evaluate(data, failures, catalog) {
 
     return {
       id: check.id,
+      area: check.area,
       name: info.name,
       category: info.category,
       severity: info.severity,
@@ -164,7 +181,9 @@ export function summarise(results) {
   const by = s => results.filter(r => r.status === s).length;
   const pass = by('Pass');
   const fail = by('Fail');
-  const scored = pass + fail;
+  const warning = by('Warning');
+  // Warning is partial compliance: it is scored, and it does not count as a pass.
+  const scored = pass + fail + warning;
 
   const failedBySeverity = {};
   for (const s of ['Critical', 'High', 'Medium', 'Low']) {
@@ -175,6 +194,7 @@ export function summarise(results) {
     total: results.length,
     pass,
     fail,
+    warning,
     unknown: by('Unknown'),
     notApplicable: by('NotApplicable'),
     scored,
@@ -197,8 +217,9 @@ const SEV_RANK = { Critical: 0, High: 1, Medium: 2, Low: 3 };
 const hasFix = r => (r.remediation?.portal || r.remediation?.powershell) ? 1 : 0;
 export function prioritise(results, limit = 5) {
   return results
-    .filter(r => r.status === 'Fail')
+    .filter(r => r.status === 'Fail' || r.status === 'Warning')
     .sort((a, b) =>
+      (a.status === 'Warning') - (b.status === 'Warning') ||
       (SEV_RANK[a.severity] ?? 9) - (SEV_RANK[b.severity] ?? 9) ||
       hasFix(b) - hasFix(a) ||
       String(a.category).localeCompare(String(b.category)) ||
@@ -210,9 +231,10 @@ export function frameworkRollup(results, filter) {
   const rollup = {};
   for (const r of results) {
     for (const [key, m] of Object.entries(frameworksOf(r, filter))) {
-      const e = rollup[key] || (rollup[key] = { label: m.label, pass: 0, fail: 0, unknown: 0, controls: new Set() });
+      const e = rollup[key] || (rollup[key] = { label: m.label, pass: 0, fail: 0, warning: 0, unknown: 0, controls: new Set() });
       if (r.status === 'Pass') e.pass++;
       else if (r.status === 'Fail') { e.fail++; String(m.controlId).split(';').forEach(c => e.controls.add(c.trim())); }
+      else if (r.status === 'Warning') { e.warning++; String(m.controlId).split(';').forEach(c => e.controls.add(c.trim())); }
       else if (r.status === 'Unknown') e.unknown++;
     }
   }
@@ -222,9 +244,10 @@ export function frameworkRollup(results, filter) {
       label: v.label,
       pass: v.pass,
       fail: v.fail,
+      warning: v.warning,
       unknown: v.unknown,
-      scored: v.pass + v.fail,
-      passRate: (v.pass + v.fail) ? Math.round((v.pass / (v.pass + v.fail)) * 100) : null,
+      scored: v.pass + v.fail + v.warning,
+      passRate: (v.pass + v.fail + v.warning) ? Math.round((v.pass / (v.pass + v.fail + v.warning)) * 100) : null,
       failingControls: [...v.controls].sort()
     }))
     .sort((a, b) => (a.passRate ?? 101) - (b.passRate ?? 101));
@@ -233,15 +256,16 @@ export function frameworkRollup(results, filter) {
 // ---------------------------------------------------------------------------------------
 // Orchestration
 // ---------------------------------------------------------------------------------------
-export async function runAssessment({ token, catalog, tenant, frameworks = [], onProgress = () => {} }) {
-  const needed = [...new Set(CHECKS.flatMap(c => c.needs))];
+export async function runAssessment({ token, catalog, tenant, frameworks = [], areas = ['identity'], onProgress = () => {} }) {
+  const checks = checksFor(areas);
+  const needed = [...new Set(checks.flatMap(c => c.needs.map(needName)))];
   const started = new Date();
 
   const { data, failures } = await collect(token, needed, onProgress);
 
-  onProgress({ phase: 'evaluate', current: 0, total: CHECKS.length, label: 'Evaluating checks' });
-  const results = evaluate(data, failures, catalog);
-  onProgress({ phase: 'evaluate', current: CHECKS.length, total: CHECKS.length, label: 'Evaluating checks' });
+  onProgress({ phase: 'evaluate', current: 0, total: checks.length, label: 'Evaluating checks' });
+  const results = evaluate(data, failures, catalog, checks);
+  onProgress({ phase: 'evaluate', current: checks.length, total: checks.length, label: 'Evaluating checks' });
 
   // Framework selection defines the SCOPE of the report. Every check is still assessed, but
   // the headline score, the priorities and the primary findings cover only the checks that
@@ -260,6 +284,7 @@ export async function runAssessment({ token, catalog, tenant, frameworks = [], o
 
   return {
     tenant,
+    areas: [...new Set(areas && areas.length ? areas : ['identity'])].map(id => ({ id, label: AREAS.find(a => a.id === id)?.label || id })),
     started: started.toISOString(),
     finished: new Date().toISOString(),
     durationMs: Date.now() - started.getTime(),
@@ -279,6 +304,7 @@ export async function runAssessment({ token, catalog, tenant, frameworks = [], o
   };
 }
 
-export const REQUIRED_SCOPES = [...new Set(
-  [...new Set(CHECKS.flatMap(c => c.needs))].flatMap(n => SOURCES[n].scopes)
-)].sort();
+// Every scope any area could ask for: what the app registration must be configured with.
+export const ALL_SCOPES = scopesFor(AREAS.map(a => a.id));
+// Backwards-compatible default: identity only.
+export const REQUIRED_SCOPES = scopesFor(['identity']);
