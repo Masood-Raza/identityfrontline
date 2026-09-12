@@ -19,11 +19,9 @@ export const warn = (detail) => ({ status: 'Warning', detail });
 // Assessment areas. Each check belongs to exactly one; the user picks which areas to run and
 // only the permissions those areas need are requested.
 export const AREAS = [
-  { id: 'identity',   label: 'Identity & access',     summary: 'Conditional Access, MFA, administrators, consent, guests, passwords and authentication methods.' },
-  { id: 'sharepoint', label: 'SharePoint & OneDrive', summary: 'External sharing, link defaults, guest expiry, sync restrictions and legacy authentication.' },
-  { id: 'teams',      label: 'Microsoft Teams',       summary: 'External and consumer access, meeting lobby, presenters, recording and third-party storage.' },
-  { id: 'forms',      label: 'Microsoft Forms',       summary: 'External responses and collaboration, phishing scanning and respondent identity.' },
-  { id: 'intune',     label: 'Intune & devices',      summary: 'Enrolment restrictions, compliance thresholds, encryption, removable media, VPN and Wi-Fi profiles.' }
+  { id: 'identity',      label: 'Identity & access', summary: 'Conditional Access, MFA, administrators, consent, guests, passwords and authentication methods.' },
+  { id: 'collaboration', label: 'Collaboration',     summary: 'SharePoint and OneDrive sharing, sync and legacy authentication; Teams app consent; Microsoft Forms external access and phishing protection.' },
+  { id: 'intune',        label: 'Intune & devices',  summary: 'Enrolment restrictions, compliance thresholds, encryption, removable media, VPN and Wi-Fi profiles.' }
 ];
 
 const SPO_SHARING = {
@@ -142,33 +140,13 @@ export const SOURCES = {
     scopes: ['SharePointTenantSettings.Read.All'],
     label: 'SharePoint tenant settings'
   },
-  spoSettingsBeta: {
-    url: 'https://graph.microsoft.com/beta/admin/sharepoint/settings',
-    scopes: ['SharePointTenantSettings.Read.All'],
-    optional: true,
-    label: 'SharePoint tenant settings (extended)'
-  },
-  idleTimeoutPolicies: {
-    url: '/policies/activityBasedTimeoutPolicies',
-    scopes: ['Policy.Read.All'],
-    collection: true,
-    label: 'Idle session timeout policies'
-  },
   // ---- Teams ----
+  // Meeting and external-access policies have no Graph endpoint (they need Teams PowerShell);
+  // only the tenant-wide app settings are readable, and the consent flag lives on beta.
   teamsAppSettings: {
-    url: '/teamwork/teamsAppSettings',
+    url: 'https://graph.microsoft.com/beta/teamwork/teamsAppSettings',
     scopes: ['TeamworkAppSettings.Read.All'],
     label: 'Teams app settings'
-  },
-  teamsClientConfig: {
-    url: 'https://graph.microsoft.com/beta/teamwork/teamsClientConfiguration',
-    scopes: ['TeamSettings.Read.All'],
-    label: 'Teams client configuration'
-  },
-  teamsMeetingPolicy: {
-    url: 'https://graph.microsoft.com/beta/teamwork/teamsMeetingPolicy',
-    scopes: ['TeamSettings.Read.All'],
-    label: 'Teams meeting policy'
   },
   // ---- Forms ----
   formsSettings: {
@@ -755,7 +733,7 @@ export const CHECKS = [
   // =====================================================================================
   {
     id: 'SPO-SHARING-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.sharingCapability;
@@ -769,7 +747,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-SHARING-002',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isResharingByExternalUsersEnabled;
@@ -779,7 +757,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-SHARING-003',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.sharingDomainRestrictionMode;
@@ -790,59 +768,8 @@ export const CHECKS = [
     }
   },
   {
-    id: 'SPO-SHARING-004',
-    area: 'sharepoint',
-    needs: ['spoSettings'],
-    evaluate: (d) => {
-      const v = d.spoSettings?.defaultSharingLinkType;
-      if (!v) return unknown('Default sharing link type not returned.');
-      if (v === 'specificPeople') return pass('Default sharing link is "specific people".');
-      if (v === 'anyone') return fail('Default sharing link is "anyone" — links are anonymous unless the sender changes them.');
-      if (v === 'organization') return warn('Default sharing link is "people in the organisation". "Specific people" is recommended.');
-      return unknown(`Unrecognised link type "${v}".`);
-    }
-  },
-  {
-    id: 'SPO-SHARING-005',
-    area: 'sharepoint',
-    needs: ['spoSettings'],
-    evaluate: (d) => {
-      const req = d.spoSettings?.externalUserExpirationRequired;
-      const days = d.spoSettings?.externalUserExpireInDays;
-      if (req === undefined || req === null) return unknown('Guest expiration setting not returned.');
-      if (!req) return fail('Guest access to sites and OneDrive never expires.');
-      return days <= 30 ? pass(`Guest access expires after ${days} days.`)
-                        : warn(`Guest access expires after ${days} days; 30 or fewer is recommended.`);
-    }
-  },
-  {
-    id: 'SPO-SHARING-006',
-    area: 'sharepoint',
-    needs: ['spoSettings'],
-    evaluate: (d) => {
-      const req = d.spoSettings?.emailAttestationRequired;
-      const days = d.spoSettings?.emailAttestationReAuthDays;
-      if (req === undefined || req === null) return unknown('Verification-code reauthentication setting not returned.');
-      if (!req) return fail('Guests using verification codes are never asked to reauthenticate.');
-      return days <= 30 ? pass(`Verification-code guests must reauthenticate every ${days} days.`)
-                        : warn(`Verification-code reauthentication is every ${days} days; 30 or fewer is recommended.`);
-    }
-  },
-  {
-    id: 'SPO-SHARING-007',
-    area: 'sharepoint',
-    needs: ['spoSettings'],
-    evaluate: (d) => {
-      const v = d.spoSettings?.defaultLinkPermission;
-      if (!v) return unknown('Default link permission not returned.');
-      if (v === 'view') return pass('Default sharing link permission is view-only.');
-      if (v === 'edit') return warn('Default sharing link permission is edit.');
-      return unknown(`Unrecognised link permission "${v}".`);
-    }
-  },
-  {
     id: 'SPO-SYNC-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isUnmanagedSyncAppForTenantRestricted;
@@ -852,7 +779,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-ACCESS-002',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isUnmanagedSyncAppForTenantRestricted;
@@ -862,7 +789,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-SYNC-002',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isMacSyncAppEnabled;
@@ -872,7 +799,7 @@ export const CHECKS = [
   },
   {
     id: 'SPO-LOOP-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isLoopEnabled;
@@ -882,29 +809,22 @@ export const CHECKS = [
     }
   },
   {
-    id: 'SPO-LOOP-002',
-    area: 'sharepoint',
+    id: 'SPO-SESSION-001',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
-      const v = d.spoSettings?.oneDriveLoopSharingCapability;
-      if (!v) return unknown('OneDrive Loop sharing capability not returned.');
-      if (v === 'disabled' || v === 'existingExternalUserSharingOnly') return pass(`Loop sharing from OneDrive: ${SPO_SHARING[v] || v}.`);
-      return warn(`Loop sharing from OneDrive: ${SPO_SHARING[v] || v}. Restrict to existing guests or disable.`);
-    }
-  },
-  {
-    id: 'SPO-SESSION-001',
-    area: 'sharepoint',
-    needs: ['idleTimeoutPolicies'],
-    evaluate: (d) => {
-      const n = (d.idleTimeoutPolicies || []).length;
-      return n > 0 ? pass(`${n} idle session timeout ${n === 1 ? 'policy is' : 'policies are'} configured.`)
-                   : warn('No idle session timeout policy is configured for unmanaged devices.');
+      const i = d.spoSettings?.idleSessionSignOut;
+      if (!i || i.isEnabled === undefined || i.isEnabled === null) return unknown('Idle session sign-out setting not returned.');
+      if (!i.isEnabled) return fail('Idle session sign-out is disabled, so sessions on unmanaged devices never time out.');
+      const hours = (i.signOutAfterInSeconds || 0) / 3600;
+      return hours > 0 && hours <= 3
+        ? pass(`Idle sessions are signed out after ${hours % 1 ? hours.toFixed(1) : hours} hour${hours === 1 ? '' : 's'}.`)
+        : warn(`Idle session sign-out is enabled but set to ${hours % 1 ? hours.toFixed(1) : hours} hours; 3 or fewer is recommended.`);
     }
   },
   {
     id: 'SPO-AUTH-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['spoSettings'],
     evaluate: (d) => {
       const v = d.spoSettings?.isLegacyAuthProtocolsEnabled;
@@ -914,41 +834,8 @@ export const CHECKS = [
     }
   },
   {
-    id: 'SPO-B2B-001',
-    area: 'sharepoint',
-    needs: ['spoSettingsBeta'],
-    evaluate: (d) => {
-      const v = d.spoSettingsBeta?.isB2BIntegrationEnabled;
-      if (v === undefined || v === null) return unknown('B2B integration setting not returned.');
-      return v ? pass('SharePoint and OneDrive use Entra B2B for external users.')
-               : fail('Entra B2B integration is off, so external users are not governed by Entra guest policies.');
-    }
-  },
-  {
-    id: 'SPO-OD-001',
-    area: 'sharepoint',
-    needs: ['spoSettingsBeta'],
-    evaluate: (d) => {
-      const v = d.spoSettingsBeta?.oneDriveSharingCapability;
-      if (!v) return unknown('OneDrive sharing capability not returned.');
-      if (v === 'disabled' || v === 'existingExternalUserSharingOnly') return pass(`OneDrive external sharing: ${SPO_SHARING[v] || v}.`);
-      if (v === 'externalUserSharingOnly') return warn(`OneDrive external sharing: ${SPO_SHARING[v] || v}.`);
-      return fail(`OneDrive external sharing: ${SPO_SHARING[v] || v}. Anonymous links are permitted from personal storage.`);
-    }
-  },
-  {
-    id: 'SPO-MALWARE-002',
-    area: 'sharepoint',
-    needs: ['spoSettingsBeta'],
-    evaluate: (d) => {
-      const v = d.spoSettingsBeta?.disallowInfectedFileDownload;
-      if (v === undefined || v === null) return unknown('Infected file download setting not returned.');
-      return v ? pass('Files detected as malware cannot be downloaded.') : fail('Users can still download files flagged as malware.');
-    }
-  },
-  {
     id: 'SPO-ACCESS-001',
-    area: 'sharepoint',
+    area: 'collaboration',
     needs: ['caPolicies'],
     evaluate: (d) => {
       const hit = enabledPolicies(d).find(p => {
@@ -965,7 +852,7 @@ export const CHECKS = [
   // =====================================================================================
   {
     id: 'TEAMS-APPS-001',
-    area: 'teams',
+    area: 'collaboration',
     needs: ['teamsAppSettings'],
     evaluate: (d) => {
       const v = d.teamsAppSettings?.isChatResourceSpecificConsentEnabled;
@@ -974,184 +861,40 @@ export const CHECKS = [
                : pass('Chat resource-specific consent is disabled.');
     }
   },
-  {
-    id: 'TEAMS-EXTACCESS-001',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => boolFlag(d.teamsClientConfig, 'allowTeamsConsumer', false,
-      'Communication with personal (unmanaged) Teams accounts is disabled.',
-      'Users can communicate with personal Teams accounts, which are outside any organisational control.')
-  },
-  {
-    id: 'TEAMS-EXTACCESS-002',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => boolFlag(d.teamsClientConfig, 'allowTeamsConsumerInbound', false,
-      'Personal Teams accounts cannot start conversations with your users.',
-      'Personal Teams accounts can initiate conversations with your users — a phishing entry point.')
-  },
-  {
-    id: 'TEAMS-EXTACCESS-003',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => {
-      const c = d.teamsClientConfig;
-      if (!c) return unknown('Teams client configuration not returned.');
-      const fed = c.allowFederatedUsers;
-      const domains = c.allowedDomains || [];
-      if (fed === false) return pass('External (federated) access is disabled.');
-      if (domains.length) return pass(`External access is limited to ${domains.length} allowed domain${domains.length === 1 ? '' : 's'}.`);
-      return fail('External access is open to every domain.');
-    }
-  },
-  {
-    id: 'TEAMS-EXTACCESS-004',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => boolFlag(d.teamsClientConfig, 'allowPublicUsers', false,
-      'Communication with Skype consumer users is disabled.',
-      'Users can communicate with Skype consumer accounts.')
-  },
-  {
-    id: 'TEAMS-CLIENT-001',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => {
-      const c = d.teamsClientConfig;
-      if (!c) return unknown('Teams client configuration not returned.');
-      const on = ['allowDropBox', 'allowBox', 'allowGoogleDrive', 'allowShareFile', 'allowEgnyte']
-        .filter(k => c[k] === true).map(k => k.replace(/^allow/, ''));
-      return on.length ? fail(`Third-party cloud storage is enabled in Teams: ${on.join(', ')}.`)
-                       : pass('No third-party cloud storage providers are enabled in Teams.');
-    }
-  },
-  {
-    id: 'TEAMS-CLIENT-002',
-    area: 'teams',
-    needs: ['teamsClientConfig'],
-    evaluate: (d) => boolFlag(d.teamsClientConfig, 'allowEmailIntoChannel', false,
-      'Email into channels is disabled.',
-      'Users can email content directly into Teams channels, bypassing mail hygiene.')
-  },
-  {
-    id: 'TEAMS-MEETING-001',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowAnonymousUsersToJoinMeeting', false,
-      'Anonymous users cannot join meetings.',
-      'Anonymous users can join meetings.')
-  },
-  {
-    id: 'TEAMS-MEETING-002',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowAnonymousUsersToStartMeeting', false,
-      'Anonymous users cannot start meetings.',
-      'Anonymous users and dial-in callers can start meetings without an organiser present.')
-  },
-  {
-    id: 'TEAMS-MEETING-003',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => {
-      const v = d.teamsMeetingPolicy?.autoAdmittedUsers;
-      if (!v) return unknown('Lobby bypass setting not returned.');
-      const good = ['EveryoneInCompanyExcludingGuests', 'EveryoneInSameAndFederatedCompany', 'OrganizerOnly', 'InvitedUsers'];
-      return good.includes(v) ? pass(`Lobby bypass: ${v}.`) : fail(`Lobby bypass is "${v}", so people outside the organisation skip the lobby.`);
-    }
-  },
-  {
-    id: 'TEAMS-MEETING-004',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowPSTNUsersToBypassLobby', false,
-      'Dial-in callers wait in the lobby.',
-      'Dial-in callers bypass the lobby.')
-  },
-  {
-    id: 'TEAMS-MEETING-005',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => {
-      const v = d.teamsMeetingPolicy?.allowExternalParticipantGiveRequestControl;
-      if (v === undefined || v === null) return unknown('External control setting not returned.');
-      return v ? warn('External participants can give or request control of shared content.')
-               : pass('External participants cannot give or request control.');
-    }
-  },
-  {
-    id: 'TEAMS-MEETING-006',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => {
-      const v = d.teamsMeetingPolicy?.meetingChatEnabledType;
-      if (!v) return unknown('Meeting chat setting not returned.');
-      return v === 'Enabled' ? fail('Meeting chat is enabled for everyone, including anonymous attendees.')
-                             : pass(`Meeting chat: ${v}.`);
-    }
-  },
-  {
-    id: 'TEAMS-MEETING-007',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => {
-      const v = d.teamsMeetingPolicy?.designatedPresenterRoleMode;
-      if (!v) return unknown('Presenter role setting not returned.');
-      return v === 'OrganizerOnlyUserOverride' ? pass('Only organisers and co-organisers present by default.')
-                                                : fail(`Default presenter role is "${v}", so any attendee can present.`);
-    }
-  },
-  {
-    id: 'TEAMS-MEETING-008',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowExternalNonTrustedMeetingChat', false,
-      'Chat with external non-trusted meeting participants is off.',
-      'External non-trusted participants can use meeting chat.')
-  },
-  {
-    id: 'TEAMS-MEETING-009',
-    area: 'teams',
-    needs: ['teamsMeetingPolicy'],
-    evaluate: (d) => boolFlag(d.teamsMeetingPolicy, 'allowCloudRecording', false,
-      'Cloud recording is off by default.',
-      'Cloud recording is on by default.')
-  },
-
   // =====================================================================================
   // Microsoft Forms
   // =====================================================================================
   {
     id: 'FORMS-CONFIG-001',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => boolFlag(d.formsSettings, 'isExternalSendFormEnabled', false,
       'External users cannot respond to forms.', 'Forms can be sent to and answered by external users.')
   },
   {
     id: 'FORMS-CONFIG-002',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => boolFlag(d.formsSettings, 'isExternalShareCollaborationEnabled', false,
       'External users cannot collaborate on forms.', 'External users can be added as form collaborators.')
   },
   {
     id: 'FORMS-CONFIG-003',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => boolFlag(d.formsSettings, 'isExternalShareResultEnabled', false,
       'Form results cannot be shared externally.', 'Form results can be shared with external users.')
   },
   {
     id: 'FORMS-CONFIG-004',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
-    evaluate: (d) => boolFlag(d.formsSettings, 'isPhishingScanEnabled', true,
+    evaluate: (d) => boolFlag(d.formsSettings, 'isInOrgFormsPhishingScanEnabled', true,
       'Phishing protection scanning is enabled for forms.', 'Phishing protection scanning is disabled for forms.')
   },
   {
     id: 'FORMS-CONFIG-005',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => {
       const v = d.formsSettings?.isRecordIdentityByDefaultEnabled;
@@ -1162,13 +905,13 @@ export const CHECKS = [
   },
   {
     id: 'FORMS-CONFIG-006',
-    area: 'forms',
+    area: 'collaboration',
     needs: ['formsSettings'],
     evaluate: (d) => {
-      const v = d.formsSettings?.isBingImageVideoSearchEnabled;
+      const v = d.formsSettings?.isBingImageSearchEnabled;
       if (v === undefined || v === null) return unknown('Bing search setting not returned.');
-      return v ? unknown('Bing image and video search is enabled in Forms. Review against your data-handling policy.')
-               : pass('Bing image and video search is disabled in Forms.');
+      return v ? unknown('Bing image search is enabled in Forms. Review against your data-handling policy.')
+               : pass('Bing image search is disabled in Forms.');
     }
   },
 

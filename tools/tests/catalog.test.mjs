@@ -54,7 +54,7 @@ ok('every source declares scopes', Object.values(SOURCES).every(s => s.scopes?.l
 ok('every source has a user-facing label', Object.values(SOURCES).every(s => s.label));
 ok('scopes are all read-only', REQUIRED_SCOPES.every(s => !/\.(Read)?Write|FullControl|AccessAsUser/i.test(s)), REQUIRED_SCOPES.join(', '));
 ok('identity scope set is the expected six', REQUIRED_SCOPES.length === 6, REQUIRED_SCOPES.join(', '));
-ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'sharepoint', 'teams', 'forms', 'intune'].includes(c.area)));
+ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'collaboration', 'intune'].includes(c.area)));
 
 // ---- the page hard-codes nothing the catalog provides ------------------------------------
 // The versioned labels come from the catalog; prose may still name a framework in passing.

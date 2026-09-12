@@ -90,7 +90,9 @@ export function executiveSummary(report) {
 
   const top = report.priorities || [];
   if (top.length) {
-    const lead = top.slice(0, 3).map(r => r.name.replace(/^Ensure (that )?/i, '').replace(/\.$/, ''));
+    // Keep check names intact: stripping "Ensure" turns "Ensure X is restricted" into a claim
+    // that X is restricted.
+    const lead = top.slice(0, 3).map(r => r.name.replace(/\.$/, ''));
     parts.push(`Address first: ${lead.join('; ')}.`);
   }
 

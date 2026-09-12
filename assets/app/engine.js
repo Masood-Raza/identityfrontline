@@ -32,6 +32,19 @@ const MAX_RETRIES = 4;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// Graph's error strings are written for developers. Translate the ones users actually hit.
+const FRIENDLY = [
+  [/Request not applicable to target tenant/i, 'Intune is not licensed or provisioned in this tenant.'],
+  [/not a B2C tenant and doesn't have premium license/i, 'Requires Entra ID P1 or P2; this tenant has neither.'],
+  [/Resource not found for the segment/i, 'This setting is not exposed by Microsoft Graph.'],
+  [/Insufficient privileges to complete the operation/i, 'The signed-in account or the granted consent does not include this permission.'],
+  [/The tenant for tenant guid .* does not exist/i, 'The tenant was not found.']
+];
+export const friendly = (msg) => {
+  for (const [re, text] of FRIENDLY) if (re.test(msg)) return text;
+  return msg;
+};
+
 class GraphError extends Error {
   constructor(message, status) { super(message); this.status = status; }
 }
@@ -63,7 +76,7 @@ async function graphFetch(token, url, { raw = false } = {}) {
       let detail = `HTTP ${res.status}`;
       try {
         const body = await res.json();
-        if (body?.error?.message) detail = body.error.message;
+        if (body?.error?.message) detail = friendly(body.error.message);
       } catch { /* non-JSON error body */ }
 
       if (res.status === 403 || res.status === 401) {

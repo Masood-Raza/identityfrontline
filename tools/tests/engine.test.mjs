@@ -126,37 +126,37 @@ const { scopesFor, checksFor, ALL_SCOPES } = await import('../../assets/app/engi
 const { AREAS } = await import('../../assets/app/checks.js');
 const ALL = AREAS.map(a => a.id);
 
-ok('five areas defined', ALL.join() === 'identity,sharepoint,teams,forms,intune', ALL.join());
+ok('three areas defined', ALL.join() === 'identity,collaboration,intune', ALL.join());
 ok('identity alone needs six scopes', scopesFor(['identity']).length === 6);
-ok('every area together needs thirteen scopes', ALL_SCOPES.length === 13, ALL_SCOPES.join(', '));
-ok('scopes grow only with the areas selected', scopesFor(['identity', 'forms']).length === 7 && scopesFor(['identity', 'forms']).includes('OrgSettings-Forms.Read.All'));
+ok('every area together needs twelve scopes', ALL_SCOPES.length === 12, ALL_SCOPES.join(', '));
+ok('scopes grow only with the areas selected', scopesFor(['identity', 'collaboration']).length === 9 && scopesFor(['identity', 'collaboration']).includes('OrgSettings-Forms.Read.All'));
+ok('no scope is requested that no check uses', !ALL_SCOPES.includes('TeamSettings.Read.All'));
 ok('no area requests a write scope', !ALL_SCOPES.some(s => /\.(Read)?Write|FullControl/i.test(s)));
 ok('empty area selection falls back to identity', checksFor([]).length === checksFor(['identity']).length);
-ok('89 checks across all areas', checksFor(ALL).length === 89, String(checksFor(ALL).length));
+ok('66 checks across all areas', checksFor(ALL).length === 66, String(checksFor(ALL).length));
 ok('default run is identity only', good.results.length === 37 && good.results.every(r => r.area === 'identity'));
 
 globalThis.fetch = mockFetch(HARDENED);
 const goodAll = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL });
-ok('hardened tenant, all areas: 89 evaluated', goodAll.results.length === 89);
+ok('hardened tenant, all areas: 66 evaluated', goodAll.results.length === 66);
 ok('hardened tenant, all areas: nothing unavailable', goodAll.unavailable.length === 0, goodAll.unavailable.map(u => `${u.source}: ${u.reason}`).join('; '));
 ok('hardened tenant, all areas: no failures or warnings',
   goodAll.summary.fail === 0 && goodAll.summary.warning === 0,
   goodAll.results.filter(r => r.status === 'Fail' || r.status === 'Warning').map(r => `${r.id} (${r.detail})`).join(' | '));
 ok('hardened tenant, all areas: nothing Unknown', goodAll.summary.unknown === 0,
   goodAll.results.filter(r => r.status === 'Unknown').map(r => `${r.id}: ${r.detail}`).join(' | '));
-ok('report names the areas', goodAll.areas.map(a => a.label).join(', ').includes('Microsoft Teams'));
+ok('report names the areas', goodAll.areas.map(a => a.label).join(', ').includes('Collaboration'));
 
 globalThis.fetch = mockFetch(DEFAULTS);
 const badAll2 = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL });
 const bFailAll = new Set(badAll2.results.filter(r => r.status === 'Fail').map(r => r.id));
 const bWarnAll = new Set(badAll2.results.filter(r => r.status === 'Warning').map(r => r.id));
-for (const id of ['SPO-SHARING-001', 'SPO-SHARING-004', 'SPO-AUTH-001', 'SPO-B2B-001', 'SPO-OD-001', 'SPO-MALWARE-002',
-  'TEAMS-EXTACCESS-001', 'TEAMS-EXTACCESS-003', 'TEAMS-CLIENT-001', 'TEAMS-MEETING-001', 'TEAMS-MEETING-003', 'TEAMS-MEETING-007',
+for (const id of ['SPO-SHARING-001', 'SPO-AUTH-001',
   'FORMS-CONFIG-001', 'FORMS-CONFIG-004',
   'INTUNE-ENROLL-001', 'INTUNE-AUTODISC-001', 'INTUNE-INVENTORY-001', 'INTUNE-MOBILEENCRYPT-001', 'INTUNE-FIPS-001', 'INTUNE-VPNCONFIG-001', 'INTUNE-WIFI-001']) {
   ok(`default tenant flags ${id}`, bFailAll.has(id));
 }
-for (const id of ['SPO-SHARING-002', 'SPO-SHARING-003', 'SPO-SHARING-005', 'SPO-SHARING-007', 'SPO-SYNC-001', 'SPO-SESSION-001', 'TEAMS-MEETING-005', 'INTUNE-COMPLIANCE-001']) {
+for (const id of ['SPO-SHARING-002', 'SPO-SHARING-003', 'SPO-SYNC-001', 'SPO-SESSION-001', 'INTUNE-COMPLIANCE-001']) {
   ok(`default tenant warns on ${id}`, bWarnAll.has(id), badAll2.results.find(r => r.id === id)?.status);
 }
 ok('a profile that exists but is unassigned does not count',
@@ -175,10 +175,17 @@ ok('optional source denied: dependent check still evaluates', noAp.results.find(
 ok('optional source denied: still reported as unavailable', noAp.unavailable.some(u => u.source === 'autopilotProfiles'));
 
 // Unlicensed workload: the whole area degrades to Unknown, never Fail.
-globalThis.fetch = mockFetch(HARDENED, { deny: ['/teamwork'] });
-const noTeams = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ['teams'] });
-ok('Teams denied: every Teams check is Unknown', noTeams.results.every(r => r.status === 'Unknown'));
-ok('Teams denied: pass rate is null, not zero', noTeams.summary.passRate === null);
+globalThis.fetch = mockFetch(HARDENED, { deny: ['/deviceManagement'] });
+const noIntune = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ['intune'] });
+ok('Intune denied: every Intune check is Unknown', noIntune.results.every(r => r.status === 'Unknown'));
+ok('Intune denied: pass rate is null, not zero', noIntune.summary.passRate === null);
+
+// Raw Graph errors are translated into something a reader can act on.
+const { friendly } = await import('../../assets/app/engine.js');
+ok('Intune not-licensed error is translated', /not licensed or provisioned/.test(friendly('Request not applicable to target tenant.')));
+ok('premium licence error is translated', /Entra ID P1 or P2/.test(friendly("Access denied. Tenant is not a B2C tenant and doesn't have premium license")));
+ok('missing endpoint error is translated', /not exposed by Microsoft Graph/.test(friendly("Resource not found for the segment 'teamsMeetingPolicy'.")));
+ok('unknown errors pass through unchanged', friendly('Something else entirely') === 'Something else entirely');
 
 // ---- predicate robustness ---------------------------------------------------------------
 const empty = await run({

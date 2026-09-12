@@ -160,7 +160,7 @@ Object.assign(HARDENED, {
     emailAttestationRequired: true, emailAttestationReAuthDays: 15, defaultLinkPermission: 'view',
     isUnmanagedSyncAppForTenantRestricted: true, isMacSyncAppEnabled: false, isLoopEnabled: false,
     oneDriveLoopSharingCapability: 'disabled', isLegacyAuthProtocolsEnabled: false,
-    isB2BIntegrationEnabled: true, oneDriveSharingCapability: 'disabled', disallowInfectedFileDownload: true
+    idleSessionSignOut: { isEnabled: true, warnAfterInSeconds: 600, signOutAfterInSeconds: 3600 }
   },
   '/policies/activityBasedTimeoutPolicies': { value: [{ id: 'idle-1' }] },
   '/teamwork/teamsAppSettings': { isChatResourceSpecificConsentEnabled: false },
@@ -178,7 +178,7 @@ Object.assign(HARDENED, {
   },
   '/admin/forms/settings': {
     isExternalSendFormEnabled: false, isExternalShareCollaborationEnabled: false, isExternalShareResultEnabled: false,
-    isPhishingScanEnabled: true, isRecordIdentityByDefaultEnabled: true, isBingImageVideoSearchEnabled: false
+    isInOrgFormsPhishingScanEnabled: true, isRecordIdentityByDefaultEnabled: true, isBingImageSearchEnabled: false
   },
   '/deviceManagement/settings': { deviceComplianceCheckinThresholdDays: 30 },
   '/deviceManagement/deviceEnrollmentConfigurations': { value: [
@@ -210,7 +210,7 @@ Object.assign(DEFAULTS, {
     emailAttestationRequired: false, defaultLinkPermission: 'edit',
     isUnmanagedSyncAppForTenantRestricted: false, isMacSyncAppEnabled: true, isLoopEnabled: true,
     oneDriveLoopSharingCapability: 'externalUserAndGuestSharing', isLegacyAuthProtocolsEnabled: true,
-    isB2BIntegrationEnabled: false, oneDriveSharingCapability: 'externalUserAndGuestSharing', disallowInfectedFileDownload: false
+    idleSessionSignOut: { isEnabled: true, warnAfterInSeconds: 600, signOutAfterInSeconds: 43200 }
   },
   '/policies/activityBasedTimeoutPolicies': { value: [] },
   '/teamwork/teamsAppSettings': { isChatResourceSpecificConsentEnabled: true },
@@ -228,7 +228,7 @@ Object.assign(DEFAULTS, {
   },
   '/admin/forms/settings': {
     isExternalSendFormEnabled: true, isExternalShareCollaborationEnabled: true, isExternalShareResultEnabled: true,
-    isPhishingScanEnabled: false, isRecordIdentityByDefaultEnabled: false, isBingImageVideoSearchEnabled: true
+    isInOrgFormsPhishingScanEnabled: false, isRecordIdentityByDefaultEnabled: false, isBingImageSearchEnabled: true
   },
   '/deviceManagement/settings': { deviceComplianceCheckinThresholdDays: 90 },
   '/deviceManagement/deviceEnrollmentConfigurations': { value: [] },
