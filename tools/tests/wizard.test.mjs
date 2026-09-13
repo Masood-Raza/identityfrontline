@@ -20,7 +20,7 @@ const tick = () => new Promise(r => setTimeout(r, 0));
 
 // ---- static page assertions ---------------------------------------------------------------
 ok('MSAL is loaded from a pinned version', /msal-browser@\d+\.\d+\.\d+\/lib\/msal-browser\.min\.js/.test(html));
-ok('controller is loaded as a module', html.includes('<script type="module" src="assets/app/main.js">'));
+ok('controller is loaded as a module', html.includes("import('./assets/app/main.js')") && /<script type="module">/.test(html));
 for (const stale of ['downloadBox', 'quickstart', 'sectionScopes', 'manifest.json', 'Invoke-IdentityFrontline', 'Download run plan']) {
   ok(`no trace of the runner flow: "${stale}"`, !html.includes(stale));
 }
@@ -28,6 +28,8 @@ for (const scope of ['Directory.Read.All', 'AuditLog.Read.All', 'Policy.Read.All
   ok(`page does not hard-code ${scope}`, !html.includes(scope));
 }
 ok('page states nothing reaches the site', /No tenant data passes through this website/.test(html));
+ok('a failed module import shows the boot banner instead of a blank wizard', /import\('\.\/assets\/app\/main\.js'\)\.catch/.test(html) && /bootError/.test(html.split("import('./assets/app/main.js')")[1]));
+ok('module entry is loaded through the guarded import only', !/<script type="module" src=/.test(html));
 ok('attribution present', html.includes('M365-Assess') && html.includes('MIT licensed'));
 
 // ---- boot the real controller in jsdom ----------------------------------------------------
@@ -51,10 +53,12 @@ window.document.createElement = (tag) => {
 };
 
 let releaseStamp = 'v1';
+let missingModule = null;
 let reloads = 0;
 const graph = mockFetch(HARDENED);
 globalThis.fetch = async (url, opts) => {
   if (opts?.method === 'HEAD') {
+    if (missingModule && String(url).endsWith(missingModule)) return { ok: false, status: 404 };
     return { ok: true, status: 200, headers: { get: (h) => (h === 'etag' ? releaseStamp : null) } };
   }
   if (String(url).includes('checks.json')) {
@@ -89,7 +93,8 @@ const authMock = {
     return { completed: true };
   },
   signOut: () => {},
-  reload: () => { reloads++; }
+  reload: () => { reloads++; },
+  settleMs: 0
 };
 
 // ---- unconfigured deployment shows setup, never a broken sign-in -------------------------
@@ -295,7 +300,7 @@ ok('sign-in button label reset', $('#btnSignIn').textContent === 'Sign in with M
 globalThis.fetch = (() => {
   const g = mockFetch(DEFAULTS, { deny: ['/reports/authenticationMethods'] });
   return async (url, o) => o?.method === 'HEAD'
-    ? { ok: true, status: 200, headers: { get: (h) => (h === 'etag' ? releaseStamp : null) } }
+    ? (missingModule && String(url).endsWith(missingModule) ? { ok: false, status: 404 } : { ok: true, status: 200, headers: { get: (h) => (h === 'etag' ? releaseStamp : null) } })
     : String(url).includes('checks.json')
     ? { ok: true, status: 200, json: async () => JSON.parse(checksJson) } : g(url, o);
 })();
@@ -340,10 +345,16 @@ ok('forget hides the lists and the button', $('#driftLists').hidden && $('#btnFo
 
 // ---- a tab open across a deploy must not keep running stale code --------------------------
 ok('same release: no reload so far', reloads === 0);
-releaseStamp = 'v2';
-$('#btnRestart').click(); await tick(); await tick();
-ok('start again after a deploy reloads the page instead of restarting the wizard', reloads === 1);
-ok('a stale tab stays on the results step rather than half-restarting', active() === 5);
+// A deploy in flight: the new main.js is up but a module it imports is not there yet.
+releaseStamp = 'v2'; missingModule = 'explore.js';
+$('#btnRestart').click(); for (let i = 0; i < 10; i++) await tick();
+ok('mid-deploy (a module still missing): no reload, the wizard restarts on the current release', reloads === 0 && active() === 1);
+// Deploy complete: every module answers and the stamp holds still.
+missingModule = null;
+$('#next').click(); $('#next').click(); $('#next').click();
+$('#btnRestart').click(); for (let i = 0; i < 10; i++) await tick();
+ok('after a completed deploy, start again reloads the page instead of restarting the wizard', reloads === 1);
+ok('a stale tab stays where it was rather than half-restarting', active() === 4);
 
 console.log(`\n${fail === 0 ? 'all flow checks passed' : fail + ' FAILED'}`);
 process.exit(fail ? 1 : 0);
