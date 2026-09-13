@@ -180,7 +180,40 @@ ok('download names carry tenant and date', downloads.every(d => /contoso-onmicro
 const { buildHtmlReport, buildWorkbook } = await import('../../assets/app/report.js');
 const XLSXlib = (await import('xlsx')).default;
 const rpt = buildHtmlReport(main.getState().report);
-ok('HTML report is self-contained (no scripts, no external URLs)', !/<script|src="http|href="http/.test(rpt.replace(/https:\/\/github\.com\/Galvnyz\/M365-Assess/g, '')));
+const { explorer: explorerFn } = await import('../../assets/app/explore.js');
+ok('HTML report references nothing external', !/src="http|href="http|<link|@import|url\(/.test(rpt.replace(/https:\/\/github\.com\/Galvnyz\/M365-Assess/g, '')));
+const scripts = [...rpt.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+ok('the only script in the report is the embedded explorer, verbatim', scripts.length === 1 && scripts[0].includes(explorerFn.toString()));
+ok('the embedded explorer has no network capability', !/fetch|XMLHttpRequest|import\(|WebSocket|navigator\.sendBeacon/.test(scripts[0]));
+ok('report rows carry filter attributes', /<tr class="s-(pass|fail|warning)" data-status="(pass|fail|warning)" data-sev="[a-z]+" data-area="[a-z]+" data-changed="" data-text="/.test(rpt));
+ok('long control lists fold past eight', /<details class="more"><summary>\+\d+ more<\/summary>/.test(rpt));
+ok('executive summary is short paragraphs, not one block', (rpt.match(/<p class="lead">/g) || []).length >= 4);
+ok('report detail cells carry no whitespace-only lines', !/<td>[^<]*\n\s*\n/.test(rpt));
+
+// The standalone report must filter on its own, with no app around it.
+{
+  const rdom = new JSDOM(rpt, { runScripts: 'dangerously' });
+  const d = rdom.window.document;
+  const rows = () => [...d.querySelectorAll('tbody[data-explore] tr[data-status]')];
+  const visible = () => rows().filter(r => !r.hasAttribute('hidden'));
+  ok('standalone report: explorer toolbar present', !!d.querySelector('.explorer .x-search'));
+  ok('standalone report: chip counts filled in', d.querySelector('.x-chip[data-value="fail"] .x-n').textContent === String(rows().filter(r => r.dataset.status === 'fail').length));
+  ok('standalone report: everything visible by default', visible().length === rows().length && /^All \d+ findings$/.test(d.querySelector('.x-count').textContent));
+  d.querySelector('.x-chip[data-value="critical"]').click();
+  d.querySelector('.x-chip[data-value="high"]').click();
+  ok('standalone report: Critical + High chips show only those severities', visible().length > 0 && visible().every(r => ['critical', 'high'].includes(r.dataset.sev)));
+  d.querySelector('.x-chip[data-value="pass"]').click();
+  ok('standalone report: keys combine with AND, values within a key with OR', visible().every(r => r.dataset.status === 'pass' && ['critical', 'high'].includes(r.dataset.sev)));
+  const q = d.querySelector('.x-search'); q.value = 'entra-admin-001'; q.dispatchEvent(new rdom.window.Event('input'));
+  ok('standalone report: search narrows further and can empty a table', d.querySelectorAll('tr.x-empty').length >= 1);
+  d.querySelector('.x-clear').click();
+  ok('standalone report: clear restores every row and removes empty-state rows', visible().length === rows().length && d.querySelectorAll('tr.x-empty').length === 0);
+  q.value = 'CA-SIGNINRISK'; q.dispatchEvent(new rdom.window.Event('input'));
+  ok('standalone report: search is case-insensitive and matches check IDs', visible().length >= 1 && visible().every(r => r.dataset.text.includes('ca-signinrisk')));
+  q.value = '164.312(a)(2)(ii)'; q.dispatchEvent(new rdom.window.Event('input'));
+  ok('standalone report: a control ID finds the checks that map to it', visible().length >= 1);
+  ok('standalone report: filters hidden when printing', /@media print\{\.explorer\{display:none\}\}/.test(rpt));
+}
 ok('HTML report escapes content', !/<script>alert/.test(rpt));
 ok('HTML report states data never left the browser', /No tenant data was transmitted/.test(rpt));
 
@@ -204,6 +237,22 @@ ok('run metadata names the areas', /Collaboration/.test($('#runMeta').textConten
 ok('remember-this-run is on by default', $('#rememberRun').checked);
 ok('first run: nothing to compare, and it was remembered', /First remembered run/.test($('#driftSummary').textContent) && mem.size === 1);
 ok('first run: no drift badges', $$('#resultRows .drift').length === 0);
+{
+  const rows = () => $$('#resultRows tr[data-status], #otherRows tr[data-status]');
+  const visible = () => rows().filter(r => !r.hasAttribute('hidden'));
+  ok('page: explorer rendered above findings', !!$('#explorer .x-search') && $$('#explorer .x-chip').length >= 9);
+  ok('page: area chips offered for a multi-area run', $$('#explorer .x-chip[data-key="area"]').length === 2);
+  ok('page: no drift row of chips before a comparison exists', $$('#explorer .x-chip[data-key="changed"]').length === 0);
+  $('#explorer .x-chip[data-value="collaboration"]').click();
+  ok('page: area chip narrows to that area', visible().length > 0 && visible().every(r => r.dataset.area === 'collaboration'));
+  ok('page: count reflects the filter', /^\d+ of \d+ findings$/.test($('#explorer .x-count').textContent));
+  $('#explorer .x-clear').click();
+  ok('page: clear restores all rows', visible().length === rows().length);
+  const q = $('#explorer .x-search'); q.value = 'sharing'; q.dispatchEvent(new window.Event('input'));
+  ok('page: search matches names and details', visible().length > 0 && visible().every(r => r.dataset.text.includes('sharing')));
+  q.value = ''; q.dispatchEvent(new window.Event('input'));
+  ok('page: executive summary is several paragraphs', $$('#execSummary p').length >= 3);
+}
 ok('first run: HTML report has no changes section', !/Changes since/.test(buildHtmlReport(main.getState().report)));
 ok('run metadata names the scope', $('#runMeta').textContent.includes('Scope: '));
 ok('executive summary rendered on page', /passed \d+ of \d+ scored checks/.test($('#execSummary').textContent), $('#execSummary').textContent);
@@ -274,6 +323,10 @@ ok('regressions listed', rep2.drift.regressed.length > 10 && $$('#driftRegressed
 ok('nothing fixed on a worse run', rep2.drift.fixed.length === 0 && /None/.test($('#driftFixed').textContent));
 ok('same areas both times: nothing new or dropped', rep2.drift.added.length === 0 && rep2.drift.dropped === 0);
 ok('regressed rows carry a badge', $$('#resultRows .drift.down').length + $$('#otherRows .drift.down').length === rep2.drift.regressed.length);
+ok('page: drift chips appear once a comparison exists', $$('#explorer .x-chip[data-key="changed"]').length === 4);
+$('#explorer .x-chip[data-value="regressed"]').click();
+ok('page: Regressed chip shows exactly the regressed checks', $$('#resultRows tr[data-status]:not([hidden]), #otherRows tr[data-status]:not([hidden])').length === rep2.drift.regressed.length);
+$('#explorer .x-clear').click();
 ok('executive summary mentions the change', /Since the run on/.test($('#execSummary').textContent));
 const rpt2 = buildHtmlReport(rep2);
 ok('HTML report has a changes section', /Changes since/.test(rpt2) && /Regressed/.test(rpt2));
