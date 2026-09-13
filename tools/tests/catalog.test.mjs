@@ -73,6 +73,12 @@ for (const s of REQUIRED_SCOPES) {
 const webConfig = readFileSync(join(root, 'web.config'), 'utf8');
 ok('web.config maps .json for IIS', /fileExtension="\.json" mimeType="application\/json/.test(webConfig));
 ok('web.config maps .js for IIS', /fileExtension="\.js" mimeType="text\/javascript/.test(webConfig));
+// After a deploy every module must come from the same release, so the app, page and catalog are
+// revalidated on each load rather than served from a ten-minute cache.
+for (const path of ['assessments.html', 'assets/app', 'assets/catalog']) {
+  const block = webConfig.split(`<location path="${path}">`)[1]?.split('</location>')[0] || '';
+  ok(`web.config disables client caching for ${path}`, /cacheControlMode="DisableCache"/.test(block));
+}
 
 console.log(`\n${fail === 0 ? 'all catalog checks passed' : fail + ' FAILED'}`);
 process.exit(fail ? 1 : 0);
