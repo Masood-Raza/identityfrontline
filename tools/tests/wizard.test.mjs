@@ -50,8 +50,13 @@ window.document.createElement = (tag) => {
   return n;
 };
 
+let releaseStamp = 'v1';
+let reloads = 0;
 const graph = mockFetch(HARDENED);
 globalThis.fetch = async (url, opts) => {
+  if (opts?.method === 'HEAD') {
+    return { ok: true, status: 200, headers: { get: (h) => (h === 'etag' ? releaseStamp : null) } };
+  }
   if (String(url).includes('checks.json')) {
     return { ok: true, status: 200, json: async () => JSON.parse(checksJson) };
   }
@@ -83,7 +88,8 @@ const authMock = {
     granted = [...granted, 'AuditLog.Read.All', 'SharePointTenantSettings.Read.All', 'TeamworkAppSettings.Read.All', 'OrgSettings-Forms.Read.All'];
     return { completed: true };
   },
-  signOut: () => {}
+  signOut: () => {},
+  reload: () => { reloads++; }
 };
 
 // ---- unconfigured deployment shows setup, never a broken sign-in -------------------------
@@ -239,7 +245,9 @@ ok('sign-in button label reset', $('#btnSignIn').textContent === 'Sign in with M
 // ---- degraded run: a denied source must not break the page ------------------------------
 globalThis.fetch = (() => {
   const g = mockFetch(DEFAULTS, { deny: ['/reports/authenticationMethods'] });
-  return async (url, o) => String(url).includes('checks.json')
+  return async (url, o) => o?.method === 'HEAD'
+    ? { ok: true, status: 200, headers: { get: (h) => (h === 'etag' ? releaseStamp : null) } }
+    : String(url).includes('checks.json')
     ? { ok: true, status: 200, json: async () => JSON.parse(checksJson) } : g(url, o);
 })();
 $('#next').click(); $('#next').click(); $('#next').click();
@@ -276,6 +284,13 @@ ok('two runs remembered for the tenant', history.list(rep2.tenant).length === 2)
 $('#btnForget').click();
 ok('forget clears stored runs and says so', history.list(rep2.tenant).length === 0 && /forgotten/.test($('#driftSummary').textContent));
 ok('forget hides the lists and the button', $('#driftLists').hidden && $('#btnForget').hidden);
+
+// ---- a tab open across a deploy must not keep running stale code --------------------------
+ok('same release: no reload so far', reloads === 0);
+releaseStamp = 'v2';
+$('#btnRestart').click(); await tick(); await tick();
+ok('start again after a deploy reloads the page instead of restarting the wizard', reloads === 1);
+ok('a stale tab stays on the results step rather than half-restarting', active() === 5);
 
 console.log(`\n${fail === 0 ? 'all flow checks passed' : fail + ' FAILED'}`);
 process.exit(fail ? 1 : 0);
