@@ -332,3 +332,30 @@ Object.assign(DEFAULTS, {
   [PIM_GA]: { value: pimRules(false) },
   [PIM_PRA]: { value: pimRules(false) }
 });
+
+// ---- Microsoft security signals ----------------------------------------------------------
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+const PROFILES = { value: [
+  { id: 'AdminMFAV2', title: 'Require MFA for administrative roles', maxScore: 10, controlCategory: 'Identity', implementationCost: 'Low', userImpact: 'Low', actionUrl: 'https://security.microsoft.com/securescore?viewid=actions' },
+  { id: 'MFARegistrationV2', title: 'Ensure all users can complete MFA', maxScore: 9, controlCategory: 'Identity', implementationCost: 'Moderate', userImpact: 'Moderate', actionUrl: '' },
+  { id: 'BlockLegacyAuthentication', title: 'Block legacy authentication', maxScore: 8, controlCategory: 'Identity', implementationCost: 'Low', userImpact: 'Low', actionUrl: '' },
+  { id: 'SafeLinks', title: 'Turn on Safe Links', maxScore: 3, controlCategory: 'Apps', implementationCost: 'Low', userImpact: 'Low', actionUrl: '' }
+] };
+Object.assign(HARDENED, {
+  '/security/secureScores': { value: [{ id: 's1', createdDateTime: daysAgo(1), currentScore: 78, maxScore: 100, controlScores: [
+    { controlName: 'AdminMFAV2', score: 10, controlCategory: 'Identity' }, { controlName: 'MFARegistrationV2', score: 9, controlCategory: 'Identity' },
+    { controlName: 'BlockLegacyAuthentication', score: 8, controlCategory: 'Identity' }, { controlName: 'SafeLinks', score: 0, controlCategory: 'Apps' } ] }] },
+  '/security/secureScoreControlProfiles': PROFILES,
+  '/security/alerts_v2': { value: [] }
+});
+Object.assign(DEFAULTS, {
+  '/security/secureScores': { value: [{ id: 's2', createdDateTime: daysAgo(20), currentScore: 35, maxScore: 100, controlScores: [
+    { controlName: 'AdminMFAV2', score: 0, controlCategory: 'Identity' }, { controlName: 'MFARegistrationV2', score: 2, controlCategory: 'Identity' },
+    { controlName: 'BlockLegacyAuthentication', score: 0, controlCategory: 'Identity' }, { controlName: 'SafeLinks', score: 3, controlCategory: 'Apps' } ] }] },
+  '/security/secureScoreControlProfiles': PROFILES,
+  '/security/alerts_v2': { value: [
+    { id: 'a1', title: 'Suspicious inbox forwarding rule', severity: 'medium', status: 'new', category: 'Exfiltration', createdDateTime: daysAgo(2), serviceSource: 'microsoftDefenderForOffice365' },
+    { id: 'a2', title: 'Atypical travel sign-in', severity: 'high', status: 'inProgress', category: 'InitialAccess', createdDateTime: daysAgo(1), serviceSource: 'microsoftDefenderForIdentity' },
+    { id: 'a3', title: 'Old resolved alert', severity: 'high', status: 'resolved', category: 'Malware', createdDateTime: daysAgo(30), serviceSource: 'microsoftDefenderForEndpoint' }
+  ] }
+});

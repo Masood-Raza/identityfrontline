@@ -39,9 +39,10 @@ Sign-in needs an Entra app registration that customers consent to. It lives in y
    - Intune: `DeviceManagementConfiguration.Read.All`, `DeviceManagementServiceConfig.Read.All`,
      `DeviceManagementManagedDevices.Read.All`
    - Applications & privileged access: `Application.Read.All`, `AccessReview.Read.All`
+   - Microsoft security signals: `SecurityEvents.Read.All`, `SecurityAlert.Read.All`
 
    Only the scopes for the areas a user selects are requested at sign-in (identity alone is
-   six), but the registration must carry all fourteen. Do **not** add application
+   six), but the registration must carry all sixteen. Do **not** add application
    permissions — the app never runs unattended.
 3. Copy the **Application (client) ID** into `assets/app/config.js`.
 4. Recommended: [publisher verification](https://learn.microsoft.com/entra/identity-platform/publisher-verification-overview),
@@ -54,12 +55,13 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
 1. **Frameworks** — pick which to report against; the same findings map to each.
 2. **Scope** — pick areas: identity & access (always on), collaboration (SharePoint, OneDrive,
    Teams app consent, Forms), Intune & devices, and applications & privileged access
-   (enterprise apps, service principals, PIM, access reviews). Each area adds only the permissions it
-   needs. What Graph cannot reach is listed on the page rather than left implied: Exchange,
+   (enterprise apps, service principals, PIM, access reviews), and Microsoft security signals
+   (Secure Score, its top improvement actions, open Defender alerts). Each area adds only the
+   permissions it needs. What Graph cannot reach is listed on the page rather than left implied: Exchange,
    Purview, Teams meeting and external-access policy, and SharePoint link defaults and guest
    expiry.
 3. **Permissions** — the delegated read-only scopes the selected areas need (six for identity
-   alone, fourteen for everything), each with its reason.
+   alone, sixteen for everything), each with its reason.
 4. **Connect & run** — enter tenant, sign in with Microsoft. If a scope is missing, a
    *Grant admin consent* button opens Microsoft's consent page in a popup; the user can also
    run with reduced coverage. Progress is shown per data source.
@@ -69,6 +71,28 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
    control IDs, and filters by status, severity, area and (once a comparison exists) change
    since the last run; the same explorer is embedded in the downloaded report. Download the HTML report, print it to PDF, or export an Excel workbook (summary,
    findings, a check-by-framework compliance matrix, coverage), CSV or JSON.
+
+## Effort, owners and the remediation plan
+
+Every finding carries an **effort** class — quick win (a portal setting), moderate (a person or
+a decision), review with owners (case by case per app), project (policy design, licensing,
+rollout) — and an **owner** — identity, application owners, SharePoint, Teams, Microsoft 365,
+Intune, security operations. Both come from rules on the check ID in `checks.js`; a check may
+override either. The Fix-first list orders by severity, then effort; the summary states how
+many failures are quick wins and what fixing only those would do to the pass rate; the
+findings explorer filters by effort.
+
+The **remediation plan** groups failures and partials by owner in that order, with the portal
+path and PowerShell for each. It appears folded on the results page, inline in the HTML
+report, as a workbook sheet, and as a Markdown download shaped for pasting into tickets.
+Each failing finding also has *Copy as ticket*, which copies that one item as Markdown.
+
+## Microsoft security signals
+
+An optional area reads Microsoft's own posture: Secure Score (two registry checks — freshness
+and level) with the top improvement actions by points available, and open Defender alerts,
+high first. They are shown beside the assessment and in the workbook; alerts are events to
+triage rather than settings to fix, so they are not scored.
 
 ## Baseline and drift
 
@@ -80,7 +104,8 @@ Nothing is transmitted.
 The next run for the same tenant is compared with the most recent remembered one: fixed,
 regressed, still-failing-but-changed, newly assessed, and no longer assessed. The results page
 shows the comparison with badges on affected rows; the HTML report gains a *Changes since*
-section and the workbook a *Changes* sheet. *Forget stored runs for this tenant* clears them.
+section and the workbook a *Changes* sheet. When more than one earlier run is remembered, a
+picker re-diffs against any of them. *Forget stored runs for this tenant* clears them.
 
 Framework selection in step 1 narrows what is *reported* — the coverage table, the mapping
 column, the matrix columns — never what is assessed. Nothing selected means everything.
@@ -165,7 +190,7 @@ Check definitions, severities, remediation and framework mappings derive from
 - **Validated on one tenant.** Predicates are tested against mock Graph payloads that
   follow the documented schemas and have run clean on one real tenant; other tenants and
   licence tiers may still surface shape differences.
-- **102 checks across four areas.** Applications & privileged access has been validated
+- **104 checks across five areas.** Applications & privileged access has been validated
   against mock payloads only. Tier 0/1 permission lists and Microsoft first-party app IDs
   ship as `assets/catalog/app-tiers.json`, generated from the upstream controls.
 - **Previously:** A real-tenant run of the collaboration area found that

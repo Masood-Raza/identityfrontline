@@ -8,7 +8,7 @@
 // depending on it reports Unknown with the reason. Unknown and NotApplicable are excluded
 // from the pass rate rather than counted as failures, so a partial run is still honest.
 
-import { CHECKS, SOURCES, AREAS, unknown } from './checks.js';
+import { CHECKS, SOURCES, AREAS, unknown, effortOf, ownerOf, EFFORT, OWNERS } from './checks.js';
 
 // Which checks run for a set of selected areas. Empty selection means identity only.
 export function checksFor(areas) {
@@ -21,9 +21,17 @@ export function checksFor(areas) {
 const needName = (n) => n.startsWith('?') ? n.slice(1) : n;
 const isRequired = (n) => !n.startsWith('?');
 
+// Everything an area reads: what its checks need, plus sources tagged with the area that feed
+// the report directly (the security signals section) rather than a check.
+export function sourcesFor(areas) {
+  const set = new Set(areas && areas.length ? areas : ['identity']);
+  const needs = checksFor(areas).flatMap(c => c.needs.map(needName));
+  const tagged = Object.entries(SOURCES).filter(([, s]) => s.area && set.has(s.area)).map(([n]) => n);
+  return [...new Set([...needs, ...tagged])];
+}
+
 export function scopesFor(areas) {
-  const needs = new Set(checksFor(areas).flatMap(c => c.needs.map(needName)));
-  return [...new Set([...needs].flatMap(n => SOURCES[n].scopes))].sort();
+  return [...new Set(sourcesFor(areas).flatMap(n => SOURCES[n].scopes))].sort();
 }
 
 const GRAPH = 'https://graph.microsoft.com/v1.0';
@@ -206,7 +214,9 @@ export function evaluate(data, failures, catalog, checks = CHECKS) {
       remediation: info.remediation,
       frameworks: info.frameworks,
       status: verdict.status,
-      detail: verdict.detail
+      detail: verdict.detail,
+      effort: effortOf(check),
+      owner: ownerOf(check)
     };
   });
 }
@@ -227,6 +237,9 @@ export function summarise(results) {
     failedBySeverity[s] = results.filter(r => r.status === 'Fail' && r.severity === s).length;
   }
 
+  // What fixing only the quick wins would do to the score: the cheapest visible progress.
+  const quickWins = results.filter(r => (r.status === 'Fail' || r.status === 'Warning') && r.effort === 'quick').length;
+
   return {
     total: results.length,
     pass,
@@ -237,8 +250,58 @@ export function summarise(results) {
     scored,
     // Unknown and NotApplicable stay out of the denominator, so a partial run is not punished.
     passRate: scored ? Math.round((pass / scored) * 100) : null,
-    failedBySeverity
+    failedBySeverity,
+    quickWins,
+    projectedPassRate: scored ? Math.round(((pass + quickWins) / scored) * 100) : null
   };
+}
+
+// Pass rate per area, for the area cards.
+export function summariseByArea(results, areas) {
+  return (areas || []).map(a => {
+    const s = summarise(results.filter(r => r.area === a.id));
+    return { id: a.id, label: a.label, ...s };
+  });
+}
+
+// Microsoft's own signals, read straight from the collected data rather than through checks.
+export function buildSignals(data) {
+  const latest = (data.secureScores || [])[0];
+  if (!latest && !data.defenderAlerts) return null;
+  let secureScore = null;
+  if (latest) {
+    const profiles = new Map((data.secureScoreProfiles || []).map(p => [p.id, p]));
+    const actions = (latest.controlScores || [])
+      .map(c => {
+        const p = profiles.get(c.controlName) || {};
+        const max = Number(p.maxScore ?? 0);
+        const score = Number(c.score ?? 0);
+        return { name: c.controlName, title: p.title || c.description || c.controlName, category: c.controlCategory || p.controlCategory || '',
+          score, max, gap: Math.max(0, max - score), cost: p.implementationCost || '', impact: p.userImpact || '', url: p.actionUrl || '' };
+      })
+      .filter(a => a.gap > 0.05)
+      .sort((a, b) => b.gap - a.gap || a.title.localeCompare(b.title))
+      .slice(0, 10);
+    const pct = latest.maxScore ? Math.round((latest.currentScore / latest.maxScore) * 100) : null;
+    secureScore = {
+      current: Math.round((latest.currentScore || 0) * 10) / 10, max: latest.maxScore || 0, percent: pct,
+      updated: latest.createdDateTime || null,
+      daysOld: latest.createdDateTime ? Math.floor((Date.now() - Date.parse(latest.createdDateTime)) / 86400000) : null,
+      actions
+    };
+  }
+  let alerts = null;
+  if (Array.isArray(data.defenderAlerts)) {
+    const open = data.defenderAlerts.filter(a => a.status !== 'resolved');
+    const rank = { high: 0, medium: 1, low: 2, informational: 3 };
+    alerts = {
+      open: open.length,
+      high: open.filter(a => a.severity === 'high').length,
+      items: open.sort((a, b) => (rank[a.severity] ?? 9) - (rank[b.severity] ?? 9) || String(b.createdDateTime).localeCompare(String(a.createdDateTime)))
+        .slice(0, 10).map(a => ({ id: a.id, title: a.title, severity: a.severity, status: a.status, category: a.category || '', created: a.createdDateTime || '', source: a.serviceSource || a.detectionSource || '' }))
+    };
+  }
+  return { secureScore, alerts };
 }
 
 // The mappings a result should show under the user's framework selection. Empty = all.
@@ -248,9 +311,11 @@ export function frameworksOf(result, filter) {
   return Object.fromEntries(Object.entries(all).filter(([k]) => filter.includes(k)));
 }
 
-// Failed checks in the order they should be fixed: severity first, then the ones with a
-// concrete remediation path, then by category so related work sits together.
+// Failed checks in the order they should be fixed: severity first, then the cheapest fix
+// within a severity, then the ones with a concrete remediation path, then by category so
+// related work sits together.
 const SEV_RANK = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+const effortRank = (r) => EFFORT[r.effort]?.rank ?? 9;
 const hasFix = r => (r.remediation?.portal || r.remediation?.powershell) ? 1 : 0;
 export function prioritise(results, limit = 5) {
   return results
@@ -258,6 +323,7 @@ export function prioritise(results, limit = 5) {
     .sort((a, b) =>
       (a.status === 'Warning') - (b.status === 'Warning') ||
       (SEV_RANK[a.severity] ?? 9) - (SEV_RANK[b.severity] ?? 9) ||
+      effortRank(a) - effortRank(b) ||
       hasFix(b) - hasFix(a) ||
       String(a.category).localeCompare(String(b.category)) ||
       a.id.localeCompare(b.id))
@@ -295,7 +361,7 @@ export function frameworkRollup(results, filter) {
 // ---------------------------------------------------------------------------------------
 export async function runAssessment({ token, catalog, tenant, frameworks = [], areas = ['identity'], onProgress = () => {} }) {
   const checks = checksFor(areas);
-  const needed = [...new Set(checks.flatMap(c => c.needs.map(needName)))];
+  const needed = sourcesFor(areas);
   const started = new Date();
 
   const { data, failures } = await collect(token, needed, onProgress);
@@ -319,9 +385,12 @@ export async function runAssessment({ token, catalog, tenant, frameworks = [], a
     outOfScopeCount: results.length - inScope.length
   };
 
+  const areaList = [...new Set(areas && areas.length ? areas : ['identity'])].map(id => ({ id, label: AREAS.find(a => a.id === id)?.label || id }));
   return {
     tenant,
-    areas: [...new Set(areas && areas.length ? areas : ['identity'])].map(id => ({ id, label: AREAS.find(a => a.id === id)?.label || id })),
+    areas: areaList,
+    areaSummary: summariseByArea(inScope, areaList),
+    signals: buildSignals(data),
     started: started.toISOString(),
     finished: new Date().toISOString(),
     durationMs: Date.now() - started.getTime(),

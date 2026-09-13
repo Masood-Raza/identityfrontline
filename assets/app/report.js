@@ -5,7 +5,126 @@
 // remediation ticket.
 
 import { frameworksOf } from './engine.js';
+import { EFFORT, OWNERS } from './checks.js';
 import { explorer, rowAttrs, explorerToolbar, EXPLORER_CSS } from './explore.js';
+
+// ---------------------------------------------------------------------------------------
+// Shared building blocks: tickets, the remediation plan, area cards, signals
+// ---------------------------------------------------------------------------------------
+const controlIds = (r, report) =>
+  Object.values(frameworksOf(r, r.inScope === false ? [] : report.frameworkFilter)).map(m => m.controlId);
+
+export const effortLabel = (r) => EFFORT[r.effort]?.label || '';
+export const ownerLabel = (r) => OWNERS[r.owner] || OWNERS.identity;
+
+// Markdown for one finding, shaped for a Jira / ServiceNow / Teams paste.
+export function ticketText(r, report) {
+  const lines = [
+    `### ${r.name}`,
+    '',
+    `- **Check:** ${r.id}`,
+    `- **Severity:** ${r.severity} · **Status:** ${r.status}${r.effort ? ` · **Effort:** ${effortLabel(r)}` : ''}`,
+    `- **Owner:** ${ownerLabel(r)}`,
+    `- **Tenant:** ${report.tenant?.name || 'tenant'} · assessed ${new Date(report.started).toLocaleString()}`,
+    '',
+    `**Finding:** ${r.detail}`
+  ];
+  if (r.rationale) lines.push('', `**Why it matters:** ${r.rationale}`);
+  if (r.remediation?.portal) lines.push('', `**Fix:** ${fixText(r.remediation.portal)}`);
+  if (r.remediation?.powershell) lines.push('', '```powershell', fixText(r.remediation.powershell), '```');
+  const ids = controlIds(r, report);
+  if (ids.length) lines.push('', `**Controls:** ${ids.slice(0, 12).join(', ')}${ids.length > 12 ? ` (+${ids.length - 12} more)` : ''}`);
+  return lines.join('\n');
+}
+
+// Failures and partials grouped by who fixes them, each group ordered as the Fix-first list
+// is: severity, then effort, then a concrete fix path.
+export function remediationPlan(report) {
+  const items = (report.results || []).filter(r => r.inScope !== false && (r.status === 'Fail' || r.status === 'Warning'));
+  const sevRank = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+  const order = (a, b) => (a.status === 'Warning') - (b.status === 'Warning') ||
+    (sevRank[a.severity] ?? 9) - (sevRank[b.severity] ?? 9) ||
+    (EFFORT[a.effort]?.rank ?? 9) - (EFFORT[b.effort]?.rank ?? 9) || a.id.localeCompare(b.id);
+  const groups = {};
+  for (const r of items) (groups[r.owner || 'identity'] = groups[r.owner || 'identity'] || []).push(r);
+  return Object.keys(OWNERS).filter(k => groups[k]).map(k => ({
+    owner: k, label: OWNERS[k], items: groups[k].sort(order),
+    quickWins: groups[k].filter(r => r.effort === 'quick').length
+  }));
+}
+
+export function planMarkdown(report) {
+  const plan = remediationPlan(report);
+  const out = [`# Remediation plan — ${report.tenant?.name || 'tenant'}`, '',
+    `Assessed ${new Date(report.started).toLocaleString()}${scopeLabel(report) ? ` · scope: ${scopeLabel(report)}` : ''}. ` +
+    `${plan.reduce((n, g) => n + g.items.length, 0)} findings across ${plan.length} owner${plan.length === 1 ? '' : 's'}; ` +
+    `${plan.reduce((n, g) => n + g.quickWins, 0)} are quick wins.`, ''];
+  for (const g of plan) {
+    out.push(`## ${g.label} — ${g.items.length} item${g.items.length === 1 ? '' : 's'}${g.quickWins ? ` (${g.quickWins} quick win${g.quickWins === 1 ? '' : 's'})` : ''}`, '');
+    g.items.forEach((r, i) => { out.push(`${i + 1}. ` + ticketText(r, report).replace(/^### /, '').split('\n').join('\n   '), ''); });
+  }
+  out.push('---', 'Generated locally in the browser by Identity Frontline. No tenant data was transmitted.');
+  return out.join('\n');
+}
+
+export function downloadPlanMarkdown(report) {
+  download(`remediation-plan-${stamp(report)}.md`, planMarkdown(report), 'text/markdown;charset=utf-8');
+}
+
+// Area score cards; clickable, they toggle the matching area filter.
+export function areaCardsHtml(report) {
+  const areas = report.areaSummary || [];
+  if (areas.length < 2) return '';
+  return `<div class="area-cards">${areas.map(a => `
+    <button type="button" class="area-card" data-area-card="${esc(a.id)}" title="Show only ${esc(a.label)}">
+      <span>${esc(a.label)}</span><b>${a.passRate === null ? '—' : a.passRate + '%'}</b>
+      <div class="bar"><i style="width:${a.passRate || 0}%"></i></div>
+      <small>${a.pass} passed · ${a.fail} failed${a.warning ? ` · ${a.warning} partial` : ''}${a.unknown ? ` · ${a.unknown} unknown` : ''}</small>
+    </button>`).join('')}</div>`;
+}
+
+export function planHtml(report) {
+  const plan = remediationPlan(report);
+  if (!plan.length) return '';
+  const total = plan.reduce((n, g) => n + g.items.length, 0);
+  const quick = plan.reduce((n, g) => n + g.quickWins, 0);
+  return `
+  <h2>Remediation plan</h2>
+  <p class="muted">${total} finding${total === 1 ? '' : 's'} grouped by who fixes them, in the order to work through: severity first, then the cheapest fix. ${quick} ${quick === 1 ? 'is a quick win' : 'are quick wins'} — portal settings that take minutes.</p>
+  ${plan.map(g => `
+  <h3>${esc(g.label)} <span class="muted">— ${g.items.length} item${g.items.length === 1 ? '' : 's'}${g.quickWins ? `, ${g.quickWins} quick` : ''}</span></h3>
+  <table class="plan"><thead><tr><th>#</th><th>Check</th><th>Severity</th><th>Effort</th><th>What to do</th></tr></thead><tbody>
+  ${g.items.map((r, i) => `<tr><td class="num">${i + 1}</td><td><b>${esc(r.name)}</b><div class="nm"><code>${esc(r.id)}</code> · ${esc(r.status === 'Warning' ? 'Partial' : r.status)}</div></td>
+    <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>
+    <td><span class="effort ${esc(r.effort || '')}">${esc(effortLabel(r))}</span></td>
+    <td>${esc(r.detail)}${r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}${r.remediation?.powershell ? `<div class="rem"><code>${esc(fixText(r.remediation.powershell))}</code></div>` : ''}</td></tr>`).join('')}
+  </tbody></table>`).join('')}`;
+}
+
+export function signalsHtml(report) {
+  const sig = report.signals;
+  if (!sig) return '';
+  const ss = sig.secureScore, al = sig.alerts;
+  const scoreBlock = ss ? `
+  <div class="cards">
+    <div class="card"><b>${ss.percent === null ? '—' : ss.percent + '%'}</b><span>Microsoft Secure Score</span></div>
+    <div class="card"><b>${ss.current}</b><span>of ${ss.max} points</span></div>
+    <div class="card"><b>${ss.daysOld === null ? '—' : ss.daysOld}</b><span>days since Microsoft last computed it</span></div>
+    ${al ? `<div class="card"><b>${al.open}</b><span>open Defender alerts${al.high ? ` (${al.high} high)` : ''}</span></div>` : ''}
+  </div>
+  ${ss.actions.length ? `<h3>Top improvement actions by points available</h3>
+  <table class="signals"><thead><tr><th>Action</th><th>Category</th><th class="num">Points</th><th>Cost</th><th>User impact</th></tr></thead><tbody>
+  ${ss.actions.map(a => `<tr><td>${a.url ? `<a href="${esc(a.url)}" rel="noopener">${esc(a.title)}</a>` : esc(a.title)}</td><td>${esc(a.category)}</td><td class="num">+${Math.round(a.gap * 10) / 10} of ${a.max}</td><td>${esc(a.cost)}</td><td>${esc(a.impact)}</td></tr>`).join('')}
+  </tbody></table>` : '<p class="muted">Every Secure Score improvement action is already implemented.</p>'}` : '<p class="muted">Secure Score was not available for this tenant.</p>';
+  const alertBlock = al && al.items.length ? `
+  <h3>Open Defender alerts (newest high first)</h3>
+  <table class="signals"><thead><tr><th>Severity</th><th>Alert</th><th>Category</th><th>Status</th><th>Created</th></tr></thead><tbody>
+  ${al.items.map(a => `<tr><td><span class="sev ${esc(a.severity)}">${esc(a.severity)}</span></td><td>${esc(a.title)}</td><td>${esc(a.category)}</td><td>${esc(a.status)}</td><td>${esc(a.created ? new Date(a.created).toLocaleString() : '')}</td></tr>`).join('')}
+  </tbody></table>` : al ? '<p class="muted">No open Defender alerts.</p>' : '';
+  return `<h2>Microsoft security signals</h2>
+  <p class="muted">Microsoft\'s own posture number and its open alerts, read from the Defender portal APIs. They sit beside this assessment rather than inside its score.</p>
+  ${scoreBlock}${alertBlock}`;
+}
 
 const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Unknown'];
 const STATUS_ORDER = { Fail: 0, Warning: 1, Unknown: 2, NotApplicable: 3, Pass: 4 };
@@ -92,6 +211,13 @@ export function executiveSummaryParts(report) {
     parts.push(`${s.fail} check${s.fail === 1 ? '' : 's'} failed: ${sev.join(', ')}.`);
   }
   if (s.warning) parts.push(`${s.warning} check${s.warning === 1 ? ' is' : 's are'} partially compliant.`);
+  if (s.quickWins > 0 && s.projectedPassRate !== null && s.projectedPassRate > s.passRate) {
+    parts.push(`${s.quickWins} of the failing checks ${s.quickWins === 1 ? 'is a quick win' : 'are quick wins'} — portal settings that take minutes; fixing only those would raise the pass rate to ${s.projectedPassRate}%.`);
+  }
+  if (report.signals?.secureScore?.percent !== undefined && report.signals?.secureScore?.percent !== null) {
+    const ss = report.signals.secureScore;
+    parts.push(`Microsoft Secure Score is ${ss.percent}% (${ss.current} of ${ss.max})${report.signals.alerts ? `, with ${report.signals.alerts.open} open Defender alert${report.signals.alerts.open === 1 ? '' : 's'}${report.signals.alerts.high ? ` (${report.signals.alerts.high} high)` : ''}` : ''}.`);
+  }
 
   const top = report.priorities || [];
   if (top.length) {
@@ -275,6 +401,38 @@ export function buildWorkbook(report, lib) {
     X.utils.book_append_sheet(wb, wsChanges, 'Changes');
   }
 
+  // --- Remediation plan ---
+  {
+    const rows = [['Owner', '#', 'Check ID', 'Name', 'Severity', 'Status', 'Effort', 'Detail', 'Portal fix', 'PowerShell', 'Controls']];
+    for (const g of remediationPlan(report)) {
+      g.items.forEach((r, i) => rows.push([g.label, i + 1, r.id, r.name, r.severity, r.status === 'Warning' ? 'Partial' : r.status, effortLabel(r), r.detail,
+        fixText(r.remediation?.portal || ''), fixText(r.remediation?.powershell || ''), controlIds(r, report).join('; ')]));
+    }
+    const ws = X.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 26 }, { wch: 4 }, { wch: 26 }, { wch: 56 }, { wch: 10 }, { wch: 9 }, { wch: 18 }, { wch: 70 }, { wch: 60 }, { wch: 60 }, { wch: 40 }];
+    X.utils.book_append_sheet(wb, ws, 'Remediation plan');
+  }
+
+  // --- Microsoft security signals ---
+  if (report.signals) {
+    const ss = report.signals.secureScore, al = report.signals.alerts;
+    const rows = [];
+    if (ss) {
+      rows.push(['Microsoft Secure Score', ss.percent === null ? 'n/a' : `${ss.percent}%`], ['Points', `${ss.current} of ${ss.max}`], ['Last computed', ss.updated || ''], []);
+      rows.push(['Improvement action', 'Category', 'Points available', 'Max', 'Implementation cost', 'User impact', 'Link']);
+      for (const a of ss.actions) rows.push([a.title, a.category, Math.round(a.gap * 10) / 10, a.max, a.cost, a.impact, a.url]);
+      rows.push([]);
+    }
+    if (al) {
+      rows.push(['Open Defender alerts', al.open, 'High', al.high], []);
+      rows.push(['Severity', 'Alert', 'Category', 'Status', 'Created', 'Source']);
+      for (const a of al.items) rows.push([a.severity, a.title, a.category, a.status, a.created, a.source]);
+    }
+    const ws = X.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 60 }, { wch: 22 }, { wch: 16 }, { wch: 10 }, { wch: 20 }, { wch: 14 }, { wch: 60 }];
+    X.utils.book_append_sheet(wb, ws, 'Security signals');
+  }
+
   // --- Framework coverage ---
   const coverage = [
     ['Framework', 'Pass', 'Fail', 'Partial', 'Unknown', 'Scored', 'Pass rate', 'Failing controls'],
@@ -326,11 +484,12 @@ export function buildHtmlReport(report) {
     const fixable = r.status === 'Fail' || r.status === 'Warning';
     const fix = (fixable && r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : '') +
                 (fixable && r.remediation?.powershell ? `<div class="rem"><code>${esc(fixText(r.remediation.powershell))}</code></div>` : '');
+    const copy = fixable ? `<button type="button" class="x-copy" data-ticket="${esc(ticketText(r, report))}">Copy as ticket</button>` : '';
     return `<tr class="s-${r.status.toLowerCase()}" ${rowAttrs(r, report, c.text)}>` +
       `<td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span></td>` +
-      `<td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>` +
-      `<td><code>${esc(r.id)}</code><div class="nm">${esc(r.name)}</div></td>` +
-      `<td>${esc(r.detail)}${fix}</td>` +
+      `<td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span>${fixable ? `<br><span class="effort ${esc(r.effort || '')}">${esc(effortLabel(r))}</span>` : ''}</td>` +
+      `<td><code>${esc(r.id)}</code><div class="nm">${esc(r.name)}</div><div class="nm">${esc(ownerLabel(r))}</div></td>` +
+      `<td>${esc(r.detail)}${fix}${copy}</td>` +
       `<td class="fw">${c.html}</td></tr>`;
   };
 
@@ -341,7 +500,7 @@ export function buildHtmlReport(report) {
   const othersSummary = summariseList(others);
 
   const priorities = (report.priorities || []).map((r, i) => `
-    <li><b>${esc(r.name)}</b> <span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span>
+    <li><b>${esc(r.name)}</b> <span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span> <span class="effort ${esc(r.effort || '')}">${esc(effortLabel(r))}</span> <span class="muted">· ${esc(ownerLabel(r))}</span>
       <div class="muted">${esc(r.detail)}</div>
       ${r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}
     </li>`).join('');
@@ -423,6 +582,8 @@ table.findings th:nth-child(3),table.findings td:nth-child(3){width:26%}
 table.findings th:nth-child(5),table.findings td:nth-child(5){width:200px}
 table.findings thead th{position:sticky;top:0;z-index:1}
 details.more{margin-top:4px}details.more summary{cursor:pointer;color:#274b6d;font-size:11px}
+table.plan th:nth-child(1),table.plan td:nth-child(1){width:36px}table.plan th:nth-child(3),table.plan td:nth-child(3),table.plan th:nth-child(4),table.plan td:nth-child(4){width:110px;white-space:nowrap}
+table.signals td a{color:#274b6d}.sev.high,.sev.medium,.sev.low,.sev.informational{text-transform:capitalize}
 ${EXPLORER_CSS}
 @page{margin:14mm}
 @media print{body{background:#fff;font-size:12px}header{background:#fff;color:#000;border-bottom:2px solid #000;padding:0 0 12px}header p{color:#444}main{padding:0;max-width:none}h2{break-after:avoid}tr{break-inside:avoid}table{font-size:11px}th,td{padding:6px 8px}.cards{grid-template-columns:repeat(5,1fr)}.card b{font-size:20px}tr.s-pass td{opacity:1}details.more{display:none}table.findings thead th{position:static}}
@@ -440,6 +601,7 @@ ${EXPLORER_CSS}
     <div class="card"><b>${s.unknown}</b><span>Unknown</span></div>
     <div class="card"><b>${s.notApplicable}</b><span>Not applicable</span></div>
   </div>
+  ${areaCardsHtml(report)}
   <p style="margin-top:14px">${sevRow}${warnPill}</p>
   <p class="muted">${scope
     ? `Scored against the ${report.scope.inScopeCount} checks that map to ${esc(scope)}; ${s.scored} of those could be scored. Across all ${report.results.length} checks regardless of framework the pass rate is ${sAll.passRate === null ? 'n/a' : sAll.passRate + '%'} (${sAll.pass} of ${sAll.scored}).`
@@ -450,6 +612,7 @@ ${EXPLORER_CSS}
 
   ${priorities ? `<h2>Fix first</h2><ol class="priorities">${priorities}</ol>` : ''}
   ${driftSection}
+  ${signalsHtml(report)}
 
   <h2>Findings${scope ? ` — ${esc(scope)}` : ''}</h2>
   <p class="muted">${esc(scopeNote)}</p>
@@ -464,6 +627,8 @@ ${EXPLORER_CSS}
   They are excluded from the score above and listed here so nothing is hidden. Controls shown are all their mappings.</p>
   <table class="findings"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
   <tbody data-explore>${othersRows}</tbody></table>` : ''}
+
+  ${planHtml(report)}
 
   <h2>Compliance framework coverage</h2>
   <p class="muted">One technical condition maps to many frameworks. These figures reflect only the

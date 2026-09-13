@@ -9,7 +9,8 @@ import { missingScopes } from './auth.js';
 import { runAssessment as realRun, scopesFor, ALL_SCOPES, checksFor } from './engine.js';
 import { AREAS } from './checks.js';
 import * as history from './history.js';
-import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, printReport, executiveSummaryParts, scopeLabel, fixText, esc } from './report.js';
+import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, downloadPlanMarkdown, printReport, executiveSummaryParts, scopeLabel, fixText, esc,
+  areaCardsHtml, planHtml, signalsHtml, ticketText, effortLabel, ownerLabel, remediationPlan } from './report.js';
 import { explorer, rowAttrs, explorerToolbar, EXPLORER_CSS } from './explore.js';
 
 // Injectable for tests: the flow can be driven end to end with sign-in and Graph mocked.
@@ -186,7 +187,9 @@ function renderPermissions() {
     'DeviceManagementServiceConfig.Read.All': 'Intune enrolment restrictions and Autopilot profiles',
     'DeviceManagementManagedDevices.Read.All': 'Enrolled device counts and categories',
     'Application.Read.All': 'App registrations, enterprise applications, their credentials, owners and permissions',
-    'AccessReview.Read.All': 'Whether access reviews exist for guests and privileged roles'
+    'AccessReview.Read.All': 'Whether access reviews exist for guests and privileged roles',
+    'SecurityEvents.Read.All': 'Microsoft Secure Score and its improvement actions',
+    'SecurityAlert.Read.All': 'Open Defender alerts'
   };
   el('permissions').innerHTML = requiredScopes().map(s => `
     <tr><td><code>${esc(s)}</code></td><td>Delegated</td>
@@ -370,10 +373,11 @@ function renderResults(report) {
     (s.warning ? ` <span class="pill warning">${s.warning} partial</span>` : '');
 
   el('execSummary').innerHTML = executiveSummaryParts(report).map(p => `<p>${esc(p)}</p>`).join('');
+  el('areaCards').innerHTML = areaCardsHtml(report);
 
   const top = report.priorities || [];
   el('priorityList').innerHTML = top.map(r => `
-    <li><b>${esc(r.name)}</b> <span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span>
+    <li><b>${esc(r.name)}</b> <span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span> <span class="effort ${esc(r.effort || '')}">${esc(effortLabel(r))}</span> <span class="hint">· ${esc(ownerLabel(r))}</span>
       <div class="hint" style="margin:4px 0 0">${esc(r.detail)}</div>
       ${r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(r.remediation.portal)}</div>` : ''}
     </li>`).join('');
@@ -397,14 +401,17 @@ function renderResults(report) {
     if (d.added.some(x => x.id === r.id)) return ' <span class="drift new" title="Not assessed in the previous run">new</span>';
     return '';
   };
-  const row = (r) => `
+  const row = (r) => {
+    const fixable = r.status === 'Fail' || r.status === 'Warning';
+    return `
     <tr class="s-${r.status.toLowerCase()}" ${rowAttrs(r, report)}>
       <td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span>${badge(r)}</td>
-      <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>
-      <td><div class="nm">${esc(r.name)}</div><code>${esc(r.id)}</code></td>
-      <td>${esc(r.detail)}${r.status === 'Fail' && r.remediation?.portal
-        ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}</td>
+      <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span>${fixable ? `<br><span class="effort ${esc(r.effort || '')}">${esc(effortLabel(r))}</span>` : ''}</td>
+      <td><div class="nm">${esc(r.name)}</div><code>${esc(r.id)}</code><div class="hint" style="margin:2px 0 0;font-size:12px">${esc(ownerLabel(r))}</div></td>
+      <td>${esc(r.detail)}${fixable && r.remediation?.portal
+        ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}${fixable ? `<br><button type="button" class="x-copy" data-ticket="${esc(ticketText(r, report))}">Copy as ticket</button>` : ''}</td>
     </tr>`;
+  };
   const sorted = sortResults(report.results);
   el('resultRows').innerHTML = sorted.filter(r => r.inScope !== false).map(row).join('');
   const others = sorted.filter(r => r.inScope === false);
@@ -420,6 +427,12 @@ function renderResults(report) {
     show('otherWrap', false);
   }
   el('explorer').innerHTML = explorerToolbar(report);
+
+  const plan = remediationPlan(report);
+  el('planWrap').innerHTML = plan.length ? `<details class="plan-fold"><summary>Remediation plan by owner — ${plan.reduce((n, g) => n + g.items.length, 0)} items across ${plan.length} owner${plan.length === 1 ? '' : 's'}, ${plan.reduce((n, g) => n + g.quickWins, 0)} quick wins</summary>${planHtml(report).replace('<h2>Remediation plan</h2>', '')}</details>` : '';
+  show('planWrap', plan.length > 0);
+  el('signalsWrap').innerHTML = signalsHtml(report).replace('<h2>Microsoft security signals</h2>', '<h4 class="results-h">Microsoft security signals</h4>');
+  show('signalsWrap', Boolean(report.signals));
   explorer(document.querySelector('[data-panel="5"]'));
 
   el('frameworkRows').innerHTML = report.frameworks.map(f => `
@@ -445,7 +458,18 @@ function renderResults(report) {
 
 function renderDrift(report) {
   const d = report.drift;
-  const stored = deps.history.list(report.tenant).length;
+  const runs = deps.history.list(report.tenant);
+  const stored = runs.length;
+
+  // Any remembered run can be the baseline, not only the last one.
+  const earlier = runs.filter(r => r.started !== report.started);
+  if (earlier.length > 1) {
+    el('driftPick').innerHTML = earlier.slice().reverse().map(r =>
+      `<option value="${esc(r.started)}"${d && d.previousStarted === r.started ? ' selected' : ''}>${esc(new Date(r.started).toLocaleString())} — ${r.passRate === null ? '—' : r.passRate + '%'}</option>`).join('');
+    show('driftPickWrap');
+  } else {
+    show('driftPickWrap', false);
+  }
   if (!d) {
     el('driftSummary').innerHTML = report.remembered
       ? 'First remembered run for this tenant. Run again later and this section will show what changed.'
@@ -484,6 +508,7 @@ function wire() {
   el('dlHtml').onclick = () => state.report && downloadHtml(state.report);
   el('dlCsv').onclick = () => state.report && downloadCsv(state.report);
   el('dlJson').onclick = () => state.report && downloadJson(state.report);
+  el('dlPlan').onclick = () => state.report && downloadPlanMarkdown(state.report);
   el('dlXlsx').onclick = async () => {
     if (!state.report) return;
     const b = el('dlXlsx');
@@ -497,6 +522,13 @@ function wire() {
     if (state.report && !printReport(state.report)) {
       setStatus('The print window was blocked. Allow popups for this site, or download the HTML report and print it.', 'warn');
     }
+  };
+
+  el('driftPick').onchange = () => {
+    if (!state.report) return;
+    const chosen = deps.history.list(state.report.tenant).find(r => r.started === el('driftPick').value);
+    state.report.drift = deps.history.diff(state.report, chosen || null);
+    renderResults(state.report);
   };
 
   el('btnForget').onclick = () => {

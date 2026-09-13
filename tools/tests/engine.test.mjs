@@ -126,21 +126,22 @@ const { scopesFor, checksFor, ALL_SCOPES } = await import('../../assets/app/engi
 const { AREAS } = await import('../../assets/app/checks.js');
 const ALL = AREAS.map(a => a.id);
 
-ok('four areas defined', ALL.join() === 'identity,collaboration,intune,privileged', ALL.join());
+ok('five areas defined', ALL.join() === 'identity,collaboration,intune,privileged,signals', ALL.join());
 ok('identity alone needs six scopes', scopesFor(['identity']).length === 6);
-ok('every area together needs fourteen scopes', ALL_SCOPES.length === 14, ALL_SCOPES.join(', '));
+ok('every area together needs sixteen scopes', ALL_SCOPES.length === 16, ALL_SCOPES.join(', '));
+ok('signals adds exactly the two Defender read scopes', scopesFor(['identity', 'signals']).filter(s => !scopesFor(['identity']).includes(s)).join() === 'SecurityAlert.Read.All,SecurityEvents.Read.All');
 ok('privileged access adds exactly Application.Read.All and AccessReview.Read.All',
   scopesFor(['identity', 'privileged']).filter(s => !scopesFor(['identity']).includes(s)).join() === 'AccessReview.Read.All,Application.Read.All');
 ok('scopes grow only with the areas selected', scopesFor(['identity', 'collaboration']).length === 9 && scopesFor(['identity', 'collaboration']).includes('OrgSettings-Forms.Read.All'));
 ok('no scope is requested that no check uses', !ALL_SCOPES.includes('TeamSettings.Read.All'));
 ok('no area requests a write scope', !ALL_SCOPES.some(s => /\.(Read)?Write|FullControl/i.test(s)));
 ok('empty area selection falls back to identity', checksFor([]).length === checksFor(['identity']).length);
-ok('102 checks across all areas', checksFor(ALL).length === 102, String(checksFor(ALL).length));
+ok('104 checks across all areas', checksFor(ALL).length === 104, String(checksFor(ALL).length));
 ok('default run is identity only', good.results.length === 37 && good.results.every(r => r.area === 'identity'));
 
 globalThis.fetch = mockFetch(HARDENED);
 const goodAll = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL });
-ok('hardened tenant, all areas: 102 evaluated', goodAll.results.length === 102);
+ok('hardened tenant, all areas: 104 evaluated', goodAll.results.length === 104);
 ok('hardened tenant, all areas: nothing unavailable', goodAll.unavailable.length === 0, goodAll.unavailable.map(u => `${u.source}: ${u.reason}`).join('; '));
 ok('hardened tenant, all areas: no failures or warnings',
   goodAll.summary.fail === 0 && goodAll.summary.warning === 0,
@@ -192,6 +193,34 @@ const noPim = await runAssessment({ token: 'fake', catalog, tenant: { name: 'tes
 const pimChecks = noPim.results.filter(r => /^ENTRA-PIM-00[4-9]|ENTRA-PIM-010/.test(r.id));
 ok('PIM policies denied: activation checks are Unknown', pimChecks.every(r => r.status === 'Unknown'), pimChecks.map(r => r.id + '=' + r.status).join(','));
 ok('PIM policies denied: eligibility check still evaluates', noPim.results.find(r => r.id === 'ENTRA-PIM-001')?.status === 'Pass');
+
+// ---- Sprint 5: effort, owners, quick wins, signals -----------------------------------------
+ok('every result carries an effort class', goodAll.results.every(r => ['quick', 'moderate', 'review', 'project'].includes(r.effort)));
+ok('every result carries an owner', goodAll.results.every(r => typeof r.owner === 'string' && r.owner));
+ok('Conditional Access checks are projects, not quick wins', badAll2.results.filter(r => r.id.startsWith('CA-')).every(r => r.effort === 'project'));
+ok('SharePoint and Forms settings are quick wins owned by their admins',
+  badAll2.results.filter(r => /^SPO-|^FORMS-/.test(r.id)).every(r => r.effort === 'quick') &&
+  badAll2.results.find(r => r.id === 'SPO-SHARING-001')?.owner === 'sharepoint' && badAll2.results.find(r => r.id === 'FORMS-CONFIG-001')?.owner === 'm365');
+ok('app findings go to application owners', badAll2.results.filter(r => r.id.startsWith('ENTRA-ENTAPP-')).every(r => r.owner === 'apps'));
+ok('quick-win projection: fixing quick wins raises the pass rate', badAll2.summaryAll.quickWins > 5 && badAll2.summaryAll.projectedPassRate > badAll2.summaryAll.passRate);
+{
+  const p = badAll2.priorities;
+  const sameSev = p.filter(r => r.severity === p[0].severity && r.status === p[0].status);
+  const ranks = { quick: 0, moderate: 1, review: 2, project: 3 };
+  ok('Fix first orders cheaper fixes ahead within a severity', sameSev.every((r, i) => i === 0 || ranks[sameSev[i - 1].effort] <= ranks[r.effort]), sameSev.map(r => r.id + ':' + r.effort).join(', '));
+}
+ok('area summary: one entry per assessed area with a pass rate', goodAll.areaSummary.length === ALL.length && goodAll.areaSummary.every(a => a.passRate === null || (a.passRate >= 0 && a.passRate <= 100)));
+ok('hardened tenant: Secure Score fresh and healthy', ['DEFENDER-SECUREMON-001', 'DEFENDER-SECURESCORE-001'].every(id => goodAll.results.find(r => r.id === id)?.status === 'Pass'));
+ok('default tenant: stale Secure Score is a warning, low score a failure',
+  badAll2.results.find(r => r.id === 'DEFENDER-SECUREMON-001')?.status === 'Warning' && badAll2.results.find(r => r.id === 'DEFENDER-SECURESCORE-001')?.status === 'Fail');
+ok('signals: score, freshness and top actions by points available', goodAll.signals.secureScore.percent === 78 && goodAll.signals.secureScore.daysOld === 1 &&
+  goodAll.signals.secureScore.actions.length === 1 && goodAll.signals.secureScore.actions[0].title === 'Turn on Safe Links');
+ok('signals: actions carry Microsoft cost and impact', badAll2.signals.secureScore.actions[0].name === 'AdminMFAV2' && badAll2.signals.secureScore.actions[0].cost === 'Low');
+ok('signals: resolved alerts are excluded, high first', badAll2.signals.alerts.open === 2 && badAll2.signals.alerts.high === 1 && badAll2.signals.alerts.items[0].severity === 'high');
+ok('signals: none when the area is not selected', good.signals === null);
+globalThis.fetch = mockFetch(HARDENED, { deny: ['/security/alerts_v2'] });
+const noAlerts = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ['signals'] });
+ok('alerts denied: Secure Score still reported, alerts absent, score checks unaffected', noAlerts.signals.secureScore && noAlerts.signals.alerts === null && noAlerts.results.every(r => r.status === 'Pass'));
 
 // Optional source: Autopilot denied must not make auto-discovery Unknown.
 globalThis.fetch = mockFetch(HARDENED, { deny: ['/deviceManagement/windowsAutopilotDeploymentProfiles'] });

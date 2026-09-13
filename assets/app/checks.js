@@ -22,8 +22,40 @@ export const AREAS = [
   { id: 'identity',      label: 'Identity & access', summary: 'Conditional Access, MFA, administrators, consent, guests, passwords and authentication methods.' },
   { id: 'collaboration', label: 'Collaboration',     summary: 'SharePoint and OneDrive sharing, sync and legacy authentication; Teams app consent; Microsoft Forms external access and phishing protection.' },
   { id: 'intune',        label: 'Intune & devices',  summary: 'Enrolment restrictions, compliance thresholds, encryption, removable media, VPN and Wi-Fi profiles.' },
-  { id: 'privileged',    label: 'Applications & privileged access', summary: 'Enterprise apps and service principals: credentials, dangerous and Tier 0 permissions, owners, impersonation. PIM: eligibility, activation approval, MFA, duration, notifications. Access reviews.' }
+  { id: 'privileged',    label: 'Applications & privileged access', summary: 'Enterprise apps and service principals: credentials, dangerous and Tier 0 permissions, owners, impersonation. PIM: eligibility, activation approval, MFA, duration, notifications. Access reviews.' },
+  { id: 'signals',       label: 'Microsoft security signals', summary: 'Microsoft Secure Score, how fresh it is and its top improvement actions, plus open Defender alerts — Microsoft\'s own view of the tenant next to ours.' }
 ];
+
+// ---- Effort and ownership ----
+// Every finding carries who fixes it and roughly how much work it is, so the Fix-first list
+// can be ordered by impact per hour and the remediation plan can be handed out by team.
+// A check may override either with its own `effort` or `owner` property.
+export const EFFORT = {
+  quick:    { rank: 0, label: 'Quick win',          hint: 'A setting in an admin portal; minutes, no design work.' },
+  moderate: { rank: 1, label: 'Moderate',           hint: 'Needs a decision or a person: accounts to create, roles to remove, users to move.' },
+  review:   { rank: 2, label: 'Review with owners', hint: 'Case by case with whoever owns the app or the integration.' },
+  project:  { rank: 3, label: 'Project',            hint: 'Policy design, licensing or rollout planning before the switch is flipped.' }
+};
+export const OWNERS = {
+  identity:   'Identity administrator',
+  apps:       'Application owners',
+  sharepoint: 'SharePoint administrator',
+  teams:      'Teams administrator',
+  m365:       'Microsoft 365 administrator',
+  intune:     'Intune administrator',
+  security:   'Security operations'
+};
+const EFFORT_RULES = [
+  [/^CA-|^INTUNE-|^ENTRA-PIM-|^ENTRA-SECDEFAULT-002$/, 'project'],
+  [/^ENTRA-ENTAPP-|^ENTRA-APPREG-00[234]$/, 'review'],
+  [/^ENTRA-ADMIN-|^ENTRA-BREAKGLASS-|^ENTRA-CLOUDADMIN-|^ENTRA-MFA-|^ENTRA-SSPR-|^DEFENDER-/, 'moderate']
+];
+const OWNER_RULES = [
+  [/^ENTRA-ENTAPP-|^ENTRA-APPREG-|^ENTRA-APPS-/, 'apps'],
+  [/^SPO-/, 'sharepoint'], [/^TEAMS-/, 'teams'], [/^FORMS-/, 'm365'], [/^INTUNE-/, 'intune'], [/^DEFENDER-|^COMPLIANCE-/, 'security']
+];
+export const effortOf = (check) => check.effort || (EFFORT_RULES.find(([re]) => re.test(check.id)) || [, 'quick'])[1];
+export const ownerOf = (check) => check.owner || (OWNER_RULES.find(([re]) => re.test(check.id)) || [, 'identity'])[1];
 
 const SPO_SHARING = {
   disabled: 'disabled',
@@ -311,6 +343,32 @@ export const SOURCES = {
     scopes: ['RoleManagement.Read.Directory'],
     collection: true,
     label: 'PIM policy: Privileged Role Administrator'
+  },
+  // ---- Microsoft security signals ----
+  secureScores: {
+    url: '/security/secureScores?$top=5',
+    scopes: ['SecurityEvents.Read.All'],
+    collection: true,
+    label: 'Microsoft Secure Score'
+  },
+  secureScoreProfiles: {
+    // Titles, maximum points and portal links for the improvement actions.
+    url: '/security/secureScoreControlProfiles?$top=999',
+    scopes: ['SecurityEvents.Read.All'],
+    collection: true,
+    optional: true,
+    area: 'signals',
+    label: 'Secure Score improvement actions'
+  },
+  defenderAlerts: {
+    // Collected for the signals section, not for a check: there is no registry control for
+    // "open alerts", and an alert is an event to triage rather than a setting to fix.
+    url: '/security/alerts_v2?$top=200&$orderby=createdDateTime desc',
+    scopes: ['SecurityAlert.Read.All'],
+    collection: true,
+    optional: true,
+    area: 'signals',
+    label: 'Defender alerts'
   },
   registrationDetails: {
     // Entra ID P1/P2. Absent on Business Basic/Standard tenants -> dependent checks go Unknown.
@@ -1578,6 +1636,39 @@ export const CHECKS = [
       if (!r) return unknown('Global Administrator notification policy not returned. PIM requires Entra ID P2.');
       const on = r.isDefaultRecipientsEnabled || (r.notificationRecipients || []).length > 0;
       return on ? pass('Administrators are notified when Global Administrator is activated.') : warn('Nobody is notified when Global Administrator is activated.');
+    }
+  }
+,
+
+  // =====================================================================================
+  // Microsoft security signals
+  // =====================================================================================
+  {
+    id: 'DEFENDER-SECUREMON-001',
+    area: 'signals',
+    needs: ['secureScores'],
+    evaluate: (d) => {
+      const latest = (d.secureScores || [])[0];
+      if (!latest) return fail('No Secure Score has been computed for this tenant, so nothing is monitoring its posture.');
+      const days = Math.floor((Date.now() - Date.parse(latest.createdDateTime)) / 86400000);
+      const pct = latest.maxScore ? Math.round((latest.currentScore / latest.maxScore) * 100) : 0;
+      return days <= 7
+        ? pass(`Secure Score is ${pct}% and was updated ${days === 0 ? 'today' : days + ' day' + (days === 1 ? '' : 's') + ' ago'}.`)
+        : warn(`Secure Score was last updated ${days} days ago; it should refresh within 7.`);
+    }
+  },
+  {
+    id: 'DEFENDER-SECURESCORE-001',
+    area: 'signals',
+    needs: ['secureScores'],
+    evaluate: (d) => {
+      const latest = (d.secureScores || [])[0];
+      if (!latest || !latest.maxScore) return unknown('Secure Score not returned.');
+      const pct = Math.round((latest.currentScore / latest.maxScore) * 100);
+      const line = `Microsoft Secure Score is ${Math.round(latest.currentScore * 10) / 10} of ${latest.maxScore} (${pct}%).`;
+      if (pct >= 70) return pass(line);
+      if (pct >= 40) return warn(`${line} 70% or better is the common target.`);
+      return fail(`${line} Below 40% leaves most of Microsoft\'s recommended controls unimplemented.`);
     }
   }
 ];
