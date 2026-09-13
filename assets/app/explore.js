@@ -39,7 +39,7 @@ export function explorer(root) {
 
   function apply() {
     var q = (search ? search.value : '').trim().toLowerCase();
-    var keys = ['status', 'sev', 'area', 'changed'];
+    var keys = ['status', 'sev', 'area', 'changed', 'effort'];
     var sel = {};
     keys.forEach(function (k) { sel[k] = active(k); });
     var shown = 0;
@@ -68,6 +68,8 @@ export function explorer(root) {
     if (count) count.textContent = shown === rows.length ? 'All ' + rows.length + ' findings' : shown + ' of ' + rows.length + ' findings';
     var filtering = q || keys.some(function (k) { return sel[k].length; });
     if (clear) { if (filtering) clear.removeAttribute('hidden'); else clear.setAttribute('hidden', ''); }
+    var ev; try { ev = new root.ownerDocument.defaultView.Event('x-apply'); } catch (e) { ev = root.ownerDocument.createEvent('Event'); ev.initEvent('x-apply', false, false); }
+    bar.dispatchEvent(ev);
   }
 
   chips.forEach(function (c) {
@@ -84,6 +86,49 @@ export function explorer(root) {
     chips.forEach(function (c) { c.classList.remove('on'); c.setAttribute('aria-pressed', 'false'); });
     apply();
   });
+  // Area cards double as filters: clicking one toggles that area's chip.
+  Array.prototype.slice.call(root.querySelectorAll('[data-area-card]')).forEach(function (card) {
+    card.addEventListener('click', function () {
+      var chip = bar.querySelector('.x-chip[data-key="area"][data-value="' + card.getAttribute('data-area-card') + '"]');
+      if (chip) chip.click();
+    });
+  });
+  bar.addEventListener('x-apply', function () {
+    Array.prototype.slice.call(root.querySelectorAll('[data-area-card]')).forEach(function (card) {
+      var chip = bar.querySelector('.x-chip[data-key="area"][data-value="' + card.getAttribute('data-area-card') + '"]');
+      if (chip) card.classList.toggle('on', chip.classList.contains('on'));
+    });
+  });
+
+  // Copy as ticket: the Markdown lives on the button so it works with no app around it.
+  function copyText(text, done) {
+    var nav = root.ownerDocument.defaultView && root.ownerDocument.defaultView.navigator;
+    if (nav && nav.clipboard && nav.clipboard.writeText) {
+      nav.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallback(text)); });
+    } else {
+      done(fallback(text));
+    }
+  }
+  function fallback(text) {
+    var doc = root.ownerDocument, ta = doc.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    doc.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = doc.execCommand && doc.execCommand('copy'); } catch (e) { ok = false; }
+    doc.body.removeChild(ta);
+    return ok;
+  }
+  Array.prototype.slice.call(root.querySelectorAll('.x-copy[data-ticket]')).forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var was = btn.textContent;
+      copyText(btn.getAttribute('data-ticket'), function (ok) {
+        btn.textContent = ok ? 'Copied' : 'Copy failed';
+        btn.classList.toggle('done', ok);
+        setTimeout(function () { btn.textContent = was; btn.classList.remove('done'); }, 1600);
+      });
+    });
+  });
+
   // "/" jumps to the search box, as on most review tools.
   if (!root.__explorerKeys) {
     root.__explorerKeys = true;
@@ -119,7 +164,7 @@ export function rowAttrs(r, report, controls = '') {
   const text = [r.id, r.name, r.detail, r.category, r.status, r.severity, controls,
     r.remediation?.portal, r.remediation?.powershell].filter(Boolean).join(' ').toLowerCase();
   return `data-status="${esc(r.status.toLowerCase())}" data-sev="${esc(String(r.severity).toLowerCase())}" ` +
-    `data-area="${esc(r.area || '')}" data-changed="${esc(changeOf(r, report.drift))}" data-text="${esc(text)}"`;
+    `data-area="${esc(r.area || '')}" data-effort="${esc(r.effort || '')}" data-changed="${esc(changeOf(r, report.drift))}" data-text="${esc(text)}"`;
 }
 
 const chip = (key, value, label, cls = '') =>
@@ -141,6 +186,7 @@ export function explorerToolbar(report) {
       ${chip('sev', 'critical', 'Critical', 'c-critical')}${chip('sev', 'high', 'High', 'c-high')}${chip('sev', 'medium', 'Medium', 'c-medium')}${chip('sev', 'low', 'Low', 'c-low')}
     </div>
     ${areas.length > 1 ? `<div class="x-row"><span class="x-label">Area</span>${areas.map(a => chip('area', a.id, a.label)).join('')}</div>` : ''}
+    <div class="x-row"><span class="x-label">Effort</span>${chip('effort', 'quick', 'Quick win', 'c-pass')}${chip('effort', 'moderate', 'Moderate', 'c-low')}${chip('effort', 'review', 'Review with owners', 'c-warning')}${chip('effort', 'project', 'Project', 'c-unknown')}</div>
     ${report.drift ? `<div class="x-row"><span class="x-label">Since last run</span>${chip('changed', 'regressed', 'Regressed', 'c-fail')}${chip('changed', 'fixed', 'Fixed', 'c-pass')}${chip('changed', 'changed', 'Detail changed', 'c-warning')}${chip('changed', 'new', 'New', 'c-unknown')}</div>` : ''}
   </div>`;
 }
@@ -161,5 +207,15 @@ export const EXPLORER_CSS = `
 .x-chip.on.c-warning,.x-chip.on.c-medium{background:#fff3d6;color:#7a4f00}.x-chip.on.c-low{background:#e6eef7;color:#274b6d}
 .x-chip.on.c-pass{background:#e5f5ee;color:#146c55}.x-chip.on.c-unknown,.x-chip.on.c-na{background:#eceff3;color:#5a6a7d}
 tr.x-empty td{color:#5a6a7d;font-style:italic;text-align:center;padding:18px}
+.effort{display:inline-block;font-size:10px;padding:1px 7px;border-radius:9px;margin-top:5px;white-space:nowrap;background:#eceff3;color:#5a6a7d}
+.effort.quick{background:#e5f5ee;color:#146c55}.effort.moderate{background:#e6eef7;color:#274b6d}.effort.review{background:#fff3d6;color:#7a4f00}
+.x-copy{font:inherit;font-size:11px;padding:2px 8px;border:1px solid #c9d1db;border-radius:3px;background:#fff;color:#274b6d;cursor:pointer;margin-top:7px}
+.x-copy.done{background:#e5f5ee;border-color:#9fd3bd;color:#146c55}
+.area-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0 4px}
+.area-card{background:#fff;border:1px solid #dfe4ea;border-radius:3px;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.area-card b{display:block;font-size:22px;line-height:1.1}.area-card span{font-size:12px;color:#5a6a7d;display:block}.area-card small{font-size:11px;color:#5a6a7d}
+.area-card.on{border-color:#0d1b2a;box-shadow:inset 0 0 0 1px #0d1b2a}
+.area-card .bar{height:4px;background:#eceff3;border-radius:2px;margin:8px 0 6px;overflow:hidden}.area-card .bar i{display:block;height:100%;background:#146c55}
+@media print{.x-copy{display:none}}
 tr[hidden]{display:none}
 @media print{.explorer{display:none}}`;

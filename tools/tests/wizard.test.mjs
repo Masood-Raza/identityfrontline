@@ -89,7 +89,7 @@ const authMock = {
   getToken: async () => ({ token: 'tok', grantedScopes: [...granted] }),
   requestAdminConsent: async () => {
     consentCalls++;
-    granted = [...granted, 'AuditLog.Read.All', 'SharePointTenantSettings.Read.All', 'TeamworkAppSettings.Read.All', 'OrgSettings-Forms.Read.All'];
+    granted = [...granted, 'AuditLog.Read.All', 'SharePointTenantSettings.Read.All', 'TeamworkAppSettings.Read.All', 'OrgSettings-Forms.Read.All', 'SecurityEvents.Read.All', 'SecurityAlert.Read.All'];
     return { completed: true };
   },
   signOut: () => {},
@@ -120,23 +120,24 @@ ok('two frameworks selected for the run', main.getState().frameworks.size === 2)
 // ---- step 2: scope ----------------------------------------------------------------------
 $('#next').click();
 ok('step 2 active', active() === 2);
-ok('four areas rendered with check counts', $$('#scopeAreas .choice').length === 4 && /37 checks/.test($('#scopeAreas').textContent));
+ok('five areas rendered with check counts', $$('#scopeAreas .choice').length === 5 && /37 checks/.test($('#scopeAreas').textContent));
 ok('identity is preselected', $$('#scopeAreas input:checked').map(i => i.value).join() === 'identity');
 ok('unreachable areas disclosed', $$('#scopeSoon .soon-item').length === 4);
 // Add Collaboration. Permissions must follow the selection.
-for (const id of ['collaboration']) { const i = $$('#scopeAreas input').find(x => x.value === id); i.checked = true; i.onchange(); }
-ok('two areas selected', main.getState().areas.size === 2);
+for (const id of ['collaboration', 'signals']) { const i = $$('#scopeAreas input').find(x => x.value === id); i.checked = true; i.onchange(); }
+ok('three areas selected', main.getState().areas.size === 3);
 const idOnly = $$('#scopeAreas input').find(x => x.value === 'identity'); idOnly.checked = false; idOnly.onchange();
-ok('identity can be deselected while other areas remain', main.getState().areas.size === 1 && !main.getState().areas.has('identity'));
+ok('identity can be deselected while other areas remain', main.getState().areas.size === 2 && !main.getState().areas.has('identity'));
 idOnly.checked = true; idOnly.onchange();
-ok('identity re-added', main.getState().areas.size === 2);
+ok('identity re-added', main.getState().areas.size === 3);
 
 // ---- step 3: permissions ----------------------------------------------------------------
 $('#next').click();
 ok('step 3 active', active() === 3);
 const permRows = $$('#permissions tr');
-ok('permissions follow the area selection: 9 for identity + collaboration', permRows.length === 9, `got ${permRows.length}`);
-ok('every permission is read-only', $$('#permissions .read-only').length === 9);
+ok('permissions follow the area selection: 11 for identity + collaboration + signals', permRows.length === 11, `got ${permRows.length}`);
+ok('every permission is read-only', $$('#permissions .read-only').length === 11);
+ok('Secure Score scope has a stated reason', /Secure Score/.test($('#permissions').textContent));
 ok('SharePoint scope has a stated reason', $('#permissions').textContent.includes('SharePointTenantSettings.Read.All') && /sharing/i.test($('#permissions').textContent));
 ok('AuditLog.Read.All has a stated reason', $('#permissions').textContent.includes('MFA registration'));
 ok('step 3 button leads to sign-in', $('#next').textContent.includes('sign-in'));
@@ -190,7 +191,7 @@ ok('HTML report references nothing external', !/src="http|href="http|<link|@impo
 const scripts = [...rpt.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 ok('the only script in the report is the embedded explorer, verbatim', scripts.length === 1 && scripts[0].includes(explorerFn.toString()));
 ok('the embedded explorer has no network capability', !/fetch|XMLHttpRequest|import\(|WebSocket|navigator\.sendBeacon/.test(scripts[0]));
-ok('report rows carry filter attributes', /<tr class="s-(pass|fail|warning)" data-status="(pass|fail|warning)" data-sev="[a-z]+" data-area="[a-z]+" data-changed="" data-text="/.test(rpt));
+ok('report rows carry filter attributes', /<tr class="s-(pass|fail|warning)" data-status="(pass|fail|warning)" data-sev="[a-z]+" data-area="[a-z]+" data-effort="[a-z]+" data-changed="" data-text="/.test(rpt));
 ok('long control lists fold past eight', /<details class="more"><summary>\+\d+ more<\/summary>/.test(rpt));
 ok('executive summary is short paragraphs, not one block', (rpt.match(/<p class="lead">/g) || []).length >= 4);
 ok('report detail cells carry no whitespace-only lines', !/<td>[^<]*\n\s*\n/.test(rpt));
@@ -218,6 +219,10 @@ ok('report detail cells carry no whitespace-only lines', !/<td>[^<]*\n\s*\n/.tes
   q.value = '164.312(a)(2)(ii)'; q.dispatchEvent(new rdom.window.Event('input'));
   ok('standalone report: a control ID finds the checks that map to it', visible().length >= 1);
   ok('standalone report: filters hidden when printing', /@media print\{\.explorer\{display:none\}\}/.test(rpt));
+  d.querySelector('.x-clear').click();
+  d.querySelector('[data-area-card="collaboration"]').click();
+  ok('standalone report: area cards filter too', visible().length > 0 && visible().every(r => r.dataset.area === 'collaboration') && d.querySelector('[data-area-card="collaboration"]').classList.contains('on'));
+  ok('standalone report: effort chips present', d.querySelectorAll('.x-chip[data-key="effort"]').length === 4);
 }
 ok('HTML report escapes content', !/<script>alert/.test(rpt));
 ok('HTML report states data never left the browser', /No tenant data was transmitted/.test(rpt));
@@ -236,7 +241,7 @@ ok('HTML report lists out-of-scope findings separately', /Other findings — not
 ok('page states the scope', $('#scopeNote').textContent.includes(labels[0]) && /Across all checks/.test($('#scopeNote').textContent));
 ok('page findings title names the scope', $('#findingsTitle').textContent.includes(labels[0]));
 ok('page shows out-of-scope findings in their own section', visible('otherWrap') && $$('#otherRows tr').length > 0);
-ok('in-scope plus other rows equal all checks for two areas (54)', $$('#resultRows tr').length + $$('#otherRows tr').length === 54, String($$('#resultRows tr').length + $$('#otherRows tr').length));
+ok('in-scope plus other rows equal all checks for three areas (56)', $$('#resultRows tr').length + $$('#otherRows tr').length === 56, String($$('#resultRows tr').length + $$('#otherRows tr').length));
 ok('results include SharePoint and Teams checks', /SPO-SHARING-001/.test($('#resultRows').textContent + $('#otherRows').textContent) && /TEAMS-APPS-001/.test($('#resultRows').textContent + $('#otherRows').textContent));
 ok('run metadata names the areas', /Collaboration/.test($('#runMeta').textContent));
 ok('remember-this-run is on by default', $('#rememberRun').checked);
@@ -246,7 +251,18 @@ ok('first run: no drift badges', $$('#resultRows .drift').length === 0);
   const rows = () => $$('#resultRows tr[data-status], #otherRows tr[data-status]');
   const visible = () => rows().filter(r => !r.hasAttribute('hidden'));
   ok('page: explorer rendered above findings', !!$('#explorer .x-search') && $$('#explorer .x-chip').length >= 9);
-  ok('page: area chips offered for a multi-area run', $$('#explorer .x-chip[data-key="area"]').length === 2);
+  ok('page: area chips offered for a multi-area run', $$('#explorer .x-chip[data-key="area"]').length === 3);
+  ok('page: effort chips offered', $$('#explorer .x-chip[data-key="effort"]').length === 4);
+  // Area cards: one per area, clickable, mirroring the chip.
+  ok('page: an area card per assessed area with a pass rate', $$('#areaCards .area-card').length === 3 && /\d+%|—/.test($('#areaCards').textContent));
+  $('#areaCards [data-area-card="collaboration"]').click();
+  ok('page: clicking an area card toggles its chip and filters', $('#explorer .x-chip[data-value="collaboration"]').classList.contains('on') && visible().every(r => r.dataset.area === 'collaboration'));
+  ok('page: the card shows as selected', $('#areaCards [data-area-card="collaboration"]').classList.contains('on'));
+  $('#areaCards [data-area-card="collaboration"]').click();
+  ok('page: clicking again clears it', visible().length === rows().length && !$('#areaCards [data-area-card="collaboration"]').classList.contains('on'));
+  // Signals section.
+  ok('page: security signals section rendered', !$('#signalsWrap').hidden && /Secure Score/.test($('#signalsWrap').textContent) && /78%/.test($('#signalsWrap').textContent));
+  ok('page: no plan on a clean tenant', $('#planWrap').hidden);
   ok('page: no drift row of chips before a comparison exists', $$('#explorer .x-chip[data-key="changed"]').length === 0);
   $('#explorer .x-chip[data-value="collaboration"]').click();
   ok('page: area chip narrows to that area', visible().length > 0 && visible().every(r => r.dataset.area === 'collaboration'));
@@ -266,7 +282,7 @@ ok('no priorities on a clean tenant', !visible('priorityWrap'));
 // ---- Excel workbook, built for real and read back -----------------------------------------
 globalThis.XLSX = XLSXlib;
 const wb = buildWorkbook(rep1, XLSXlib);
-ok('workbook has the four sheets', JSON.stringify(wb.SheetNames) === JSON.stringify(['Summary', 'Findings', 'Compliance matrix', 'Framework coverage']), wb.SheetNames.join(','));
+ok('workbook has the six sheets', JSON.stringify(wb.SheetNames) === JSON.stringify(['Summary', 'Findings', 'Compliance matrix', 'Remediation plan', 'Security signals', 'Framework coverage']), wb.SheetNames.join(','));
 const roundTrip = XLSXlib.read(XLSXlib.write(wb, { bookType: 'xlsx', type: 'array' }), { type: 'array' });
 const matrix = XLSXlib.utils.sheet_to_json(roundTrip.Sheets['Compliance matrix'], { header: 1 });
 ok('matrix has one row per in-scope check', matrix.length - 1 === rep1.scope.inScopeCount, `${matrix.length - 1} vs ${rep1.scope.inScopeCount}`);
@@ -339,12 +355,59 @@ ok('HTML report says comparison data stays in the browser', /kept only in the br
 const wb2 = buildWorkbook(rep2, XLSXlib);
 ok('workbook gains a Changes sheet', wb2.SheetNames.includes('Changes'));
 ok('two runs remembered for the tenant', history.list(rep2.tenant).length === 2);
+
+// ---- remediation plan, tickets, effort ---------------------------------------------------
+const allRows = () => $$('#resultRows tr[data-status], #otherRows tr[data-status]');
+const visibleRows = () => allRows().filter(r => !r.hasAttribute('hidden'));
+ok('page: remediation plan folded in with owner groups', !$('#planWrap').hidden && $$('#planWrap h3').length >= 3 && /quick wins/.test($('#planWrap summary').textContent));
+ok('page: plan groups carry owner names', /SharePoint administrator/.test($('#planWrap').textContent) && /Identity administrator/.test($('#planWrap').textContent));
+ok('page: failing rows show effort and owner', $$('#resultRows tr[data-status="fail"] .effort').length > 0 && /Identity administrator/.test($('#resultRows').textContent));
+ok('page: passing rows carry no copy button', $$('#resultRows tr[data-status="pass"] .x-copy').length === 0);
+{
+  let copied = null;
+  Object.defineProperty(window.navigator, 'clipboard', { value: { writeText: async (t) => { copied = t; } }, configurable: true });
+  const btn = $('#resultRows tr[data-status="fail"] .x-copy');
+  btn.click(); await tick(); await tick();
+  ok('page: Copy as ticket writes Markdown with title, check, severity, fix and controls', copied && /^### /.test(copied) && /\*\*Check:\*\* [A-Z-]+\d/.test(copied) && /\*\*Severity:\*\*/.test(copied) && /\*\*Owner:\*\*/.test(copied));
+  ok('page: the button confirms the copy', btn.textContent === 'Copied');
+  $('#explorer .x-chip[data-value="quick"]').click();
+  ok('page: Quick win chip narrows to quick wins', visibleRows().length > 0 && visibleRows().every(r => r.dataset.effort === 'quick'));
+  $('#explorer .x-clear').click();
+}
+downloads = [];
+$('#dlPlan').click();
+ok('remediation plan downloads as Markdown', downloads.some(n => /^remediation-plan-.*\.md$/.test(n)));
+const { planMarkdown } = await import('../../assets/app/report.js');
+const md = planMarkdown(rep2);
+ok('plan Markdown has owner headings and numbered items', /^## Identity administrator/m.test(md) && /^1\. /m.test(md) && /quick win/.test(md));
+ok('workbook gains Remediation plan and Security signals sheets', wb2.SheetNames.includes('Remediation plan') && wb2.SheetNames.includes('Security signals'));
+ok('HTML report carries plan, signals, area cards and tickets', /<h2>Remediation plan<\/h2>/.test(rpt2) && /<h2>Microsoft security signals<\/h2>/.test(rpt2) && /data-area-card=/.test(rpt2) && /class="x-copy" data-ticket=/.test(rpt2));
+ok('HTML report lists open alerts high first', /Atypical travel sign-in[\s\S]*Suspicious inbox forwarding/.test(rpt2) && !/Old resolved alert/.test(rpt2));
+ok('executive summary projects the quick-win pass rate', /quick wins?[^.]*raise the pass rate to \d+%/.test($('#execSummary').textContent));
+
+// ---- compare with any earlier run ----------------------------------------------------------
+ok('with only one earlier run there is no picker', $('#driftPickWrap').hidden);
+// A third run gives two earlier baselines to choose from.
+$('#btnRestart').click(); for (let i = 0; i < 10; i++) await tick();
+$('#next').click(); $('#next').click(); $('#next').click();
+$('#tenantInput').value = 'fabrikam.onmicrosoft.com';
+$('#btnSignIn').click(); await tick(); await tick();
+$('#btnRun').click();
+for (let i = 0; i < 40 && active() !== 5; i++) await tick();
+ok('third run reaches results', active() === 5 && history.list(rep2.tenant).length === 3);
+ok('picker offers the two earlier runs, latest selected', !$('#driftPickWrap').hidden && $$('#driftPick option').length === 2 && $('#driftPick').selectedIndex === 0);
+const firstRun = history.list(rep2.tenant)[0];
+$('#driftPick').value = firstRun.started; $('#driftPick').onchange();
+ok('choosing the first run re-diffs against it', main.getState().report.drift.previousStarted === firstRun.started && /Compared with the run on/.test($('#driftSummary').textContent));
+ok('the re-diff against the hardened baseline shows regressions', main.getState().report.drift.regressed.length > 10);
+ok('picker keeps the chosen run selected after re-render', $('#driftPick').value === firstRun.started);
 $('#btnForget').click();
 ok('forget clears stored runs and says so', history.list(rep2.tenant).length === 0 && /forgotten/.test($('#driftSummary').textContent));
 ok('forget hides the lists and the button', $('#driftLists').hidden && $('#btnForget').hidden);
 
 // ---- a tab open across a deploy must not keep running stale code --------------------------
 ok('same release: no reload so far', reloads === 0);
+$('#explorer .x-clear').click();
 // A deploy in flight: the new main.js is up but a module it imports is not there yet.
 releaseStamp = 'v2'; missingModule = 'explore.js';
 $('#btnRestart').click(); for (let i = 0; i < 10; i++) await tick();

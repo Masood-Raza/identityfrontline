@@ -54,7 +54,7 @@ ok('every Graph source declares scopes; local data needs none', Object.values(SO
 ok('every source has a user-facing label', Object.values(SOURCES).every(s => s.label));
 ok('scopes are all read-only', REQUIRED_SCOPES.every(s => !/\.(Read)?Write|FullControl|AccessAsUser/i.test(s)), REQUIRED_SCOPES.join(', '));
 ok('identity scope set is the expected six', REQUIRED_SCOPES.length === 6, REQUIRED_SCOPES.join(', '));
-ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'collaboration', 'intune', 'privileged'].includes(c.area)));
+ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'collaboration', 'intune', 'privileged', 'signals'].includes(c.area)));
 const tiers = JSON.parse(readFileSync(join(root, 'assets/catalog/app-tiers.json'), 'utf8'));
 ok('app tier data shipped with tier 0, tier 1 and first-party lists',
   tiers.tier0.length > 30 && tiers.tier1.length >= 4 && tiers.firstPartyAppIds.length > 200 && tiers.firstPartyTenantIds.length === 4);
