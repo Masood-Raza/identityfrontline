@@ -65,7 +65,9 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
    run with reduced coverage. Progress is shown per data source.
 5. **Results** — pass rate, failures by severity, an executive summary, the five findings to
    fix first, every finding with remediation, framework coverage, and what could not be
-   collected. Download the HTML report, print it to PDF, or export an Excel workbook (summary,
+   collected. A findings explorer above the tables searches check IDs, names, details and
+   control IDs, and filters by status, severity, area and (once a comparison exists) change
+   since the last run; the same explorer is embedded in the downloaded report. Download the HTML report, print it to PDF, or export an Excel workbook (summary,
    findings, a check-by-framework compliance matrix, coverage), CSV or JSON.
 
 ## Baseline and drift
@@ -150,7 +152,7 @@ To try it in a browser: `pwsh -File tools/Serve-Site.ps1` (module scripts need h
 | No unattended use possible | No application permissions on the app registration |
 | Throttling respected | 429/503 honour `Retry-After` with bounded backoff |
 | Nothing logged | MSAL logger disabled, PII logging off |
-| Reports are inert | Generated HTML has no scripts and no external references |
+| Reports are self-contained | Generated HTML references nothing external. Its only script is the findings explorer (search and filters), embedded verbatim from `explore.js`; it touches no network API, and a test asserts both |
 
 ## Attribution
 

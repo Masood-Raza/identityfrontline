@@ -5,6 +5,7 @@
 // remediation ticket.
 
 import { frameworksOf } from './engine.js';
+import { explorer, rowAttrs, explorerToolbar, EXPLORER_CSS } from './explore.js';
 
 const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Unknown'];
 const STATUS_ORDER = { Fail: 0, Warning: 1, Unknown: 2, NotApplicable: 3, Pass: 4 };
@@ -61,6 +62,10 @@ export function scopeLabel(report) {
 }
 
 export function executiveSummary(report) {
+  return executiveSummaryParts(report).join(' ');
+}
+
+export function executiveSummaryParts(report) {
   const s = report.summary;
   const name = report.tenant?.name || 'The tenant';
   const parts = [];
@@ -108,7 +113,7 @@ export function executiveSummary(report) {
   }
 
   parts.push('This is a point-in-time posture snapshot, not a certification.');
-  return parts.join(' ');
+  return parts;
 }
 
 const frameworkCell = (r, filter) =>
@@ -308,17 +313,26 @@ export function buildHtmlReport(report) {
   const warnPill = s.warning ? ` <span class="pill warning">${s.warning} partial</span>` : '';
   const areaLine = (report.areas || []).map(a => esc(a.label)).join(', ');
 
-  const row = (r) => `
-    <tr class="s-${r.status.toLowerCase()}">
-      <td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span></td>
-      <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>
-      <td><code>${esc(r.id)}</code><div class="nm">${esc(r.name)}</div></td>
-      <td>${esc(r.detail)}
-        ${(r.status === 'Fail' || r.status === 'Warning') && r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}
-        ${(r.status === 'Fail' || r.status === 'Warning') && r.remediation?.powershell ? `<div class="rem"><code>${esc(fixText(r.remediation.powershell))}</code></div>` : ''}
-      </td>
-      <td class="fw">${Object.entries(frameworksOf(r, r.inScope === false ? [] : report.frameworkFilter)).map(([, m]) => esc(m.controlId)).join('<br>')}</td>
-    </tr>`;
+  // Control IDs beyond the first eight fold away: a check that maps to two hundred MITRE
+  // techniques should not be two screens tall.
+  const controlsCell = (r) => {
+    const ids = Object.values(frameworksOf(r, r.inScope === false ? [] : report.frameworkFilter)).map(m => m.controlId);
+    const head = ids.slice(0, 8).map(esc).join('<br>');
+    const rest = ids.slice(8);
+    return { text: ids.join(' '), html: rest.length ? `${head}<details class="more"><summary>+${rest.length} more</summary>${rest.map(esc).join('<br>')}</details>` : head };
+  };
+  const row = (r) => {
+    const c = controlsCell(r);
+    const fixable = r.status === 'Fail' || r.status === 'Warning';
+    const fix = (fixable && r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : '') +
+                (fixable && r.remediation?.powershell ? `<div class="rem"><code>${esc(fixText(r.remediation.powershell))}</code></div>` : '');
+    return `<tr class="s-${r.status.toLowerCase()}" ${rowAttrs(r, report, c.text)}>` +
+      `<td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span></td>` +
+      `<td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>` +
+      `<td><code>${esc(r.id)}</code><div class="nm">${esc(r.name)}</div></td>` +
+      `<td>${esc(r.detail)}${fix}</td>` +
+      `<td class="fw">${c.html}</td></tr>`;
+  };
 
   const sorted = sortResults(report.results);
   const findings = sorted.filter(r => r.inScope !== false).map(row).join('');
@@ -402,8 +416,16 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-si
 .scope{display:inline-block;font-size:13px;font-weight:400;background:rgba(255,255,255,.12);padding:3px 10px;border-radius:11px;vertical-align:middle;margin-left:8px}
 .priorities{padding-left:22px}.priorities li{margin-bottom:12px}.priorities li>b{font-size:14px}
 h3{font-size:15px;margin:18px 0 6px}.drift{padding-left:22px}.drift li{margin-bottom:9px}
+.lead{margin:0 0 10px}
+table.findings th:nth-child(1),table.findings td:nth-child(1){width:88px;white-space:nowrap}
+table.findings th:nth-child(2),table.findings td:nth-child(2){width:78px;white-space:nowrap}
+table.findings th:nth-child(3),table.findings td:nth-child(3){width:26%}
+table.findings th:nth-child(5),table.findings td:nth-child(5){width:200px}
+table.findings thead th{position:sticky;top:0;z-index:1}
+details.more{margin-top:4px}details.more summary{cursor:pointer;color:#274b6d;font-size:11px}
+${EXPLORER_CSS}
 @page{margin:14mm}
-@media print{body{background:#fff;font-size:12px}header{background:#fff;color:#000;border-bottom:2px solid #000;padding:0 0 12px}header p{color:#444}main{padding:0;max-width:none}h2{break-after:avoid}tr{break-inside:avoid}table{font-size:11px}th,td{padding:6px 8px}.cards{grid-template-columns:repeat(5,1fr)}.card b{font-size:20px}tr.s-pass td{opacity:1}}
+@media print{body{background:#fff;font-size:12px}header{background:#fff;color:#000;border-bottom:2px solid #000;padding:0 0 12px}header p{color:#444}main{padding:0;max-width:none}h2{break-after:avoid}tr{break-inside:avoid}table{font-size:11px}th,td{padding:6px 8px}.cards{grid-template-columns:repeat(5,1fr)}.card b{font-size:20px}tr.s-pass td{opacity:1}details.more{display:none}table.findings thead th{position:static}}
 </style></head><body>
 <header>
   <h1>Microsoft 365 security assessment${scope ? ` <span class="scope">${esc(scope)}</span>` : ''}</h1>
@@ -421,27 +443,27 @@ h3{font-size:15px;margin:18px 0 6px}.drift{padding-left:22px}.drift li{margin-bo
   <p style="margin-top:14px">${sevRow}${warnPill}</p>
   <p class="muted">${scope
     ? `Scored against the ${report.scope.inScopeCount} checks that map to ${esc(scope)}; ${s.scored} of those could be scored. Across all ${report.results.length} checks regardless of framework the pass rate is ${sAll.passRate === null ? 'n/a' : sAll.passRate + '%'} (${sAll.pass} of ${sAll.scored}).`
-    : `Pass rate counts only the ${s.scored} checks that could be scored.`} Unknown and
-  not-applicable results are excluded rather than counted as failures.</p>
+    : `Pass rate counts only the ${s.scored} checks that could be scored.`} Unknown and not-applicable results are excluded rather than counted as failures.</p>
 
   <h2>Executive summary</h2>
-  <p class="lead">${esc(executiveSummary(report))}</p>
+  ${executiveSummaryParts(report).map(p => `<p class="lead">${esc(p)}</p>`).join('')}
 
   ${priorities ? `<h2>Fix first</h2><ol class="priorities">${priorities}</ol>` : ''}
   ${driftSection}
 
   <h2>Findings${scope ? ` — ${esc(scope)}` : ''}</h2>
   <p class="muted">${esc(scopeNote)}</p>
-  <table><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
-  <tbody>${findings}</tbody></table>
+  ${explorerToolbar(report)}
+  <table class="findings"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
+  <tbody data-explore>${findings}</tbody></table>
 
   ${others.length ? `
   <h2>Other findings — not mapped to ${esc(scope)}</h2>
   <p class="muted">${others.length} check${others.length === 1 ? '' : 's'} were assessed but do not map to the selected
   framework${report.scope.frameworks.length === 1 ? '' : 's'}: ${othersSummary.pass} passed, ${othersSummary.fail} failed, ${othersSummary.other} other.
   They are excluded from the score above and listed here so nothing is hidden. Controls shown are all their mappings.</p>
-  <table><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
-  <tbody>${othersRows}</tbody></table>` : ''}
+  <table class="findings"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
+  <tbody data-explore>${othersRows}</tbody></table>` : ''}
 
   <h2>Compliance framework coverage</h2>
   <p class="muted">One technical condition maps to many frameworks. These figures reflect only the
@@ -458,5 +480,7 @@ h3{font-size:15px;margin:18px 0 6px}.drift{padding-left:22px}.drift li{margin-bo
     This is a posture snapshot and remediation guide, not a certification or formal audit opinion.<br>
     <strong>Confidential.</strong> Contains tenant configuration and administrator identities.
   </footer>
-</main></body></html>`;
+</main>
+<script>(${explorer.toString()})(document.body);</script>
+</body></html>`;
 }

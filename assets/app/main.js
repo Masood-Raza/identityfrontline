@@ -9,7 +9,8 @@ import { missingScopes } from './auth.js';
 import { runAssessment as realRun, scopesFor, ALL_SCOPES, checksFor } from './engine.js';
 import { AREAS } from './checks.js';
 import * as history from './history.js';
-import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, printReport, executiveSummary, scopeLabel, fixText, esc } from './report.js';
+import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, printReport, executiveSummaryParts, scopeLabel, fixText, esc } from './report.js';
+import { explorer, rowAttrs, explorerToolbar, EXPLORER_CSS } from './explore.js';
 
 // Injectable for tests: the flow can be driven end to end with sign-in and Graph mocked.
 const deps = {
@@ -79,6 +80,8 @@ async function boot() {
   }
 
   bootStamp = await releaseStamp();
+
+  document.head.appendChild(Object.assign(document.createElement('style'), { textContent: EXPLORER_CSS }));
 
   renderFrameworks();
   renderScope();
@@ -344,7 +347,7 @@ function renderResults(report) {
   el('sevRow').innerHTML = (sev || '<span class="pill none">No failed checks</span>') +
     (s.warning ? ` <span class="pill warning">${s.warning} partial</span>` : '');
 
-  el('execSummary').textContent = executiveSummary(report);
+  el('execSummary').innerHTML = executiveSummaryParts(report).map(p => `<p>${esc(p)}</p>`).join('');
 
   const top = report.priorities || [];
   el('priorityList').innerHTML = top.map(r => `
@@ -373,7 +376,7 @@ function renderResults(report) {
     return '';
   };
   const row = (r) => `
-    <tr class="s-${r.status.toLowerCase()}">
+    <tr class="s-${r.status.toLowerCase()}" ${rowAttrs(r, report)}>
       <td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span>${badge(r)}</td>
       <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>
       <td><div class="nm">${esc(r.name)}</div><code>${esc(r.id)}</code></td>
@@ -394,6 +397,8 @@ function renderResults(report) {
   } else {
     show('otherWrap', false);
   }
+  el('explorer').innerHTML = explorerToolbar(report);
+  explorer(document.querySelector('[data-panel="5"]'));
 
   el('frameworkRows').innerHTML = report.frameworks.map(f => `
     <tr><td>${esc(f.label)}</td><td class="num">${f.pass}</td><td class="num">${f.fail}</td>
