@@ -13,7 +13,8 @@ component.
    ├─ assets/app/auth.js      MSAL.js sign-in (auth code + PKCE), admin consent popup
    ├─ assets/app/engine.js    fetch Graph sources once, evaluate checks, score, roll up
    ├─ assets/app/checks.js    the checks: which Graph data each needs + a pass/fail predicate
-   ├─ assets/app/report.js    on-page results, self-contained HTML / CSV / JSON downloads
+   ├─ assets/app/report.js    on-page results, self-contained HTML / CSV / JSON / XLSX downloads
+   ├─ assets/app/history.js   runs remembered per tenant in localStorage; drift between runs
    └─ assets/app/config.js    YOUR app registration client ID (see Setup)
 
  assets/catalog/checks.json   generated: name, severity, rationale, remediation and framework
@@ -67,6 +68,18 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
    collected. Download the HTML report, print it to PDF, or export an Excel workbook (summary,
    findings, a check-by-framework compliance matrix, coverage), CSV or JSON.
 
+## Baseline and drift
+
+Every completed run is remembered in the browser's own localStorage, keyed by tenant, unless
+the user unticks *Remember this run* on step 4. Only check id, status, severity and the
+one-line detail are kept — no token, no Graph payloads — and at most twelve runs per tenant.
+Nothing is transmitted.
+
+The next run for the same tenant is compared with the most recent remembered one: fixed,
+regressed, still-failing-but-changed, newly assessed, and no longer assessed. The results page
+shows the comparison with badges on affected rows; the HTML report gains a *Changes since*
+section and the workbook a *Changes* sheet. *Forget stored runs for this tenant* clears them.
+
 Framework selection in step 1 narrows what is *reported* — the coverage table, the mapping
 column, the matrix columns — never what is assessed. Nothing selected means everything.
 
@@ -119,6 +132,8 @@ cd tools/tests && npm install && npm test
   hard-codes nothing the catalog supplies.
 - `engine.test.mjs` — every predicate against a hardened tenant, a default tenant, a
   permission-denied source, and empty payloads.
+- `history.test.mjs` — snapshot shape, per-tenant storage, the twelve-run cap, every drift
+  category, and storage that is blocked or absent.
 - `wizard.test.mjs` — the real page and controller in jsdom, driven end to end with sign-in
   and Graph mocked: setup notice, all five steps, missing-scope → consent → run → downloads →
   restart, and a degraded run.
@@ -158,4 +173,3 @@ Check definitions, severities, remediation and framework mappings derive from
   alerts are reachable and not yet implemented.
 - **Teams meeting policy, Forms settings and several Intune reads use Graph beta.** They
   are the same endpoints M365-Assess uses, but beta can change shape without notice.
-- **No baseline or drift.** Each run stands alone; nothing is remembered between runs.

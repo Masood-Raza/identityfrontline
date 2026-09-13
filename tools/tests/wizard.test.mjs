@@ -62,6 +62,9 @@ globalThis.fetch = async (url, opts) => {
 };
 
 const { CONFIG } = await import('../../assets/app/config.js');
+const history = await import('../../assets/app/history.js');
+const mem = new Map();
+history.useStorage({ getItem: k => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: k => mem.delete(k) });
 const main = await import('../../assets/app/main.js');
 
 const $ = (s) => window.document.querySelector(s);
@@ -168,7 +171,8 @@ $('#dlHtml').click(); $('#dlCsv').click(); $('#dlJson').click();
 ok('three downloads produced', downloads.length === 3, downloads.join(','));
 ok('download names carry tenant and date', downloads.every(d => /contoso-onmicrosoft-com-\d{4}-\d{2}-\d{2}\.(html|csv|json)$/.test(d)), downloads.join(','));
 
-const { buildHtmlReport } = await import('../../assets/app/report.js');
+const { buildHtmlReport, buildWorkbook } = await import('../../assets/app/report.js');
+const XLSXlib = (await import('xlsx')).default;
 const rpt = buildHtmlReport(main.getState().report);
 ok('HTML report is self-contained (no scripts, no external URLs)', !/<script|src="http|href="http/.test(rpt.replace(/https:\/\/github\.com\/Galvnyz\/M365-Assess/g, '')));
 ok('HTML report escapes content', !/<script>alert/.test(rpt));
@@ -191,14 +195,16 @@ ok('page shows out-of-scope findings in their own section', visible('otherWrap')
 ok('in-scope plus other rows equal all checks for two areas (54)', $$('#resultRows tr').length + $$('#otherRows tr').length === 54, String($$('#resultRows tr').length + $$('#otherRows tr').length));
 ok('results include SharePoint and Teams checks', /SPO-SHARING-001/.test($('#resultRows').textContent + $('#otherRows').textContent) && /TEAMS-APPS-001/.test($('#resultRows').textContent + $('#otherRows').textContent));
 ok('run metadata names the areas', /Collaboration/.test($('#runMeta').textContent));
+ok('remember-this-run is on by default', $('#rememberRun').checked);
+ok('first run: nothing to compare, and it was remembered', /First remembered run/.test($('#driftSummary').textContent) && mem.size === 1);
+ok('first run: no drift badges', $$('#resultRows .drift').length === 0);
+ok('first run: HTML report has no changes section', !/Changes since/.test(buildHtmlReport(main.getState().report)));
 ok('run metadata names the scope', $('#runMeta').textContent.includes('Scope: '));
 ok('executive summary rendered on page', /passed \d+ of \d+ scored checks/.test($('#execSummary').textContent), $('#execSummary').textContent);
 ok('no priorities on a clean tenant', !visible('priorityWrap'));
 
 // ---- Excel workbook, built for real and read back -----------------------------------------
-const XLSXlib = (await import('xlsx')).default;
 globalThis.XLSX = XLSXlib;
-const { buildWorkbook } = await import('../../assets/app/report.js');
 const wb = buildWorkbook(rep1, XLSXlib);
 ok('workbook has the four sheets', JSON.stringify(wb.SheetNames) === JSON.stringify(['Summary', 'Findings', 'Compliance matrix', 'Framework coverage']), wb.SheetNames.join(','));
 const roundTrip = XLSXlib.read(XLSXlib.write(wb, { bookType: 'xlsx', type: 'array' }), { type: 'array' });
@@ -251,6 +257,25 @@ ok('remediation shown on failed rows', $$('#resultRows .rem').length > 0);
 ok('fix-first list shown with five items on a failing tenant', visible('priorityWrap') && $$('#priorityList li').length === 5, `${$$('#priorityList li').length}`);
 ok('executive summary names what to address first', /Address first:/.test($('#execSummary').textContent));
 ok('framework selection survives a restart', main.getState().frameworks.size === 2 && $$('#frameworkRows tr').length === 2);
+
+// ---- drift: same tenant, worse posture ----------------------------------------------------
+const rep2 = main.getState().report;
+ok('second run is compared with the first', !!rep2.drift && /Compared with the run on/.test($('#driftSummary').textContent));
+ok('pass rate delta is negative and shown', rep2.drift.delta < 0 && /▼/.test($('#driftSummary').textContent), String(rep2.drift.delta));
+ok('regressions listed', rep2.drift.regressed.length > 10 && $$('#driftRegressed li').length === rep2.drift.regressed.length, String(rep2.drift.regressed.length));
+ok('nothing fixed on a worse run', rep2.drift.fixed.length === 0 && /None/.test($('#driftFixed').textContent));
+ok('same areas both times: nothing new or dropped', rep2.drift.added.length === 0 && rep2.drift.dropped === 0);
+ok('regressed rows carry a badge', $$('#resultRows .drift.down').length + $$('#otherRows .drift.down').length === rep2.drift.regressed.length);
+ok('executive summary mentions the change', /Since the run on/.test($('#execSummary').textContent));
+const rpt2 = buildHtmlReport(rep2);
+ok('HTML report has a changes section', /Changes since/.test(rpt2) && /Regressed/.test(rpt2));
+ok('HTML report says comparison data stays in the browser', /kept only in the browser/.test(rpt2));
+const wb2 = buildWorkbook(rep2, XLSXlib);
+ok('workbook gains a Changes sheet', wb2.SheetNames.includes('Changes'));
+ok('two runs remembered for the tenant', history.list(rep2.tenant).length === 2);
+$('#btnForget').click();
+ok('forget clears stored runs and says so', history.list(rep2.tenant).length === 0 && /forgotten/.test($('#driftSummary').textContent));
+ok('forget hides the lists and the button', $('#driftLists').hidden && $('#btnForget').hidden);
 
 console.log(`\n${fail === 0 ? 'all flow checks passed' : fail + ' FAILED'}`);
 process.exit(fail ? 1 : 0);

@@ -8,6 +8,7 @@ import * as auth from './auth.js';
 import { missingScopes } from './auth.js';
 import { runAssessment as realRun, scopesFor, ALL_SCOPES, checksFor } from './engine.js';
 import { AREAS } from './checks.js';
+import * as history from './history.js';
 import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, printReport, executiveSummary, scopeLabel, fixText, esc } from './report.js';
 
 // Injectable for tests: the flow can be driven end to end with sign-in and Graph mocked.
@@ -16,7 +17,8 @@ const deps = {
   getToken: auth.getToken,
   requestAdminConsent: auth.requestAdminConsent,
   signOut: auth.signOut,
-  runAssessment: realRun
+  runAssessment: realRun,
+  history
 };
 
 const el = (id) => document.getElementById(id);
@@ -281,6 +283,11 @@ async function doRun() {
       }
     });
 
+    // Drift against the last remembered run for this tenant, then remember this one.
+    const previous = deps.history.latest(state.report.tenant);
+    state.report.drift = deps.history.diff(state.report, previous);
+    state.report.remembered = el('rememberRun').checked ? deps.history.save(state.report) : false;
+
     renderResults(state.report);
     goto(5);
     setStatus('Assessment complete.', 'ok');
@@ -333,9 +340,16 @@ function renderResults(report) {
     ? `Coverage for ${scope}. Each row counts only the checks that map to that framework, so rates differ from the headline when more than one is selected.`
     : 'Showing every framework. Each row counts only the checks that map to that framework.';
 
+  const badge = (r) => {
+    const d = report.drift; if (!d) return '';
+    if (d.regressed.some(x => x.id === r.id)) return ' <span class="drift down" title="Regressed since the previous run">▼</span>';
+    if (d.fixed.some(x => x.id === r.id)) return ' <span class="drift up" title="Fixed since the previous run">▲</span>';
+    if (d.added.some(x => x.id === r.id)) return ' <span class="drift new" title="Not assessed in the previous run">new</span>';
+    return '';
+  };
   const row = (r) => `
     <tr class="s-${r.status.toLowerCase()}">
-      <td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span></td>
+      <td><span class="status ${r.status.toLowerCase()}">${esc(r.status)}</span>${badge(r)}</td>
       <td><span class="sev ${esc(String(r.severity).toLowerCase())}">${esc(r.severity)}</span></td>
       <td><div class="nm">${esc(r.name)}</div><code>${esc(r.id)}</code></td>
       <td>${esc(r.detail)}${r.status === 'Fail' && r.remediation?.portal
@@ -369,10 +383,40 @@ function renderResults(report) {
     show('unavailableWrap', false);
   }
 
+  renderDrift(report);
+
   el('runMeta').textContent =
     `${state.tenant} · ${new Date(report.started).toLocaleString()} · ${(report.durationMs / 1000).toFixed(1)}s · ` +
     `${(report.areas || []).map(a => a.label).join(', ')} · ` +
     (scope ? `Scope: ${scope}` : 'All frameworks');
+}
+
+function renderDrift(report) {
+  const d = report.drift;
+  const stored = deps.history.list(report.tenant).length;
+  if (!d) {
+    el('driftSummary').innerHTML = report.remembered
+      ? 'First remembered run for this tenant. Run again later and this section will show what changed.'
+      : 'This run was not remembered, so there is nothing to compare against next time.';
+    show('driftLists', false);
+    show('btnForget', stored > 0);
+    return;
+  }
+  const when = new Date(d.previousStarted).toLocaleString();
+  const arrow = d.delta === null ? '' : d.delta > 0 ? ` <b class="up">▲ ${d.delta} points</b>` : d.delta < 0 ? ` <b class="down">▼ ${Math.abs(d.delta)} points</b>` : ' <b>no change</b>';
+  el('driftSummary').innerHTML =
+    `Compared with the run on <b>${esc(when)}</b>: pass rate ${d.previousPassRate === null ? '—' : d.previousPassRate + '%'} → ${d.passRate === null ? '—' : d.passRate + '%'}${arrow}. ` +
+    `<span class="pill none">${d.fixed.length} fixed</span> <span class="pill high">${d.regressed.length} regressed</span> ` +
+    `<span class="pill low">${d.added.length} new</span> ${d.changed.length ? `<span class="pill warning">${d.changed.length} still failing, detail changed</span> ` : ''}` +
+    `${d.dropped ? `${d.dropped} check${d.dropped === 1 ? '' : 's'} from the previous run not assessed this time. ` : ''}` +
+    `${report.remembered ? '' : 'This run was not remembered.'}`;
+
+  const li = (r, note) => `<li><b>${esc(r.name)}</b> <code>${esc(r.id)}</code>${note ? ` — ${esc(note)}` : ''}<div class="hint" style="margin:3px 0 0">${esc(r.detail)}</div></li>`;
+  el('driftRegressed').innerHTML = d.regressed.map(r => li(r, `was ${r.previousStatus}, now ${r.status}`)).join('') || '<li class="hint">None.</li>';
+  el('driftFixed').innerHTML = d.fixed.map(r => li(r, r.partial ? `was Fail, now Warning` : `was ${r.previousStatus}, now Pass`)).join('') || '<li class="hint">None.</li>';
+  el('driftChanged').innerHTML = d.changed.map(r => li(r, `previously: ${r.previousDetail || r.previousStatus}`)).join('') || '<li class="hint">None.</li>';
+  show('driftLists');
+  show('btnForget');
 }
 
 // ---------------------------------------------------------------------------------------
@@ -401,6 +445,14 @@ function wire() {
     if (state.report && !printReport(state.report)) {
       setStatus('The print window was blocked. Allow popups for this site, or download the HTML report and print it.', 'warn');
     }
+  };
+
+  el('btnForget').onclick = () => {
+    if (!state.report) return;
+    deps.history.forget(state.report.tenant);
+    el('driftSummary').textContent = 'Stored runs for this tenant have been forgotten from this browser.';
+    show('driftLists', false);
+    show('btnForget', false);
   };
 
   el('btnRestart').onclick = () => {
