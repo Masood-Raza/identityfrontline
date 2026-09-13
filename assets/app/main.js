@@ -20,24 +20,37 @@ const deps = {
   signOut: auth.signOut,
   runAssessment: realRun,
   history,
-  reload: () => window.location.reload()
+  reload: () => window.location.reload(),
+  settleMs: 4000
 };
 
 // A tab left open across a deploy keeps running the modules it loaded, and "Start again"
 // restarts the wizard without reloading the page. The release stamp is the server's ETag for
 // this module; when it has moved on, restarting reloads instead so a long-lived tab cannot
 // run stale code against a newer catalog.
+//
+// A deploy uploads files one at a time, so a changed main.js can be seen while its imports
+// are still the old ones or not there yet. Reloading then produces a broken page. The guard
+// therefore only reloads once every module answers, and the stamp has held still for two
+// consecutive looks a few seconds apart -- a completed deploy, not one in flight.
+const MODULES = ['main.js', 'explore.js', 'report.js', 'engine.js', 'checks.js', 'history.js', 'auth.js', 'config.js'];
 let bootStamp = null;
-async function releaseStamp() {
+async function releaseStamp(file = 'main.js') {
   try {
-    const r = await fetch('assets/app/main.js', { method: 'HEAD', cache: 'no-cache' });
+    const r = await fetch(`assets/app/${file}`, { method: 'HEAD', cache: 'no-cache' });
     if (!r.ok || !r.headers?.get) return null;
     return r.headers.get('etag') || r.headers.get('last-modified') || null;
   } catch { return null; }
 }
+const pause = (ms) => new Promise(r => setTimeout(r, ms));
 async function releaseChanged() {
   const now = await releaseStamp();
-  return Boolean(bootStamp && now && now !== bootStamp);
+  if (!bootStamp || !now || now === bootStamp) return false;
+  await pause(deps.settleMs);
+  const again = await releaseStamp();
+  if (again !== now) return false;                       // still moving: stay on this release
+  const all = await Promise.all(MODULES.map(m => releaseStamp(m)));
+  return all.every(Boolean);                             // every module present and answering
 }
 
 const el = (id) => document.getElementById(id);
@@ -72,6 +85,15 @@ async function boot() {
     show('bootError');
     return;
   }
+  try {
+    await bootUi();
+  } catch (e) {
+    el('bootError').textContent = `The assessment could not start (${e?.message || e}). Reload the page; if it persists, try again in a minute.`;
+    show('bootError');
+  }
+}
+
+async function bootUi() {
 
   if (!isConfigured()) {
     show('setupNotice');
