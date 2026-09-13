@@ -18,8 +18,26 @@ const deps = {
   requestAdminConsent: auth.requestAdminConsent,
   signOut: auth.signOut,
   runAssessment: realRun,
-  history
+  history,
+  reload: () => window.location.reload()
 };
+
+// A tab left open across a deploy keeps running the modules it loaded, and "Start again"
+// restarts the wizard without reloading the page. The release stamp is the server's ETag for
+// this module; when it has moved on, restarting reloads instead so a long-lived tab cannot
+// run stale code against a newer catalog.
+let bootStamp = null;
+async function releaseStamp() {
+  try {
+    const r = await fetch('assets/app/main.js', { method: 'HEAD', cache: 'no-cache' });
+    if (!r.ok || !r.headers?.get) return null;
+    return r.headers.get('etag') || r.headers.get('last-modified') || null;
+  } catch { return null; }
+}
+async function releaseChanged() {
+  const now = await releaseStamp();
+  return Boolean(bootStamp && now && now !== bootStamp);
+}
 
 const el = (id) => document.getElementById(id);
 const requiredScopes = () => scopesFor([...state.areas]);
@@ -59,6 +77,8 @@ async function boot() {
     el('setupScopes').textContent = ALL_SCOPES.join(', ');
     el('setupRedirect').textContent = CONFIG.redirectUri;
   }
+
+  bootStamp = await releaseStamp();
 
   renderFrameworks();
   renderScope();
@@ -265,6 +285,11 @@ async function doRun() {
   busy(true, 'Starting…');
   show('progressWrap');
   try {
+    if (await releaseChanged()) {
+      setStatus('A newer version of this assessment has been published. Reloading to use it…', 'warn');
+      deps.reload();
+      return;
+    }
     // Refresh the token so a long-running planning session cannot hit an expired one.
     const t = await deps.getToken(requiredScopes());
     state.token = t.token;
@@ -455,7 +480,8 @@ function wire() {
     show('btnForget', false);
   };
 
-  el('btnRestart').onclick = () => {
+  el('btnRestart').onclick = async () => {
+    if (await releaseChanged()) { deps.reload(); return; }
     deps.signOut();
     Object.assign(state, { session: null, token: null, granted: [], report: null });
     show('signedInRow', false);
