@@ -100,6 +100,13 @@ export function executiveSummary(report) {
     parts.push(`${s.unknown} check${s.unknown === 1 ? '' : 's'} could not be evaluated and ${s.unknown === 1 ? 'is' : 'are'} excluded from the score${report.unavailable?.length ? ` (${report.unavailable.map(u => u.label.toLowerCase()).join(', ')} not collected)` : ''}.`);
   }
 
+  const d = report.drift;
+  if (d) {
+    const when = new Date(d.previousStarted).toLocaleDateString();
+    const dir = d.delta === null ? '' : d.delta > 0 ? `up ${d.delta} points` : d.delta < 0 ? `down ${Math.abs(d.delta)} points` : 'unchanged';
+    parts.push(`Since the run on ${when} the pass rate is ${dir}: ${d.fixed.length} fixed, ${d.regressed.length} regressed, ${d.added.length} newly assessed.`);
+  }
+
   parts.push('This is a point-in-time posture snapshot, not a certification.');
   return parts.join(' ');
 }
@@ -242,6 +249,27 @@ export function buildWorkbook(report, lib) {
   wsMatrix['!freeze'] = { xSplit: 2, ySplit: 1 };
   X.utils.book_append_sheet(wb, wsMatrix, 'Compliance matrix');
 
+  // --- Changes since the previous run ---
+  if (report.drift) {
+    const d = report.drift;
+    const rows = [
+      ['Compared with run', new Date(d.previousStarted).toLocaleString()],
+      ['Pass rate then', d.previousPassRate === null ? 'n/a' : `${d.previousPassRate}%`],
+      ['Pass rate now', d.passRate === null ? 'n/a' : `${d.passRate}%`],
+      ['Fixed', d.fixed.length], ['Regressed', d.regressed.length], ['Newly assessed', d.added.length],
+      ['Still failing, detail changed', d.changed.length], ['Unchanged', d.unchanged], ['Not assessed this time', d.dropped],
+      [],
+      ['Change', 'Check ID', 'Name', 'Severity', 'Previous status', 'Current status', 'Current detail'],
+      ...d.regressed.map(r => ['Regressed', r.id, r.name, r.severity, r.previousStatus, r.status, r.detail]),
+      ...d.fixed.map(r => ['Fixed', r.id, r.name, r.severity, r.previousStatus, r.status, r.detail]),
+      ...d.changed.map(r => ['Detail changed', r.id, r.name, r.severity, r.previousStatus || r.status, r.status, r.detail]),
+      ...d.added.map(r => ['New', r.id, r.name, r.severity, '', r.status, r.detail])
+    ];
+    const wsChanges = X.utils.aoa_to_sheet(rows);
+    wsChanges['!cols'] = [{ wch: 22 }, { wch: 26 }, { wch: 56 }, { wch: 10 }, { wch: 15 }, { wch: 14 }, { wch: 80 }];
+    X.utils.book_append_sheet(wb, wsChanges, 'Changes');
+  }
+
   // --- Framework coverage ---
   const coverage = [
     ['Framework', 'Pass', 'Fail', 'Partial', 'Unknown', 'Scored', 'Pass rate', 'Failing controls'],
@@ -304,6 +332,17 @@ export function buildHtmlReport(report) {
       ${r.remediation?.portal ? `<div class="rem"><b>Fix:</b> ${esc(fixText(r.remediation.portal))}</div>` : ''}
     </li>`).join('');
 
+  const d = report.drift;
+  const driftLi = (r, note) => `<li><b>${esc(r.name)}</b> <code>${esc(r.id)}</code> — ${esc(note)}<div class="muted">${esc(r.detail)}</div></li>`;
+  const driftSection = d ? `
+  <h2>Changes since ${esc(new Date(d.previousStarted).toLocaleString())}</h2>
+  <p class="muted">Pass rate ${d.previousPassRate === null ? '—' : d.previousPassRate + '%'} → ${d.passRate === null ? '—' : d.passRate + '%'}.
+  ${d.fixed.length} fixed, ${d.regressed.length} regressed, ${d.added.length} newly assessed, ${d.unchanged} unchanged${d.dropped ? `, ${d.dropped} not assessed this time` : ''}.
+  Comparison data is kept only in the browser that ran the assessment.</p>
+  ${d.regressed.length ? `<h3>Regressed</h3><ul class="drift">${d.regressed.map(r => driftLi(r, `was ${r.previousStatus}, now ${r.status}`)).join('')}</ul>` : ''}
+  ${d.fixed.length ? `<h3>Fixed</h3><ul class="drift">${d.fixed.map(r => driftLi(r, r.partial ? 'was Fail, now Warning' : `was ${r.previousStatus}, now Pass`)).join('')}</ul>` : ''}
+  ${d.changed.length ? `<h3>Still failing, detail changed</h3><ul class="drift">${d.changed.map(r => driftLi(r, `previously: ${r.previousDetail || r.previousStatus}`)).join('')}</ul>` : ''}` : '';
+
   const scope = scopeLabel(report);
   const sAll = report.summaryAll || s;
   const scopeNote = scope
@@ -362,6 +401,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-si
 .lead{font-size:15px;line-height:1.7;max-width:900px}
 .scope{display:inline-block;font-size:13px;font-weight:400;background:rgba(255,255,255,.12);padding:3px 10px;border-radius:11px;vertical-align:middle;margin-left:8px}
 .priorities{padding-left:22px}.priorities li{margin-bottom:12px}.priorities li>b{font-size:14px}
+h3{font-size:15px;margin:18px 0 6px}.drift{padding-left:22px}.drift li{margin-bottom:9px}
 @page{margin:14mm}
 @media print{body{background:#fff;font-size:12px}header{background:#fff;color:#000;border-bottom:2px solid #000;padding:0 0 12px}header p{color:#444}main{padding:0;max-width:none}h2{break-after:avoid}tr{break-inside:avoid}table{font-size:11px}th,td{padding:6px 8px}.cards{grid-template-columns:repeat(5,1fr)}.card b{font-size:20px}tr.s-pass td{opacity:1}}
 </style></head><body>
@@ -388,6 +428,7 @@ footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-si
   <p class="lead">${esc(executiveSummary(report))}</p>
 
   ${priorities ? `<h2>Fix first</h2><ol class="priorities">${priorities}</ol>` : ''}
+  ${driftSection}
 
   <h2>Findings${scope ? ` — ${esc(scope)}` : ''}</h2>
   <p class="muted">${esc(scopeNote)}</p>
