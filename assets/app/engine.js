@@ -137,6 +137,70 @@ async function fetchGraphAppRoles(token) {
   return { names, byPrincipal };
 }
 
+// ---------------------------------------------------------------------------------------
+// Public DNS
+//
+// SPF, DMARC, DKIM selectors and MX live in public DNS, not in Graph. Browsers cannot speak
+// DNS, but the public DNS-over-HTTPS resolvers answer cross-origin, so the page can read them
+// directly. This is the one part of the assessment that contacts a host other than Microsoft:
+// only the domain name is sent, and only to look up records anyone in the world can look up.
+const DOH = [
+  'https://cloudflare-dns.com/dns-query',
+  'https://dns.google/resolve'
+];
+
+async function dnsQuery(name, type) {
+  let lastError = null;
+  for (const base of DOH) {
+    try {
+      const res = await fetch(`${base}?name=${encodeURIComponent(name)}&type=${type}`, {
+        headers: { accept: 'application/dns-json' }
+      });
+      if (!res.ok) { lastError = new Error(`resolver returned HTTP ${res.status}`); continue; }
+      const body = await res.json();
+      // Status 0 = answered, 3 = the name does not exist. Both are real answers; anything
+      // else (2 = SERVFAIL and friends) is a resolver problem, so try the next one.
+      if (body.Status !== 0 && body.Status !== 3) { lastError = new Error(`resolver status ${body.Status}`); continue; }
+      return (body.Answer || []).filter(a => a.type === RR[type]).map(a => String(a.data || ''));
+    } catch (e) { lastError = e; }
+  }
+  throw lastError || new Error('no resolver answered');
+}
+
+const RR = { TXT: 16, MX: 15, CNAME: 5 };
+const unquote = (s) => s.replace(/^"|"$/g, '').replace(/"\s+"/g, '');
+
+async function resolveDomain(name) {
+  const out = { name };
+  try {
+    const [txt, dmarc, mx, sel1, sel2] = await Promise.all([
+      dnsQuery(name, 'TXT'), dnsQuery(`_dmarc.${name}`, 'TXT'), dnsQuery(name, 'MX'),
+      dnsQuery(`selector1._domainkey.${name}`, 'CNAME'), dnsQuery(`selector2._domainkey.${name}`, 'CNAME')
+    ]);
+    const spf = txt.map(unquote).find(r => /^v=spf1\b/i.test(r));
+    const dm = dmarc.map(unquote).find(r => /^v=DMARC1\b/i.test(r));
+    const hosts = mx.map(r => String(r).split(/\s+/).pop().replace(/\.$/, '')).filter(Boolean);
+    out.spf = { found: Boolean(spf), record: spf || null };
+    out.dmarc = { found: Boolean(dm), record: dm || null, policy: (/\bp=\s*(none|quarantine|reject)/i.exec(dm || '') || [])[1]?.toLowerCase() || null };
+    out.mx = { found: hosts.length > 0, hosts, isExchangeOnline: hosts.some(h => /\.mail\.protection\.outlook\.com$/i.test(h)) };
+    out.dkim = { found: sel1.length > 0 || sel2.length > 0, selectors: [...sel1, ...sel2].map(s => s.replace(/\.$/, '')) };
+  } catch (e) {
+    out.error = e.message;
+  }
+  return out;
+}
+
+async function fetchDnsRecords(token, data) {
+  const domains = data?.domains || await graphAll(token, '/domains');
+  const targets = domains
+    .filter(x => x.isVerified && !/\.onmicrosoft\.com$/i.test(x.id || ''))
+    .filter(x => !Array.isArray(x.supportedServices) || x.supportedServices.includes('Email'))
+    .map(x => x.id);
+  const resolved = [];
+  for (const name of targets) resolved.push(await resolveDomain(name));
+  return { resolver: 'public DNS-over-HTTPS', domains: resolved };
+}
+
 // Static data shipped with the site, fetched relative to the page without a token.
 async function fetchLocal(path) {
   const res = await fetch(path, { cache: 'no-cache' });
@@ -147,10 +211,11 @@ async function fetchLocal(path) {
 // ---------------------------------------------------------------------------------------
 // Collection
 // ---------------------------------------------------------------------------------------
-export async function collect(token, sourceNames, onProgress = () => {}) {
+export async function collect(token, sourceNames, onProgress = () => {}, imported = {}) {
   const data = {};
   const failures = {};
-  const names = [...sourceNames];
+  // The domains source feeds the DNS lookups, so collect it first when both are wanted.
+  const names = [...sourceNames].sort((a, b) => (a === 'domains' ? -1 : 0) - (b === 'domains' ? -1 : 0));
 
   for (let i = 0; i < names.length; i++) {
     const name = names[i];
@@ -160,6 +225,12 @@ export async function collect(token, sourceNames, onProgress = () => {}) {
     try {
       if (src.derived === 'globalAdmins')  data[name] = await fetchGlobalAdmins(token);
       else if (src.derived === 'graphAppRoles') data[name] = await fetchGraphAppRoles(token);
+      else if (src.derived === 'dnsRecords') data[name] = await fetchDnsRecords(token, data);
+      else if (src.imported) {
+        const v = imported[name];
+        if (!v) throw new GraphError('No evidence file was imported. Run tools/Export-ExchangeEvidence.ps1 and pick the file it produces on the run step.', null);
+        data[name] = v;
+      }
       else if (src.local)                  data[name] = await fetchLocal(src.local);
       else if (src.count)                  data[name] = parseInt(await graphFetch(token, src.url, { raw: true }), 10);
       else if (src.collection)             data[name] = await graphAll(token, src.url);
@@ -359,12 +430,12 @@ export function frameworkRollup(results, filter) {
 // ---------------------------------------------------------------------------------------
 // Orchestration
 // ---------------------------------------------------------------------------------------
-export async function runAssessment({ token, catalog, tenant, frameworks = [], areas = ['identity'], onProgress = () => {} }) {
+export async function runAssessment({ token, catalog, tenant, frameworks = [], areas = ['identity'], onProgress = () => {}, imported = {} }) {
   const checks = checksFor(areas);
   const needed = sourcesFor(areas);
   const started = new Date();
 
-  const { data, failures } = await collect(token, needed, onProgress);
+  const { data, failures } = await collect(token, needed, onProgress, imported);
 
   onProgress({ phase: 'evaluate', current: 0, total: checks.length, label: 'Evaluating checks' });
   const results = evaluate(data, failures, catalog, checks);

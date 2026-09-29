@@ -67,6 +67,7 @@ const state = {
   token: null,
   granted: [],
   report: null,
+  evidence: null,
   busy: false
 };
 
@@ -109,6 +110,7 @@ async function bootUi() {
   renderFrameworks();
   renderScope();
   renderPermissions();
+  show('evidenceRow', false);
   renderMeta();
   wire();
   goto(1);
@@ -148,8 +150,9 @@ function renderScope() {
   el('scopeAreas').innerHTML = AREAS.map(a => `
     <label class="choice${state.areas.has(a.id) ? ' selected' : ''}">
       <input type="checkbox" value="${esc(a.id)}"${state.areas.has(a.id) ? ' checked' : ''}>
-      <b>${esc(a.label)}</b>
-      <small>${esc(a.summary)} <em>${counts[a.id]} checks · ${scopesFor([a.id]).length} permissions.</em></small>
+      <b>${a.label}</b>
+      <small>${esc(a.summary)} <em>${counts[a.id]} checks · ${scopesFor([a.id]).length} permission${scopesFor([a.id]).length === 1 ? '' : 's'}.</em></small>
+      ${a.note ? `<small class="area-note">${esc(a.note)}</small>` : ''}
     </label>`).join('');
 
   el('scopeAreas').querySelectorAll('input').forEach(i => i.onchange = () => {
@@ -158,6 +161,7 @@ function renderScope() {
     if (!state.areas.size) { state.areas.add('identity'); renderScope(); return; }
     i.closest('.choice').classList.toggle('selected', i.checked);
     renderPermissions();
+    show('evidenceRow', state.areas.has('exchange'));
     updateSummary();
   });
 
@@ -196,6 +200,53 @@ function renderPermissions() {
     <td>${esc(why[s] || '')}</td>
     <td><span class="read-only">Read-only</span></td></tr>`).join('');
   el('scopeCount').textContent = requiredScopes().length;
+}
+
+// ---------------------------------------------------------------------------------------
+// Exchange evidence file
+//
+// Produced by tools/Export-ExchangeEvidence.ps1. Read with FileReader in this tab: it is
+// parsed here, kept in memory for the run, and never sent anywhere.
+// ---------------------------------------------------------------------------------------
+const EVIDENCE_SCHEMA = 1;
+const EVIDENCE_STALE_DAYS = 30;
+
+function describeEvidence(ev) {
+  const groups = Object.keys(ev.data || {}).length;
+  const failed = Object.keys(ev.errors || {}).length;
+  const when = ev.collectedUtc ? new Date(ev.collectedUtc) : null;
+  const days = when ? Math.floor((Date.now() - when.getTime()) / 86400000) : null;
+  const notes = [];
+  if (days !== null && days > EVIDENCE_STALE_DAYS) {
+    notes.push(`collected ${days} days ago — the tenant may have changed since`);
+  }
+  const domains = (ev.tenant?.domains || []).map(x => String(x).toLowerCase());
+  const signedIn = String(state.tenant || '').toLowerCase();
+  if (signedIn && domains.length && !domains.includes(signedIn) && String(ev.tenant?.name || '').toLowerCase() !== signedIn) {
+    notes.push(`it names ${esc(ev.tenant?.name || domains[0])}, not ${esc(signedIn)} — check you picked the right file`);
+  }
+  if (failed) notes.push(`${failed} group${failed === 1 ? '' : 's'} could not be collected and will report as Unknown`);
+  return { groups, failed, when, notes };
+}
+
+async function loadEvidence(file) {
+  try {
+    const ev = JSON.parse(await file.text());
+    if (ev.schemaVersion !== EVIDENCE_SCHEMA) {
+      throw new Error(`this file is schema version ${ev.schemaVersion ?? 'unknown'}; this page expects ${EVIDENCE_SCHEMA}. Re-run the export script from this release.`);
+    }
+    if (!ev.data || typeof ev.data !== 'object') throw new Error('no "data" section — this does not look like an evidence file.');
+    state.evidence = ev;
+    const { groups, when, notes } = describeEvidence(ev);
+    el('evidenceStatus').innerHTML =
+      `<b>${esc(file.name)}</b> — ${groups} configuration group${groups === 1 ? '' : 's'}${when ? `, collected ${esc(when.toLocaleString())}` : ''}.` +
+      (notes.length ? `<br><span class="warn-text">Note: ${notes.join('; ')}.</span>` : '');
+    show('evidenceStatus');
+  } catch (e) {
+    state.evidence = null;
+    el('evidenceStatus').innerHTML = `<span class="warn-text">That file could not be used: ${esc(e.message || e)}</span>`;
+    show('evidenceStatus');
+  }
 }
 
 // ---------------------------------------------------------------------------------------
@@ -328,6 +379,7 @@ async function doRun() {
       tenant: { name: state.tenant, id: state.session?.tenantId },
       frameworks: [...state.frameworks],
       areas: [...state.areas],
+      imported: { exchangeEvidence: state.evidence },
       onProgress: ({ phase, current, total, label }) => {
         const p = Math.round((current / total) * 100);
         el('progressBar').style.width = `${p}%`;
@@ -539,10 +591,22 @@ function wire() {
     show('btnForget', false);
   };
 
+  el('evidenceFile').onchange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) loadEvidence(file);
+  };
+  el('evidenceClear').onclick = () => {
+    state.evidence = null;
+    el('evidenceFile').value = '';
+    show('evidenceStatus', false);
+  };
+
   el('btnRestart').onclick = async () => {
     if (await releaseChanged()) { deps.reload(); return; }
     deps.signOut();
-    Object.assign(state, { session: null, token: null, granted: [], report: null });
+    Object.assign(state, { session: null, token: null, granted: [], report: null, evidence: null });
+    el('evidenceFile').value = '';
+    show('evidenceStatus', false);
     show('signedInRow', false);
     show('btnRun', false);
     show('btnConsent', false);

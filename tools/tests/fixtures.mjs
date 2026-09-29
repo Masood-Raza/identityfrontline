@@ -133,8 +133,20 @@ export const DEFAULTS = {
   }
 };
 
-export function mockFetch(fixture, { deny = [] } = {}) {
+export function mockFetch(fixture, { deny = [], dns = null, dnsFail = false } = {}) {
   return async (url) => {
+    // DNS-over-HTTPS: answered from the fixture's DNS map, not from Graph.
+    const u = String(url);
+    if (/dns-query|dns\.google/.test(u)) {
+      if (dnsFail) return res({ error: 'resolver down' }, { status: 502 });
+      const q = new URL(u);
+      const key = `${q.searchParams.get('name')}|${q.searchParams.get('type')}`;
+      const answers = (dns || {})[key];
+      // Status 3 is NXDOMAIN: a real answer meaning "no such name", not a resolver failure.
+      if (!answers) return res({ Status: 3, Answer: [] });
+      const type = { TXT: 16, MX: 15, CNAME: 5 }[q.searchParams.get('type')];
+      return res({ Status: 0, Answer: answers.map(data => ({ type, data })) });
+    }
     // The same policy fixture serves both the v1.0 and beta reads of authenticationMethodsPolicy.
     const stripped = decodeURIComponent(String(url)).replace('https://graph.microsoft.com/v1.0', '').replace('https://graph.microsoft.com/beta', '');
     const path = stripped.split('?')[0];
@@ -359,3 +371,107 @@ Object.assign(DEFAULTS, {
     { id: 'a3', title: 'Old resolved alert', severity: 'high', status: 'resolved', category: 'Malware', createdDateTime: daysAgo(30), serviceSource: 'microsoftDefenderForEndpoint' }
   ] }
 });
+
+// ---- Sprint 6: public DNS and the Exchange evidence file ----------------------------------
+// Keys are "<name>|<type>"; a name that is absent resolves as NXDOMAIN, which is what a
+// domain with no SPF or DMARC record actually looks like.
+export const DNS_HARDENED = {
+  'contoso.com|TXT': ['"v=spf1 include:spf.protection.outlook.com -all"'],
+  '_dmarc.contoso.com|TXT': ['"v=DMARC1; p=reject; rua=mailto:dmarc@contoso.com"'],
+  'contoso.com|MX': ['0 contoso-com.mail.protection.outlook.com.'],
+  'selector1._domainkey.contoso.com|CNAME': ['selector1-contoso-com._domainkey.contoso.onmicrosoft.com.'],
+  'selector2._domainkey.contoso.com|CNAME': ['selector2-contoso-com._domainkey.contoso.onmicrosoft.com.']
+};
+
+// A domain with a permissive SPF, monitor-only DMARC, no DKIM selectors and mail routed
+// through a third-party gateway.
+export const DNS_DEFAULT = {
+  'fabrikam.com|TXT': ['"v=spf1 include:spf.protection.outlook.com ?all"'],
+  '_dmarc.fabrikam.com|TXT': ['"v=DMARC1; p=none"'],
+  'fabrikam.com|MX': ['10 mail.some-gateway.example.']
+};
+
+const EV_OK = {
+  schemaVersion: 1,
+  collectedUtc: new Date(Date.now() - 2 * 86400000).toISOString(),
+  tool: { name: 'test', version: '1.0.0' },
+  tenant: { name: 'contoso.onmicrosoft.com', domains: ['contoso.com', 'contoso.onmicrosoft.com'] },
+  data: {
+    organizationConfig: [{ Name: 'contoso', OAuth2ClientProfileEnabled: true, AuditDisabled: false, CustomerLockBoxEnabled: true,
+      MailTipsAllTipsEnabled: true, MailTipsExternalRecipientsTipsEnabled: true, MailTipsGroupMetricsEnabled: true, MailTipsLargeAudienceThreshold: 25 }],
+    transportConfig: [{ SmtpClientAuthenticationDisabled: true }],
+    externalInOutlook: [{ Identity: 'x', Enabled: true, AllowList: [] }],
+    remoteDomains: [{ Name: 'Default', DomainName: '*', IsDefault: true, AutoForwardEnabled: false }],
+    owaMailboxPolicies: [{ Name: 'OwaMailboxPolicy-Default', IsDefault: true, AdditionalStorageProvidersAvailable: false }],
+    roleAssignmentPolicies: [{ Name: 'Default Role Assignment Policy', IsDefault: true, AssignedRoles: ['MyContactInformation', 'MyVoiceMail'] }],
+    sharingPolicies: [{ Name: 'Default Sharing Policy', Default: true, Enabled: true, Domains: ['partner.com: CalendarSharingFreeBusySimple'] }],
+    transportRules: [],
+    inboundConnectors: [{ Name: 'Partner', Enabled: true, RequireTls: true, RestrictDomainsToIPAddresses: true }],
+    mailboxAuditBypass: [],
+    dkimSigningConfigs: [{ Domain: 'contoso.com', Enabled: true, Status: 'Valid' }, { Domain: 'contoso.onmicrosoft.com', Enabled: true }],
+    mailboxAuditSample: [{ UserPrincipalName: 'a@contoso.com', AuditEnabled: true }, { UserPrincipalName: 'b@contoso.com', AuditEnabled: true }],
+    hiddenMailboxes: [],
+    antiPhishPolicies: [{ Name: 'Office365 AntiPhish Default', Enabled: true, IsDefault: true, PhishThresholdLevel: 3,
+      EnableMailboxIntelligence: true, EnableSpoofIntelligence: true, HonorDmarcPolicy: true, EnableFirstContactSafetyTips: true }],
+    safeLinksPolicies: [{ Name: 'Standard', IsEnabled: true, EnableSafeLinksForEmail: true, EnableSafeLinksForTeams: true, EnableSafeLinksForOffice: true, ScanUrls: true, TrackClicks: true }],
+    safeAttachmentPolicies: [{ Name: 'Standard', Enable: true, Action: 'Block', IsDefault: true }],
+    atpPolicyForO365: [{ Name: 'Default', EnableATPForSPOTeamsODB: true, EnableSafeDocs: true }],
+    malwareFilterPolicies: [{ Name: 'Default', IsDefault: true, EnableFileFilter: true, ZapEnabled: true,
+      FileTypes: Array.from({ length: 30 }, (_, i) => 'ext' + i), EnableInternalSenderAdminNotifications: true }],
+    hostedContentFilterPolicies: [{ Name: 'Default', IsDefault: true, AllowedSenderDomains: [], BulkThreshold: 5,
+      SpamAction: 'MoveToJmf', HighConfidenceSpamAction: 'Quarantine', PhishSpamAction: 'Quarantine', HighConfidencePhishAction: 'Quarantine',
+      ZapEnabled: true, SpamZapEnabled: true, PhishZapEnabled: true }],
+    hostedOutboundSpamFilterPolicies: [{ Name: 'Default', IsDefault: true, AutoForwardingMode: 'Off', NotifyOutboundSpam: true,
+      NotifyOutboundSpamRecipients: ['soc@contoso.com'], BccSuspiciousOutboundMail: true,
+      RecipientLimitExternalPerHour: 400, RecipientLimitInternalPerHour: 800, RecipientLimitPerDay: 1000 }],
+    hostedConnectionFilterPolicies: [{ Name: 'Default', IsDefault: true, IPAllowList: [], IPBlockList: [], EnableSafeList: false }],
+    acceptedDomains: [{ Name: 'contoso.com', DomainName: 'contoso.com', DomainType: 'Authoritative', Default: true }]
+  },
+  errors: {}
+};
+
+const EV_BAD = {
+  schemaVersion: 1,
+  collectedUtc: new Date(Date.now() - 3 * 86400000).toISOString(),
+  tool: { name: 'test', version: '1.0.0' },
+  tenant: { name: 'fabrikam.onmicrosoft.com', domains: ['fabrikam.com', 'fabrikam.onmicrosoft.com'] },
+  data: {
+    organizationConfig: [{ Name: 'fabrikam', OAuth2ClientProfileEnabled: false, AuditDisabled: true, CustomerLockBoxEnabled: false,
+      MailTipsAllTipsEnabled: false, MailTipsExternalRecipientsTipsEnabled: false, MailTipsGroupMetricsEnabled: false, MailTipsLargeAudienceThreshold: 50 }],
+    transportConfig: [{ SmtpClientAuthenticationDisabled: false }],
+    externalInOutlook: [{ Identity: 'x', Enabled: false, AllowList: [] }],
+    remoteDomains: [{ Name: 'Default', DomainName: '*', IsDefault: true, AutoForwardEnabled: true }],
+    owaMailboxPolicies: [{ Name: 'OwaMailboxPolicy-Default', IsDefault: true, AdditionalStorageProvidersAvailable: true }],
+    roleAssignmentPolicies: [{ Name: 'Default Role Assignment Policy', IsDefault: true, AssignedRoles: ['My Marketplace Apps', 'My Custom Apps'] }],
+    sharingPolicies: [{ Name: 'Default Sharing Policy', Default: true, Enabled: true, Domains: ['*: CalendarSharingFreeBusyReviewer'] }],
+    transportRules: [
+      { Name: 'Allow partner bulk', State: 'Enabled', SetSCL: -1, SenderDomainIs: ['partner.example'] },
+      { Name: 'Journal to archive', State: 'Enabled', SetSCL: null, BlindCopyTo: ['archive@third-party.example'] }
+    ],
+    inboundConnectors: [{ Name: 'Legacy relay', Enabled: true, RequireTls: false, RestrictDomainsToIPAddresses: false }],
+    mailboxAuditBypass: [{ Name: 'svc-scanner', AuditBypassEnabled: true }],
+    dkimSigningConfigs: [{ Domain: 'fabrikam.com', Enabled: false, Status: 'CnameMissing' }],
+    mailboxAuditSample: [{ UserPrincipalName: 'a@fabrikam.com', AuditEnabled: false }, { UserPrincipalName: 'b@fabrikam.com', AuditEnabled: true }],
+    hiddenMailboxes: [{ UserPrincipalName: 'ghost@fabrikam.com', PrimarySmtpAddress: 'ghost@fabrikam.com' }],
+    antiPhishPolicies: [{ Name: 'Office365 AntiPhish Default', Enabled: true, IsDefault: true, PhishThresholdLevel: 1,
+      EnableMailboxIntelligence: false, EnableSpoofIntelligence: false, HonorDmarcPolicy: false }],
+    safeLinksPolicies: [],
+    safeAttachmentPolicies: [],
+    atpPolicyForO365: [{ Name: 'Default', EnableATPForSPOTeamsODB: false }],
+    malwareFilterPolicies: [{ Name: 'Default', IsDefault: true, EnableFileFilter: false, ZapEnabled: false,
+      FileTypes: [], EnableInternalSenderAdminNotifications: false }],
+    hostedContentFilterPolicies: [{ Name: 'Default', IsDefault: true, AllowedSenderDomains: [{ Domain: 'marketing.example' }],
+      BulkThreshold: 8, SpamAction: 'NoAction', HighConfidenceSpamAction: 'MoveToJmf', PhishSpamAction: 'MoveToJmf', HighConfidencePhishAction: 'MoveToJmf',
+      ZapEnabled: false, SpamZapEnabled: false, PhishZapEnabled: false }],
+    hostedOutboundSpamFilterPolicies: [{ Name: 'Default', IsDefault: true, AutoForwardingMode: 'Automatic', NotifyOutboundSpam: false,
+      NotifyOutboundSpamRecipients: [], BccSuspiciousOutboundMail: false,
+      RecipientLimitExternalPerHour: 0, RecipientLimitInternalPerHour: 0, RecipientLimitPerDay: 0 }],
+    hostedConnectionFilterPolicies: [{ Name: 'Default', IsDefault: true, IPAllowList: ['198.51.100.7', '203.0.113.0/24'], EnableSafeList: true }],
+    acceptedDomains: [{ Name: 'fabrikam.com', DomainName: 'fabrikam.com', DomainType: 'Authoritative', Default: true }]
+  },
+  // One cmdlet the tenant could not run: its checks must report Unknown with this reason.
+  errors: { safeLinksPolicies: 'Get-SafeLinksPolicy is not available in this tenant or to this account.' }
+};
+
+export const EVIDENCE_HARDENED = EV_OK;
+export const EVIDENCE_DEFAULT = EV_BAD;
