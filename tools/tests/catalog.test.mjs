@@ -83,6 +83,15 @@ for (const s of REQUIRED_SCOPES) {
 const webConfig = readFileSync(join(root, 'web.config'), 'utf8');
 ok('web.config maps .json for IIS', /fileExtension="\.json" mimeType="application\/json/.test(webConfig));
 ok('web.config maps .js for IIS', /fileExtension="\.js" mimeType="text\/javascript/.test(webConfig));
+// The page links to the export script; IIS 404s an extension it has no mapping for.
+ok('web.config serves the export script as plain text', /fileExtension="\.ps1" mimeType="text\/plain/.test(webConfig));
+ok('the page links to the export script it tells people to run',
+  readFileSync(join(root, 'assessments.html'), 'utf8').includes('href="tools/Export-ExchangeEvidence.ps1"'));
+ok('the export script exists where the page links to it',
+  readFileSync(join(root, 'tools/Export-ExchangeEvidence.ps1'), 'utf8').includes('Connect-ExchangeOnline'));
+ok('the export script only ever reads',
+  !/\b(Set|New|Remove|Enable|Disable|Update)-(?!Module)[A-Z]/.test(
+    readFileSync(join(root, 'tools/Export-ExchangeEvidence.ps1'), 'utf8').replace(/Set-Content|Set-StrictMode|Set-Location/g, '')));
 // After a deploy every module must come from the same release, so the app, page and catalog are
 // revalidated on each load rather than served from a ten-minute cache.
 for (const path of ['assessments.html', 'assets/app', 'assets/catalog']) {

@@ -59,6 +59,8 @@ tr.s-pass td{opacity:.7}
 <div id="evidenceRow" class="evidence-row" hidden>
 <b>Exchange evidence</b>
 <p class="hint">Microsoft Graph does not expose Exchange, EOP or Defender for Office policy, and the Exchange API refuses browser calls — so these checks read a file you produce. Run <code>tools/Export-ExchangeEvidence.ps1</code> as an administrator, then pick the JSON it writes. It is read in this tab and never uploaded. Without it the Exchange checks report as Unknown and the rest of the assessment runs normally.</p>
+<p class="hint"><a href="tools/Export-ExchangeEvidence.ps1" download>Download Export-ExchangeEvidence.ps1</a> — read it before you run it: it is a few hundred lines, every call is a read-only <code>Get-</code> cmdlet, and it writes one file.</p>
+<p class="hint"><a href="tools/Export-ExchangeEvidence.ps1" download>Download Export-ExchangeEvidence.ps1</a> — read it before you run it: it is a few hundred lines, every call is a read-only <code>Get-</code> cmdlet, and it writes one file.</p>
 <input type="file" id="evidenceFile" accept="application/json,.json">
 <button class="button secondary" id="evidenceClear" type="button">Clear</button>
 <p class="hint" id="evidenceStatus" hidden></p>
