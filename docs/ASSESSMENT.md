@@ -40,6 +40,8 @@ Sign-in needs an Entra app registration that customers consent to. It lives in y
      `DeviceManagementManagedDevices.Read.All`
    - Applications & privileged access: `Application.Read.All`, `AccessReview.Read.All`
    - Microsoft security signals: `SecurityEvents.Read.All`, `SecurityAlert.Read.All`
+   - Email authentication (DNS): none beyond `Domain.Read.All`, already in Identity
+   - Exchange & email security: none — it reads a file, not Graph
 
    Only the scopes for the areas a user selects are requested at sign-in (identity alone is
    six), but the registration must carry all sixteen. Do **not** add application
@@ -55,9 +57,10 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
 1. **Frameworks** — pick which to report against; the same findings map to each.
 2. **Scope** — pick areas: identity & access (always on), collaboration (SharePoint, OneDrive,
    Teams app consent, Forms), Intune & devices, and applications & privileged access
-   (enterprise apps, service principals, PIM, access reviews), and Microsoft security signals
-   (Secure Score, its top improvement actions, open Defender alerts). Each area adds only the
-   permissions it needs. What Graph cannot reach is listed on the page rather than left implied: Exchange,
+   (enterprise apps, service principals, PIM, access reviews), Microsoft security signals
+   (Secure Score, its top improvement actions, open Defender alerts), email authentication in
+   public DNS, and Exchange & email security. Each area adds only the permissions it needs, and
+   the two new areas add none. What Graph cannot reach is listed on the page rather than left implied: Exchange,
    Purview, Teams meeting and external-access policy, and SharePoint link defaults and guest
    expiry.
 3. **Permissions** — the delegated read-only scopes the selected areas need (six for identity
@@ -71,6 +74,41 @@ Until step 3 is done the page shows a setup notice and refuses to start sign-in.
    control IDs, and filters by status, severity, area and (once a comparison exists) change
    since the last run; the same explorer is embedded in the downloaded report. Download the HTML report, print it to PDF, or export an Excel workbook (summary,
    findings, a check-by-framework compliance matrix, coverage), CSV or JSON.
+
+## Email authentication (DNS)
+
+SPF, DMARC, DKIM selectors and MX live in public DNS, not in Graph. Browsers cannot speak DNS,
+but the public DNS-over-HTTPS resolvers answer cross-origin, so the page resolves them directly
+for every verified domain that is not `*.onmicrosoft.com` and carries the Email service.
+
+**This is the one part of the assessment that contacts a host other than Microsoft.** Only the
+domain name is sent, and only to look up records anyone in the world can look up; nothing else
+about the tenant leaves the browser. The area is opt-in and says so on its own scope card.
+Cloudflare is tried first and Google second; if neither answers, the checks report Unknown with
+the resolver's reason rather than inventing a finding.
+
+DKIM here is the DNS half — whether the selector records are published. Whether Exchange
+actually signs with them is `EXO-DKIM-001`, which needs the evidence file below.
+
+## Exchange & email security
+
+Exchange Online, EOP and Defender for Office 365 policy is not in Microsoft Graph at any
+version, and the Exchange REST endpoint sends no CORS headers, so a browser cannot read it
+even with a valid token. Both were verified before this area was built, not assumed.
+
+The bridge is `tools/Export-ExchangeEvidence.ps1`. An administrator runs it, it calls read-only
+`Get-*` cmdlets over Exchange Online PowerShell, and it writes a JSON evidence file. On the run
+step the user picks that file; it is parsed in the browser with `FileReader`, held in memory for
+the run, and never uploaded. Without it the 32 Exchange checks report Unknown, naming the
+script, and the rest of the assessment is unaffected.
+
+The script needs View-Only Configuration (Global Reader is enough) and contains no `Set-`,
+`New-`, `Remove-` or `Enable-` cmdlet. A cmdlet the tenant cannot run — unlicensed, absent,
+blocked by role — is recorded in an `errors` map with its reason, and the checks that depend
+on it report Unknown with that reason rather than a false failure.
+
+The page refuses a file whose `schemaVersion` it does not know, and flags one that was
+collected more than 30 days ago or that names a different tenant than the one signed in.
 
 ## Effort, owners and the remediation plan
 
@@ -161,6 +199,9 @@ cd tools/tests && npm install && npm test
   permission-denied source, and empty payloads.
 - `history.test.mjs` — snapshot shape, per-tenant storage, the twelve-run cap, every drift
   category, and storage that is blocked or absent.
+- DNS and Exchange are covered in `engine.test.mjs` with a DNS-over-HTTPS mock and two
+  evidence fixtures, including an unreachable resolver, a tenant with no routable domain, and
+  a cmdlet the tenant could not run.
 - `wizard.test.mjs` — the real page and controller in jsdom, driven end to end with sign-in
   and Graph mocked: setup notice, all five steps, missing-scope → consent → run → downloads →
   restart, and a degraded run.
@@ -190,7 +231,9 @@ Check definitions, severities, remediation and framework mappings derive from
 - **Validated on one tenant.** Predicates are tested against mock Graph payloads that
   follow the documented schemas and have run clean on one real tenant; other tenants and
   licence tiers may still surface shape differences.
-- **104 checks across five areas.** Applications & privileged access has been validated
+- **140 checks across seven areas.** The DNS area has been validated against real public
+  domains; the Exchange area against the evidence fixtures only, not yet a real export.
+- **Previously:** Applications & privileged access has been validated
   against mock payloads only. Tier 0/1 permission lists and Microsoft first-party app IDs
   ship as `assets/catalog/app-tiers.json`, generated from the upstream controls.
 - **Previously:** A real-tenant run of the collaboration area found that

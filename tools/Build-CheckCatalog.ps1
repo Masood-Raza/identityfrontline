@@ -72,12 +72,22 @@ if ($missing.Count) {
     throw "These implemented checks have no entry in the control registry:`n  $($missing -join "`n  ")`nEither the ID is wrong or upstream removed the check."
 }
 
+# Registry entries omit optional properties rather than nulling them, and Set-StrictMode turns
+# a missing property into a terminating error. Every optional read goes through this.
+function Get-Prop {
+    param($Object, [string]$Name)
+    if ($null -eq $Object) { return $null }
+    if ($Object.PSObject.Properties.Name -notcontains $Name) { return $null }
+    return $Object.$Name
+}
+
 $checks = @(foreach ($id in ($ids | Sort-Object)) {
     $c = $byId[$id]
 
     $maps = [ordered]@{}
     foreach ($key in ($frameworkLabel.Keys | Sort-Object)) {
-        $m = if ($c.frameworks -and ($c.frameworks.PSObject.Properties | ForEach-Object Name) -contains $key) { $c.frameworks.$key } else { $null }
+        $frameworksProp = Get-Prop $c 'frameworks'
+        $m = if ($frameworksProp -and ($frameworksProp.PSObject.Properties | ForEach-Object Name) -contains $key) { $frameworksProp.$key } else { $null }
         if ($null -ne $m -and $m.PSObject.Properties.Name -contains 'controlId' -and $m.controlId) {
             $maps[$key] = [ordered]@{
                 label     = $frameworkLabel[$key]
@@ -87,22 +97,21 @@ $checks = @(foreach ($id in ($ids | Sort-Object)) {
     }
 
     $rem = [ordered]@{}
-    if ($c.remediation) {
-        if ($c.remediation.PSObject.Properties.Name -contains 'portal' -and $c.remediation.portal) {
-            $rem['portal'] = $c.remediation.portal.path
-        }
-        if ($c.remediation.PSObject.Properties.Name -contains 'powershell' -and $c.remediation.powershell) {
-            $rem['powershell'] = $c.remediation.powershell.command
-        }
+    $remediation = Get-Prop $c 'remediation'
+    if ($remediation) {
+        $portal = Get-Prop $remediation 'portal'
+        if ($portal) { $rem['portal'] = Get-Prop $portal 'path' }
+        $ps = Get-Prop $remediation 'powershell'
+        if ($ps) { $rem['powershell'] = Get-Prop $ps 'command' }
     }
 
     [ordered]@{
         id          = $c.checkId
         name        = $c.name
         category    = $c.category
-        severity    = $(if ($c.impactRating) { $c.impactRating.severity } else { 'Unknown' })
-        rationale   = $(if ($c.impactRating) { $c.impactRating.rationale } else { $null })
-        licensing   = $(if ($c.licensing -and $c.licensing.PSObject.Properties.Name -contains 'minimum') { $c.licensing.minimum } else { $null })
+        severity    = $(if (Get-Prop $c 'impactRating') { Get-Prop (Get-Prop $c 'impactRating') 'severity' } else { 'Unknown' })
+        rationale   = Get-Prop (Get-Prop $c 'impactRating') 'rationale'
+        licensing   = Get-Prop (Get-Prop $c 'licensing') 'minimum'
         remediation = $rem
         frameworks  = $maps
     }

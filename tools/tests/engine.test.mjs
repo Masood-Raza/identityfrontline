@@ -13,7 +13,7 @@ const ok = (name, cond, extra = '') => {
   if (!cond) fail++;
 };
 
-import { HARDENED, DEFAULTS, mockFetch } from './fixtures.mjs';
+import { HARDENED, DEFAULTS, mockFetch, DNS_HARDENED, DNS_DEFAULT, EVIDENCE_HARDENED, EVIDENCE_DEFAULT } from './fixtures.mjs';
 
 const { runAssessment, REQUIRED_SCOPES } = await import('../../assets/app/engine.js');
 
@@ -126,9 +126,11 @@ const { scopesFor, checksFor, ALL_SCOPES } = await import('../../assets/app/engi
 const { AREAS } = await import('../../assets/app/checks.js');
 const ALL = AREAS.map(a => a.id);
 
-ok('five areas defined', ALL.join() === 'identity,collaboration,intune,privileged,signals', ALL.join());
+ok('seven areas defined', ALL.join() === 'identity,collaboration,intune,privileged,signals,dns,exchange', ALL.join());
 ok('identity alone needs six scopes', scopesFor(['identity']).length === 6);
-ok('every area together needs sixteen scopes', ALL_SCOPES.length === 16, ALL_SCOPES.join(', '));
+ok('every area together still needs only sixteen scopes', ALL_SCOPES.length === 16, ALL_SCOPES.join(', '));
+ok('DNS reuses the domain permission and adds none', scopesFor(['dns']).join() === 'Domain.Read.All');
+ok('Exchange asks for no Graph permission at all', scopesFor(['exchange']).length === 0);
 ok('signals adds exactly the two Defender read scopes', scopesFor(['identity', 'signals']).filter(s => !scopesFor(['identity']).includes(s)).join() === 'SecurityAlert.Read.All,SecurityEvents.Read.All');
 ok('privileged access adds exactly Application.Read.All and AccessReview.Read.All',
   scopesFor(['identity', 'privileged']).filter(s => !scopesFor(['identity']).includes(s)).join() === 'AccessReview.Read.All,Application.Read.All');
@@ -136,12 +138,13 @@ ok('scopes grow only with the areas selected', scopesFor(['identity', 'collabora
 ok('no scope is requested that no check uses', !ALL_SCOPES.includes('TeamSettings.Read.All'));
 ok('no area requests a write scope', !ALL_SCOPES.some(s => /\.(Read)?Write|FullControl/i.test(s)));
 ok('empty area selection falls back to identity', checksFor([]).length === checksFor(['identity']).length);
-ok('104 checks across all areas', checksFor(ALL).length === 104, String(checksFor(ALL).length));
+ok('140 checks across all areas', checksFor(ALL).length === 140, String(checksFor(ALL).length));
 ok('default run is identity only', good.results.length === 37 && good.results.every(r => r.area === 'identity'));
 
 globalThis.fetch = mockFetch(HARDENED);
-const goodAll = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL });
-ok('hardened tenant, all areas: 104 evaluated', goodAll.results.length === 104);
+globalThis.fetch = mockFetch(HARDENED, { dns: DNS_HARDENED });
+const goodAll = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL, imported: { exchangeEvidence: EVIDENCE_HARDENED } });
+ok('hardened tenant, all areas: 140 evaluated', goodAll.results.length === 140);
 ok('hardened tenant, all areas: nothing unavailable', goodAll.unavailable.length === 0, goodAll.unavailable.map(u => `${u.source}: ${u.reason}`).join('; '));
 ok('hardened tenant, all areas: no failures or warnings',
   goodAll.summary.fail === 0 && goodAll.summary.warning === 0,
@@ -151,7 +154,8 @@ ok('hardened tenant, all areas: nothing Unknown', goodAll.summary.unknown === 0,
 ok('report names the areas', goodAll.areas.map(a => a.label).join(', ').includes('Collaboration'));
 
 globalThis.fetch = mockFetch(DEFAULTS);
-const badAll2 = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL });
+globalThis.fetch = mockFetch(DEFAULTS, { dns: DNS_DEFAULT });
+const badAll2 = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL, imported: { exchangeEvidence: EVIDENCE_DEFAULT } });
 const bFailAll = new Set(badAll2.results.filter(r => r.status === 'Fail').map(r => r.id));
 const bWarnAll = new Set(badAll2.results.filter(r => r.status === 'Warning').map(r => r.id));
 for (const id of ['SPO-SHARING-001', 'SPO-AUTH-001',
@@ -221,6 +225,66 @@ ok('signals: none when the area is not selected', good.signals === null);
 globalThis.fetch = mockFetch(HARDENED, { deny: ['/security/alerts_v2'] });
 const noAlerts = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ['signals'] });
 ok('alerts denied: Secure Score still reported, alerts absent, score checks unaffected', noAlerts.signals.secureScore && noAlerts.signals.alerts === null && noAlerts.results.every(r => r.status === 'Pass'));
+
+// ---- Sprint 6: public DNS -----------------------------------------------------------------
+ok('hardened domain: SPF, DMARC, DKIM and MX all pass',
+  ['DNS-SPF-001', 'DNS-DMARC-001', 'DNS-DKIM-001', 'DNS-MX-001'].every(id => goodAll.results.find(r => r.id === id)?.status === 'Pass'),
+  ['DNS-SPF-001', 'DNS-DMARC-001', 'DNS-DKIM-001', 'DNS-MX-001'].map(id => id + '=' + goodAll.results.find(r => r.id === id)?.status).join(' '));
+ok('hardened domain: the DMARC detail says p=reject', /p=reject/.test(goodAll.results.find(r => r.id === 'DNS-DMARC-001')?.detail));
+ok('permissive SPF is a warning, not a pass', badAll2.results.find(r => r.id === 'DNS-SPF-001')?.status === 'Warning' &&
+  /\?all/.test(badAll2.results.find(r => r.id === 'DNS-SPF-001')?.detail));
+ok('p=none DMARC is a warning: monitoring is not enforcement', badAll2.results.find(r => r.id === 'DNS-DMARC-001')?.status === 'Warning' &&
+  /monitoring only/.test(badAll2.results.find(r => r.id === 'DNS-DMARC-001')?.detail));
+ok('missing DKIM selectors fail', badAll2.results.find(r => r.id === 'DNS-DKIM-001')?.status === 'Fail');
+ok('MX pointing elsewhere is Unknown, not Fail: a gateway is legitimate',
+  badAll2.results.find(r => r.id === 'DNS-MX-001')?.status === 'Unknown' && /gateway/.test(badAll2.results.find(r => r.id === 'DNS-MX-001')?.detail));
+{
+  // A resolver that will not answer must not turn into findings.
+  globalThis.fetch = mockFetch(HARDENED, { dnsFail: true });
+  const noDns = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ['dns'] });
+  ok('resolver unreachable: DNS checks are Unknown, never Fail', noDns.results.every(r => r.status === 'Unknown'), noDns.results.map(r => r.status).join(','));
+  ok('resolver unreachable: the pass rate is null rather than zero', noDns.summary.passRate === null);
+  // The onmicrosoft.com domain is Microsoft's own and is skipped.
+  globalThis.fetch = mockFetch({ ...HARDENED, '/domains': { value: [{ id: 'contoso.onmicrosoft.com', isVerified: true }] } }, { dns: DNS_HARDENED });
+  const onlyInitial = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ['dns'] });
+  ok('the onmicrosoft.com domain is not assessed for email authentication', onlyInitial.results.every(r => r.status === 'NotApplicable'));
+}
+
+// ---- Sprint 6: the Exchange evidence file --------------------------------------------------
+for (const id of ['EXO-AUTH-001', 'EXO-AUTH-002', 'EXO-AUDIT-001', 'EXO-AUDIT-002', 'EXO-AUDIT-003', 'EXO-LOCKBOX-001',
+  'EXO-EXTTAG-001', 'EXO-FORWARD-001', 'EXO-OWA-001', 'EXO-ADDINS-001', 'EXO-SHARING-001', 'EXO-CONNFILTER-001',
+  'EXO-CONNFILTER-002', 'EXO-TRANSPORT-001', 'EXO-TRANSPORT-002', 'EXO-DIRECTSEND-001', 'EXO-DKIM-001',
+  'EXO-ANTIPHISH-001', 'DEFENDER-SAFEATTACH-001', 'DEFENDER-SAFEATTACH-002', 'DEFENDER-ZAP-001',
+  'DEFENDER-ANTIMALWARE-001', 'DEFENDER-ANTIMALWARE-002', 'DEFENDER-ANTISPAM-001', 'DEFENDER-ANTISPAM-002',
+  'DEFENDER-OUTBOUND-001', 'EXO-MALWARE-001', 'EXO-ANTISPAM-001', 'EXO-MAILTIPS-001']) {
+  const r = badAll2.results.find(x => x.id === id);
+  ok(`default tenant evidence flags ${id}`, r && (r.status === 'Fail' || r.status === 'Warning'), r?.status + ': ' + r?.detail);
+}
+for (const id of ['EXO-AUTH-001', 'EXO-AUTH-002', 'EXO-AUDIT-001', 'EXO-FORWARD-001', 'EXO-CONNFILTER-001', 'EXO-DKIM-001',
+  'DEFENDER-SAFELINKS-001', 'DEFENDER-SAFEATTACH-001', 'DEFENDER-ZAP-001', 'EXO-ANTISPAM-001']) {
+  ok(`hardened tenant evidence passes ${id}`, goodAll.results.find(x => x.id === id)?.status === 'Pass',
+    goodAll.results.find(x => x.id === id)?.status + ': ' + goodAll.results.find(x => x.id === id)?.detail);
+}
+ok('a cmdlet the tenant could not run reports Unknown with its own reason',
+  badAll2.results.find(r => r.id === 'DEFENDER-SAFELINKS-001')?.status === 'Unknown' &&
+  /Get-SafeLinksPolicy is not available/.test(badAll2.results.find(r => r.id === 'DEFENDER-SAFELINKS-001')?.detail));
+ok('external forwarding in a transport rule is spotted against the tenant domain list',
+  /Journal to archive/.test(badAll2.results.find(r => r.id === 'EXO-TRANSPORT-002')?.detail));
+ok('an internal-only transport rule is not reported as external forwarding',
+  goodAll.results.find(r => r.id === 'EXO-TRANSPORT-002')?.status === 'Pass');
+ok('the onmicrosoft.com domain is excluded from the DKIM signing check',
+  /1 custom domain/.test(goodAll.results.find(r => r.id === 'EXO-DKIM-001')?.detail));
+{
+  // No evidence file: every Exchange check is Unknown, pointing at the script, and the rest
+  // of the assessment is unaffected.
+  globalThis.fetch = mockFetch(HARDENED, { dns: DNS_HARDENED });
+  const noEv = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ['identity', 'exchange'] });
+  const exo = noEv.results.filter(r => r.area === 'exchange');
+  ok('no evidence file: every Exchange check is Unknown', exo.length === 32 && exo.every(r => r.status === 'Unknown'), String(exo.length));
+  ok('no evidence file: the reason names the export script', /Export-ExchangeEvidence\.ps1/.test(exo[0].detail));
+  ok('no evidence file: identity checks are unaffected', noEv.results.filter(r => r.area === 'identity').some(r => r.status === 'Pass'));
+  ok('no evidence file: it is listed under what could not be collected', noEv.unavailable.some(u => u.source === 'exchangeEvidence'));
+}
 
 // Optional source: Autopilot denied must not make auto-discovery Unknown.
 globalThis.fetch = mockFetch(HARDENED, { deny: ['/deviceManagement/windowsAutopilotDeploymentProfiles'] });

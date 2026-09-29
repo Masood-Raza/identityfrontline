@@ -1,10 +1,10 @@
 {
   "catalogVersion": "1.0.0",
-  "generatedUtc": "2026-09-13T14:12:34Z",
+  "generatedUtc": "2026-09-29T09:48:57Z",
   "source": {
     "name": "M365-Assess",
     "repository": "https://github.com/Galvnyz/M365-Assess",
-    "ref": "3148d98741f5d7edc51c978e4b724bf8148a54ee",
+    "ref": "a18a01ced8040fb671e15efe49b4dc0e9979c11f",
     "license": "MIT",
     "attribution": "Control registry and framework mappings (c) Galvnyz, MIT licensed.",
     "registry": {
@@ -13,71 +13,71 @@
     }
   },
   "counts": {
-    "implemented": 104,
+    "implemented": 140,
     "registryTotal": 292,
     "bySeverity": {
       "Critical": 5,
-      "High": 41,
-      "Medium": 46,
-      "Low": 12
+      "High": 55,
+      "Medium": 60,
+      "Low": 20
     }
   },
   "frameworks": {
     "cis-controls-v8": {
       "label": "CIS Controls v8.1",
-      "mappedChecks": 90
+      "mappedChecks": 122
     },
     "cis-m365-v6": {
       "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
-      "mappedChecks": 35
+      "mappedChecks": 69
     },
     "cisa-scuba": {
       "label": "CISA Secure Cloud Business Applications (SCuBA)",
-      "mappedChecks": 23
+      "mappedChecks": 35
     },
     "cmmc": {
       "label": "CMMC 2.0",
-      "mappedChecks": 104
+      "mappedChecks": 134
     },
     "essential-eight": {
       "label": "ASD Essential Eight",
-      "mappedChecks": 61
+      "mappedChecks": 74
     },
     "fedramp": {
       "label": "FedRAMP Rev 5",
-      "mappedChecks": 104
+      "mappedChecks": 139
     },
     "hipaa": {
       "label": "HIPAA",
-      "mappedChecks": 68
+      "mappedChecks": 81
     },
     "iso-27001": {
       "label": "ISO/IEC 27001:2022",
-      "mappedChecks": 99
+      "mappedChecks": 129
     },
     "iso-27002": {
       "label": "ISO/IEC 27002:2022",
-      "mappedChecks": 99
+      "mappedChecks": 129
     },
     "mitre-attack": {
       "label": "MITRE ATT&CK",
-      "mappedChecks": 99
+      "mappedChecks": 130
     },
     "nist-800-53": {
       "label": "NIST SP 800-53 Rev 5",
-      "mappedChecks": 104
+      "mappedChecks": 139
     },
     "nist-csf": {
       "label": "NIST Cybersecurity Framework 2.0",
-      "mappedChecks": 88
+      "mappedChecks": 120
     },
     "pci-dss": {
       "label": "PCI DSS v4.0.1",
-      "mappedChecks": 101
+      "mappedChecks": 133
     },
     "soc2": {
       "label": "SOC 2 Trust Services Criteria",
-      "mappedChecks": 104
+      "mappedChecks": 139
     },
     "stig": {
       "label": "DISA STIG",
@@ -578,6 +578,565 @@
       }
     },
     {
+      "id": "DEFENDER-ANTIMALWARE-001",
+      "name": "Ensure the Common Attachment Types Filter is enabled",
+      "category": "ANTIMALWARE",
+      "severity": "Medium",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Security admin center > Anti-malware > Default policy > Common attachments filter > Enable",
+        "powershell": "Set-MalwareFilterPolicy -Identity <PolicyName> -EnableFileFilter $true"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.3;10.4;10.5;10.7;16.7;18.0;4.1;4.2;4.3;4.4;4.5;4.6;4.7;4.8;7.0;7.1;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.2"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.DEFENDER.1.2v1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.3;CM.L2-3.4.1;CM.L2-3.4.2;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P6;ML1-P7;ML2-P5;ML2-P6;ML2-P7;ML3-P4;ML3-P5;ML3-P6;ML3-P7"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-02;SI-03;SI-08"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.312(a)(2)(iii);164.312(e)(1);164.312(e)(2)(i);164.312(e)(2)(ii)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.7;8.8;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.7;8.8;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.008;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.001;T1036.003;T1036.005;T1036.007;T1036.008;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1091;T1092;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.005;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1111;T1114;T1114.002;T1114.003;T1119;T1127;T1127.001;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1134;T1134.001;T1134.002;T1134.003;T1134.005;T1135;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.003;T1197;T1199;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1482;T1484;T1485;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.001;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.010;T1546.013;T1546.014;T1546.016;T1547.002;T1547.003;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.001;T1548.002;T1548.003;T1548.004;T1548.006;T1550;T1550.001;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.003;T1552.004;T1552.005;T1552.006;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1554;T1555.004;T1555.005;T1556;T1556.001;T1556.002;T1556.003;T1556.004;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1559.003;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1562.011;T1562.012;T1563;T1563.001;T1563.002;T1564.002;T1564.004;T1564.006;T1564.007;T1564.008;T1564.009;T1564.012;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "CM-6;SI-3;SI-8;CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-02;SI-03;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.DS-10;PR.PS;PR.PS-02;PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.2.1;1.2.6;10.2;10.2.1;10.2.1.1;10.2.1.2;10.2.1.3;10.2.1.4;10.2.1.5;10.2.1.6;10.2.1.7;10.2.2;10.6;10.6.1;10.6.2;10.6.3;11.2;11.3;2.2;2.2.1;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;5.4;5.4.1;6.3;6.3.1;6.3.3;8.3.2;8.5"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.1-POF7;CC6.7-POF1;CC6.8;CC6.8-POF4;CC7.1;CC7.1-POF1;CC8.1;CC8.1-POF12;CC8.1-POF14;CC8.1-POF16;CC8.1-POF6;CC9.2-POF13"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-ANTIMALWARE-002",
+      "name": "Ensure notifications for internal users sending malware is Enabled",
+      "category": "ANTIMALWARE",
+      "severity": "Medium",
+      "rationale": "Failure to generate, monitor, correlate and respond to alerts from physical, cybersecurity, data protection and supply chain activities to achieve integrated situational awareness exposes the tenant to: Unauthorized access, Lost, damaged or stolen asset(s), Loss of integrity.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Security admin center > Anti-malware > Default policy > Admin notifications > Notify admin about undelivered messages from internal senders",
+        "powershell": "Set-MalwareFilterPolicy -Identity <PolicyName> -EnableInternalSenderAdminNotifications $true -InternalSenderAdminAddress admin@domain.com"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.4;10.7;12.1;13.0;13.6;18.0;18.3;7.0;7.1;7.3;7.4;8.0;8.2"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.3"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.3;RA.L2-3.11.3;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4;SI.L2-3.14.6"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P1;ML1-P2;ML2-P1;ML2-P2;ML3-P1;ML3-P2"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AU-01;SI-02;SI-02(04);SI-03;SI-04;SI-04(05)"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.308(a)(1)(i);164.308(a)(1)(ii)(D);164.312(b)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.15;8.16;8.7;8.8"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.15;8.16;8.7;8.8"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.008;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.011;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.001;T1036.003;T1036.005;T1036.007;T1036.008;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1040;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.009;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1078;T1078.001;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1091;T1092;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1111;T1114;T1114.001;T1114.002;T1114.003;T1119;T1127;T1127.001;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1135;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.003;T1137.004;T1137.005;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.002;T1195.003;T1197;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1205.002;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.003;T1213.004;T1213.005;T1216;T1216.001;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.008;T1218.009;T1218.010;T1218.011;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1484;T1485;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.002;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.010;T1546.011;T1546.013;T1546.014;T1546.016;T1547.002;T1547.003;T1547.004;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.012;T1547.013;T1548;T1548.001;T1548.002;T1548.003;T1548.004;T1548.006;T1550.001;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.003;T1552.004;T1552.005;T1552.006;T1552.008;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1554;T1555;T1555.001;T1555.002;T1555.004;T1555.005;T1556;T1556.001;T1556.002;T1556.003;T1556.004;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.002;T1558.003;T1558.004;T1558.005;T1559;T1559.001;T1559.002;T1559.003;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.010;T1562.011;T1562.012;T1563;T1563.001;T1563.002;T1564.002;T1564.004;T1564.006;T1564.007;T1564.008;T1564.009;T1564.010;T1564.012;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.002;T1574.004;T1574.005;T1574.007;T1574.008;T1574.009;T1574.010;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1651;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "IR-1;IR-8;AU-01;PM-31;SI-02;SI-02(04);SI-03;SI-04;SI-04(05)"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.AE;DE.CM-01;DE.CM-03;DE.CM-06;DE.CM-09;ID.RA-01;ID.RA-08;PR.PS-02;PR.PS-04"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "10.1;10.2;10.4;10.4.1;10.4.1.1;10.4.3;10.7;10.7.1;10.7.2;10.7.3;11.3;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;6.3;6.3.1;6.3.3;A3.3.1;A3.5"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.8;CC6.8-POF4;CC7.2;CC7.2-POF1;CC7.2-POF2;CC8.1-POF14;CC8.1-POF16;CC9.2-POF13"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-ANTIPHISH-001",
+      "name": "Ensure that an anti-phishing policy has been created",
+      "category": "ANTIPHISH",
+      "severity": "Medium",
+      "rationale": "Failure to utilize anti-phishing and spam protection technologies to detect and take action on unsolicited messages transported by electronic mail exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege.",
+      "licensing": "E5",
+      "remediation": {},
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.7"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.DEFENDER.2.1v1;MS.DEFENDER.2.2v1;MS.DEFENDER.2.3v1"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SI-08"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1204;T1204.001;T1204.002;T1204.003;T1221;T1566;T1566.001;T1566.002;T1566.003;T1598;T1598.001;T1598.002;T1598.003"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-8;SI-3;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "5.4;5.4.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.8;CC7.1"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-ANTISPAM-001",
+      "name": "Ensure Exchange Online Spam Policies are set to notify administrators",
+      "category": "ANTISPAM",
+      "severity": "Medium",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {},
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.3;10.4;10.5;10.7;16.7;18.0;4.1;4.2;4.3;4.4;4.5;4.6;4.7;4.8;7.0;7.1;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.6"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.3;CM.L2-3.4.1;CM.L2-3.4.2;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P6;ML1-P7;ML2-P5;ML2-P6;ML2-P7;ML3-P4;ML3-P5;ML3-P6;ML3-P7"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-02;SI-03;SI-08"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.312(a)(2)(iii);164.312(e)(1);164.312(e)(2)(i);164.312(e)(2)(ii)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.7;8.8;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.7;8.8;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.008;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.001;T1036.003;T1036.005;T1036.007;T1036.008;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1091;T1092;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.005;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1111;T1114;T1114.002;T1114.003;T1119;T1127;T1127.001;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1134;T1134.001;T1134.002;T1134.003;T1134.005;T1135;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.003;T1197;T1199;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1482;T1484;T1485;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.001;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.010;T1546.013;T1546.014;T1546.016;T1547.002;T1547.003;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.001;T1548.002;T1548.003;T1548.004;T1548.006;T1550;T1550.001;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.003;T1552.004;T1552.005;T1552.006;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1554;T1555.004;T1555.005;T1556;T1556.001;T1556.002;T1556.003;T1556.004;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1559.003;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1562.011;T1562.012;T1563;T1563.001;T1563.002;T1564.002;T1564.004;T1564.006;T1564.007;T1564.008;T1564.009;T1564.012;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "IR-1;IR-8;CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-02;SI-03;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.DS-10;PR.PS;PR.PS-02;PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.2.1;1.2.6;10.2;10.2.1;10.2.1.1;10.2.1.2;10.2.1.3;10.2.1.4;10.2.1.5;10.2.1.6;10.2.1.7;10.2.2;10.6;10.6.1;10.6.2;10.6.3;11.2;11.3;2.2;2.2.1;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;5.4;5.4.1;6.3;6.3.1;6.3.3;8.3.2;8.5"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.1-POF7;CC6.7-POF1;CC6.8;CC6.8-POF4;CC7.1;CC7.1-POF1;CC8.1;CC8.1-POF12;CC8.1-POF14;CC8.1-POF16;CC8.1-POF6;CC9.2-POF13"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-ANTISPAM-002",
+      "name": "Ensure inbound anti-spam policies do not contain allowed domains",
+      "category": "ANTISPAM",
+      "severity": "High",
+      "rationale": "Failure to utilize anti-phishing and spam protection technologies to detect and take action on unsolicited messages transported by electronic mail exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Defender portal > Email & Collaboration > Policies & rules > Threat policies > Anti-spam > edit each inbound policy > Allow & block lists > Allowed domains: remove all entries"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.14"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SI-08"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1204;T1204.001;T1204.002;T1204.003;T1221;T1566;T1566.001;T1566.002;T1566.003;T1598;T1598.001;T1598.002;T1598.003"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-3;SI-8;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "5.4;5.4.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.8;CC7.1"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-OUTBOUND-001",
+      "name": "Ensure outbound anti-spam message limits are in place",
+      "category": "OUTBOUND",
+      "severity": "Medium",
+      "rationale": "Failure to document, assess risk and approve or deny deviations to standardized configurations exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Security admin center > Anti-spam > Outbound policy > Auto-forwarding rules > Off",
+        "powershell": "Set-HostedOutboundSpamFilterPolicy -Identity <PolicyName> -AutoForwardingMode Off"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.3;10.4;10.5;16.7;4.1;4.2;4.3;4.4;4.5;4.6;4.7;4.8;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.15"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.3;CM.L2-3.4.1;CM.L2-3.4.2"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P6;ML1-P7;ML2-P5;ML2-P6;ML2-P7;ML3-P4;ML3-P5;ML3-P6;ML3-P7"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-08"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.312(a)(2)(iii);164.312(e)(1);164.312(e)(2)(i);164.312(e)(2)(ii)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.008;T1027;T1027.010;T1029;T1030;T1036;T1036.001;T1036.003;T1036.005;T1036.007;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1055;T1055.008;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1091;T1092;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.005;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1111;T1114;T1114.002;T1114.003;T1119;T1127;T1127.001;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1134;T1134.001;T1134.002;T1134.003;T1134.005;T1135;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.003;T1197;T1199;T1201;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1482;T1484;T1485;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.001;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.010;T1546.013;T1546.014;T1546.016;T1547.002;T1547.003;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.001;T1548.002;T1548.003;T1548.004;T1548.006;T1550;T1550.001;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.003;T1552.004;T1552.005;T1552.006;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1554;T1555.004;T1555.005;T1556;T1556.001;T1556.002;T1556.003;T1556.004;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1559.003;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1562.011;T1562.012;T1563;T1563.001;T1563.002;T1564.002;T1564.006;T1564.007;T1564.009;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-3;SI-8;CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.DS-10;PR.PS;PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.2.1;1.2.6;10.2;10.2.1;10.2.1.1;10.2.1.2;10.2.1.3;10.2.1.4;10.2.1.5;10.2.1.6;10.2.1.7;10.2.2;10.6;10.6.1;10.6.2;10.6.3;11.2;2.2;2.2.1;5.4;5.4.1;8.3.2;8.5"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1-POF7;CC6.7-POF1;CC7.1;CC7.1-POF1;CC8.1;CC8.1-POF12;CC8.1-POF6"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-SAFEATTACH-001",
+      "name": "Ensure Safe Attachments policy is enabled",
+      "category": "SAFEATTACH",
+      "severity": "High",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E5",
+      "remediation": {
+        "portal": "Security admin center > Safe Attachments > Create a policy covering all users",
+        "powershell": "New-SafeAttachmentPolicy -Name \"Safe Attachments\" -Enable $true -Action Block; New-SafeAttachmentRule -Name \"Safe Attachments\" -SafeAttachmentPolicy \"Safe Attachments\" -RecipientDomainIs (Get-AcceptedDomain).Name"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.3;10.4;10.5;10.7;16.7;18.0;4.1;4.2;4.3;4.4;4.5;4.6;4.7;4.8;7.0;7.1;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.4"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.DEFENDER.1.3v1;MS.DEFENDER.3.1v1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.3;CM.L2-3.4.1;CM.L2-3.4.2;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P6;ML1-P7;ML2-P5;ML2-P6;ML2-P7;ML3-P4;ML3-P5;ML3-P6;ML3-P7"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-02;SI-03;SI-08"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.312(a)(2)(iii);164.312(e)(1);164.312(e)(2)(i);164.312(e)(2)(ii)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.7;8.8;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.7;8.8;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.008;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.001;T1036.003;T1036.005;T1036.007;T1036.008;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1091;T1092;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.005;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1111;T1114;T1114.002;T1114.003;T1119;T1127;T1127.001;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1134;T1134.001;T1134.002;T1134.003;T1134.005;T1135;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.003;T1197;T1199;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1482;T1484;T1485;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.001;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.010;T1546.013;T1546.014;T1546.016;T1547.002;T1547.003;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.001;T1548.002;T1548.003;T1548.004;T1548.006;T1550;T1550.001;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.003;T1552.004;T1552.005;T1552.006;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1554;T1555.004;T1555.005;T1556;T1556.001;T1556.002;T1556.003;T1556.004;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1559.003;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1562.011;T1562.012;T1563;T1563.001;T1563.002;T1564.002;T1564.004;T1564.006;T1564.007;T1564.008;T1564.009;T1564.012;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "CM-6;SI-3;SI-8;CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-02;SI-03;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.DS-10;PR.PS;PR.PS-02;PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.2.1;1.2.6;10.2;10.2.1;10.2.1.1;10.2.1.2;10.2.1.3;10.2.1.4;10.2.1.5;10.2.1.6;10.2.1.7;10.2.2;10.6;10.6.1;10.6.2;10.6.3;11.2;11.3;2.2;2.2.1;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;5.4;5.4.1;6.3;6.3.1;6.3.3;8.3.2;8.5"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.1-POF7;CC6.7-POF1;CC6.8;CC6.8-POF4;CC7.1;CC7.1-POF1;CC8.1;CC8.1-POF12;CC8.1-POF14;CC8.1-POF16;CC8.1-POF6;CC9.2-POF13"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-SAFEATTACH-002",
+      "name": "Ensure Safe Attachments for SharePoint OneDrive and Microsoft Teams is Enabled",
+      "category": "SAFEATTACH",
+      "severity": "Medium",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E5",
+      "remediation": {
+        "portal": "Security admin center > Safe Attachments > Global settings > Turn on Defender for Office 365 for SharePoint, OneDrive, and Microsoft Teams",
+        "powershell": "Set-AtpPolicyForO365 -EnableATPForSPOTeamsODB $true"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.4;10.7;12.1;18.0;18.3;7.0;7.1;7.3;7.4"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.5"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "RA.L2-3.11.3;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P1;ML1-P2;ML2-P1;ML2-P2;ML3-P1;ML3-P2"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-02;AC-03;AC-05;SI-02;SI-02(04);SI-03;SI-04;SI-05;SI-07;SI-10"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.7;8.8"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.7;8.8"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011.001;T1021.002;T1021.003;T1021.005;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.003;T1036.005;T1036.008;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1080;T1090;T1090.001;T1090.002;T1090.003;T1091;T1092;T1095;T1098.004;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1111;T1127;T1127.002;T1129;T1132;T1132.001;T1132.002;T1137;T1137.001;T1137.003;T1137.004;T1137.005;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.002;T1195.003;T1197;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1210;T1211;T1212;T1213.003;T1213.005;T1216;T1216.001;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.008;T1218.009;T1218.010;T1218.011;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1485;T1486;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1525;T1530;T1537;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.002;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.009;T1546.010;T1546.011;T1546.013;T1546.014;T1546.016;T1547.002;T1547.004;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.002;T1548.004;T1548.006;T1550.002;T1552;T1552.005;T1552.006;T1553;T1553.001;T1553.003;T1553.005;T1553.006;T1554;T1555;T1555.005;T1557;T1557.001;T1557.002;T1557.003;T1558;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.004;T1562.006;T1562.011;T1564.003;T1564.004;T1564.006;T1564.008;T1564.009;T1564.012;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.002;T1574.004;T1574.006;T1574.007;T1574.008;T1574.009;T1574.012;T1574.013;T1574.014;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1609;T1611;T1622"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-3;SI-8;AC-02;AC-03;AC-05;SI-02;SI-02(04);SI-03;SI-04;SI-05;SI-07;SI-10"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.PS-02"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "11.3;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;6.3;6.3.1;6.3.3"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.8;CC6.8-POF4;CC8.1-POF14;CC8.1-POF16;CC9.2-POF13;PI1.2-POF1;PI1.2-POF2;PI1.2-POF3"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-SAFELINKS-001",
+      "name": "Ensure Safe Links for Office Applications is Enabled",
+      "category": "SAFELINKS",
+      "severity": "High",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E5",
+      "remediation": {
+        "portal": "Security admin center > Safe Links > Create a policy covering all users",
+        "powershell": "New-SafeLinksPolicy -Name \"Safe Links\" -IsEnabled $true; New-SafeLinksRule -Name \"Safe Links\" -SafeLinksPolicy \"Safe Links\" -RecipientDomainIs (Get-AcceptedDomain).Name"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.3;10.4;10.5;10.7;16.7;18.0;4.1;4.2;4.3;4.4;4.5;4.6;4.7;4.8;7.0;7.1;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.1"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.DEFENDER.1.3v1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.3;CM.L2-3.4.1;CM.L2-3.4.2;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P6;ML1-P7;ML2-P5;ML2-P6;ML2-P7;ML3-P4;ML3-P5;ML3-P6;ML3-P7"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-02;SI-03;SI-08"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.312(a)(2)(iii);164.312(e)(1);164.312(e)(2)(i);164.312(e)(2)(ii)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.7;8.8;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.25;8.26;8.3;8.5;8.7;8.8;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.008;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.001;T1036.003;T1036.005;T1036.007;T1036.008;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1091;T1092;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.005;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1111;T1114;T1114.002;T1114.003;T1119;T1127;T1127.001;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1134;T1134.001;T1134.002;T1134.003;T1134.005;T1135;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.003;T1197;T1199;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1482;T1484;T1485;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.001;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.010;T1546.013;T1546.014;T1546.016;T1547.002;T1547.003;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.001;T1548.002;T1548.003;T1548.004;T1548.006;T1550;T1550.001;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.003;T1552.004;T1552.005;T1552.006;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1554;T1555.004;T1555.005;T1556;T1556.001;T1556.002;T1556.003;T1556.004;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1559.003;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1562.011;T1562.012;T1563;T1563.001;T1563.002;T1564.002;T1564.004;T1564.006;T1564.007;T1564.008;T1564.009;T1564.012;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "CM-6;SI-3;SI-8;CM-02;CM-06;PL-10;SA-08;SA-15(05);SI-02;SI-03;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.DS-10;PR.PS;PR.PS-02;PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.2.1;1.2.6;10.2;10.2.1;10.2.1.1;10.2.1.2;10.2.1.3;10.2.1.4;10.2.1.5;10.2.1.6;10.2.1.7;10.2.2;10.6;10.6.1;10.6.2;10.6.3;11.2;11.3;2.2;2.2.1;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;5.4;5.4.1;6.3;6.3.1;6.3.3;8.3.2;8.5"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.1-POF7;CC6.7-POF1;CC6.8;CC6.8-POF4;CC7.1;CC7.1-POF1;CC8.1;CC8.1-POF12;CC8.1-POF14;CC8.1-POF16;CC8.1-POF6;CC9.2-POF13"
+        }
+      }
+    },
+    {
       "id": "DEFENDER-SECUREMON-001",
       "name": "Ensure continuous security monitoring via Microsoft Secure Score",
       "category": "SECUREMON",
@@ -678,6 +1237,266 @@
         "soc2": {
           "label": "SOC 2 Trust Services Criteria",
           "controlId": "A1.2;CC1.1-POF3;CC3.1;CC3.1-POF16;CC3.2-POF1;CC3.2-POF2;CC3.2-POF3;CC3.2-POF6;CC3.2-POF8;CC3.2-POF9;CC3.4-POF1;CC3.4-POF2;CC3.4-POF3;CC3.4-POF4;CC3.4-POF5;CC4.1;CC4.1-POF8;CC5.2;CC6.1-POF2;CC7.2-POF4;CC7.3"
+        }
+      }
+    },
+    {
+      "id": "DEFENDER-ZAP-001",
+      "name": "Ensure Zero-hour auto purge for Microsoft Teams is on",
+      "category": "ZAP",
+      "severity": "Medium",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E5",
+      "remediation": {
+        "portal": "Security admin center > Settings > Zero-hour auto purge > Teams"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.4;10.7;12.1;18.0;18.3;7.0;7.1;7.3;7.4;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.4.4"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "RA.L2-3.11.3;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P1;ML1-P2;ML2-P1;ML2-P2;ML3-P1;ML3-P2"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SI-02;SI-02(04);SI-03;SI-08"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.7;8.8"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.7;8.8"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011.001;T1021.003;T1021.005;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.003;T1036.005;T1036.008;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1080;T1090;T1090.001;T1090.002;T1091;T1092;T1095;T1098.004;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1111;T1129;T1132;T1132.001;T1132.002;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1189;T1190;T1195;T1195.001;T1195.002;T1195.003;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1210;T1211;T1212;T1213.003;T1213.005;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1221;T1485;T1486;T1490;T1491;T1491.001;T1491.002;T1495;T1505.004;T1525;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.002;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.010;T1546.011;T1546.013;T1546.014;T1546.016;T1547.002;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.002;T1548.004;T1548.006;T1550.002;T1552;T1552.006;T1553;T1553.003;T1553.006;T1554;T1555;T1555.005;T1557;T1557.001;T1557.002;T1557.003;T1558;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.004;T1562.006;T1562.011;T1564.004;T1564.008;T1564.009;T1564.012;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.002;T1574.004;T1574.007;T1574.008;T1574.009;T1574.013;T1574.014;T1598;T1598.001;T1598.002;T1598.003;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1611;T1622"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-3;SI-02;SI-02(04);SI-03;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.PS-02"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "11.3;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;5.4;5.4.1;6.3;6.3.1;6.3.3"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.8;CC6.8-POF4;CC8.1-POF14;CC8.1-POF16;CC9.2-POF13"
+        }
+      }
+    },
+    {
+      "id": "DNS-DKIM-001",
+      "name": "Ensure that DKIM is enabled for all Exchange Online Domains",
+      "category": "DKIM",
+      "severity": "Low",
+      "rationale": "Failure to implement this control may expose the tenant to security risks.",
+      "licensing": "E3",
+      "remediation": {},
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "3.1"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.9"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.EXO.4.1v1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "SC.L2-3.13.8"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SC-08;SC-08(01);SC-16(01);SC-28(01)"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.312(e)(1);164.312(e)(2)(i)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.14;8.24;8.26"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.14;8.24;8.26"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1020.001;T1040;T1090;T1090.004;T1550.001;T1550.004;T1552.007;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1562;T1562.006;T1562.009;T1562.010;T1602;T1602.001;T1602.002;T1622"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-8;SC-7;SC-08;SC-08(01);SC-16(01);SC-28(01)"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.DS-02"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "3.7.5;4.2;4.2.1;4.2.1.2;8.3.2;A2.1;A2.1.1;A2.1.2"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.1-POF10;CC6.7;CC6.7-POF2"
+        }
+      }
+    },
+    {
+      "id": "DNS-DMARC-001",
+      "name": "Ensure DMARC Records for all Exchange Online domains are published",
+      "category": "DMARC",
+      "severity": "High",
+      "rationale": "Failure to generate, monitor, correlate and respond to alerts from physical, cybersecurity, data protection and supply chain activities to achieve integrated situational awareness exposes the tenant to: Unauthorized access, Lost, damaged or stolen asset(s), Loss of integrity.",
+      "licensing": "E3",
+      "remediation": {},
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "13.0;13.6;8.0;8.2;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.10"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.EXO.2.1v2;MS.EXO.2.2v3"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.3;SI.L2-3.14.6"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AU-01;SI-04;SI-04(05);SI-08"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.308(a)(1)(i);164.308(a)(1)(ii)(D);164.312(b)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.15;8.16"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.15;8.16"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.008;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.011;T1027.012;T1029;T1030;T1036;T1036.001;T1036.003;T1036.005;T1036.007;T1036.008;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1040;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1056.002;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.009;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1078;T1078.001;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1091;T1092;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1111;T1114;T1114.001;T1114.002;T1114.003;T1119;T1127;T1127.001;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1135;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1197;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1205.002;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.008;T1218.009;T1218.010;T1218.011;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1484;T1485;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1539;T1542.004;T1542.005;T1543;T1543.002;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.013;T1546.014;T1546.016;T1547.002;T1547.003;T1547.004;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.012;T1547.013;T1548;T1548.001;T1548.002;T1548.003;T1548.004;T1548.006;T1550.001;T1550.003;T1552;T1552.001;T1552.002;T1552.003;T1552.004;T1552.005;T1552.006;T1552.008;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1555;T1555.001;T1555.002;T1555.004;T1555.005;T1556;T1556.001;T1556.002;T1556.003;T1556.004;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.002;T1558.003;T1558.004;T1558.005;T1559;T1559.002;T1559.003;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.010;T1562.011;T1562.012;T1563;T1563.001;T1563.002;T1564.002;T1564.004;T1564.006;T1564.007;T1564.008;T1564.009;T1564.010;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.004;T1574.005;T1574.007;T1574.008;T1574.009;T1574.010;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1651;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-2;SC-7;AU-01;PM-31;SI-04;SI-04(05);SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.AE;DE.CM-01;DE.CM-03;DE.CM-06;DE.CM-09;PR.PS-04"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "10.1;10.2;10.4;10.4.1;10.4.1.1;10.4.3;10.7;10.7.1;10.7.2;10.7.3;5.4;5.4.1;A3.3.1;A3.5"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC7.2;CC7.2-POF1;CC7.2-POF2"
+        }
+      }
+    },
+    {
+      "id": "DNS-MX-001",
+      "name": "Ensure MX records exist and point to Exchange Online for all email domains",
+      "category": "MX",
+      "severity": "High",
+      "rationale": "Failure to route email through Exchange Online mail flow exposes the tenant to: Security control bypass; mail not traversing Exchange Online skips ATP scanning, DLP policies, mail flow rules, and anti-phishing defenses.",
+      "licensing": "E3",
+      "remediation": {},
+      "frameworks": {}
+    },
+    {
+      "id": "DNS-SPF-001",
+      "name": "Ensure that SPF records are published for all Exchange Domains",
+      "category": "SPF",
+      "severity": "High",
+      "rationale": "Failure to proactively govern account management of individual, group, system, service, application, guest and temporary accounts exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {},
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "6.1;6.2;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.8"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.EXO.3.1v1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L1-B.1.II;AC.L1-B.1.II[a];AC.L1-B.1.II[b];AC.L2-3.1.2"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-02;AC-03;AC-05;IA-12(04);SI-03;SI-04;SI-05;SI-07;SI-08;SI-10"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.308(a)(3)(ii)(C);164.312(a)(2)(ii)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.15;5.16;5.18"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.15;5.16;5.18"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.007;T1021.008;T1025;T1027.010;T1036;T1036.003;T1036.005;T1036.008;T1036.010;T1041;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1053.007;T1055;T1055.008;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.009;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1071.004;T1072;T1078;T1078.001;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.004;T1090;T1090.003;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.005;T1098.006;T1098.007;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1127;T1127.002;T1129;T1134;T1134.001;T1134.002;T1134.003;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1190;T1195;T1197;T1204;T1204.001;T1204.002;T1204.003;T1210;T1212;T1213;T1213.001;T1213.002;T1213.003;T1213.004;T1213.005;T1216;T1216.001;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.010;T1218.011;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1484;T1485.001;T1489;T1490;T1495;T1496.002;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.002;T1505.003;T1505.005;T1525;T1528;T1530;T1537;T1538;T1542;T1542.001;T1542.003;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1543.005;T1546;T1546.002;T1546.003;T1546.006;T1546.008;T1546.009;T1546.010;T1547.004;T1547.006;T1547.009;T1547.012;T1547.013;T1548;T1548.002;T1548.003;T1548.005;T1548.006;T1550;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.004;T1552.005;T1552.006;T1552.007;T1553;T1553.001;T1553.003;T1553.005;T1555.005;T1555.006;T1556;T1556.001;T1556.003;T1556.004;T1556.005;T1556.006;T1556.007;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1558.005;T1559;T1559.001;T1562;T1562.001;T1562.002;T1562.004;T1562.006;T1562.007;T1562.008;T1562.009;T1562.012;T1563;T1563.001;T1563.002;T1564.003;T1564.006;T1564.009;T1566;T1566.001;T1566.002;T1566.003;T1567;T1569;T1569.001;T1569.002;T1570;T1572;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.012;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1578.005;T1580;T1585;T1585.001;T1585.002;T1585.003;T1586;T1586.001;T1586.002;T1586.003;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1606.002;T1609;T1610;T1611;T1612;T1613;T1619;T1621;T1622;T1648;T1651;T1654"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SC-8;SC-7;AC-02;AC-03;AC-05;IA-12(04);SI-03;SI-04;SI-05;SI-07;SI-08;SI-10"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.DS-02"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "11.2;4.1;4.2.1;5.4;5.4.1;7.2.3;8.2.4;8.2.5;8.3.10;8.3.5;8.6;8.6.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.2;CC6.2-POF1;CC6.2-POF3;CC6.3-POF1;CC6.3-POF2;CC6.6;CC6.6-POF2;PI1.2-POF1;PI1.2-POF2;PI1.2-POF3"
         }
       }
     },
@@ -4603,6 +5422,1221 @@
         "soc2": {
           "label": "SOC 2 Trust Services Criteria",
           "controlId": "CC6.1;CC6.6-POF2"
+        }
+      }
+    },
+    {
+      "id": "EXO-ADDINS-001",
+      "name": "Ensure users installing Outlook add-ins is not allowed",
+      "category": "ADDINS",
+      "severity": "Medium",
+      "rationale": "Failure to configure systems to provide only essential capabilities by specifically prohibiting or restricting the use of ports, protocols, and/or services exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Exchange admin center > Roles > User roles > Default Role Assignment Policy"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "4.0;4.6;4.8"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.3.1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "CM.L2-3.4.6;CM.L2-3.4.9"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-07;CM-11;CM-11(02)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.19;8.3;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.19;8.3;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1003;T1003.001;T1003.002;T1003.005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.005;T1021.006;T1021.008;T1027;T1036;T1036.005;T1036.007;T1036.008;T1037;T1037.001;T1040;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.005;T1059;T1059.005;T1059.006;T1059.007;T1059.009;T1059.010;T1068;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1092;T1095;T1098;T1098.001;T1098.004;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1112;T1127;T1127.002;T1129;T1133;T1135;T1136;T1136.002;T1136.003;T1176;T1187;T1190;T1195;T1195.001;T1195.002;T1197;T1199;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1482;T1484;T1489;T1490;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.001;T1505.002;T1505.004;T1525;T1530;T1537;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1546.002;T1546.006;T1546.008;T1546.009;T1546.010;T1547.004;T1547.006;T1547.007;T1547.009;T1547.013;T1548;T1548.001;T1548.003;T1548.004;T1548.006;T1550.001;T1552;T1552.003;T1552.005;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1555.004;T1555.006;T1556;T1556.002;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1559;T1559.002;T1559.003;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1563;T1563.001;T1563.002;T1564.002;T1564.003;T1564.006;T1564.008;T1564.009;T1565;T1565.003;T1569;T1569.001;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.006;T1574.007;T1574.008;T1574.009;T1574.012;T1574.014;T1590.002;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "CM-10;CM-11;SC-18;CM-07;CM-11(02)"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.2.5;1.2.6;1.4;1.4.1;1.4.2;2.2.4"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC5.2-POF3;CC6.1-POF7;CC6.7-POF1;CC6.8-POF1"
+        }
+      }
+    },
+    {
+      "id": "EXO-ANTIPHISH-001",
+      "name": "Anti-Phishing Policy Configuration",
+      "category": "ANTIPHISH",
+      "severity": "High",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Defender portal > Email & Collaboration > Policies & rules > Threat policies > Anti-phishing > edit default policy: enable mailbox intelligence, enable impersonation protection for key users and domains, set action to Quarantine for impersonation and spoof detections"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.4;10.7;12.1;18.0;18.3;7.0;7.1;7.3;7.4;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "4.2"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "RA.L2-3.11.3;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P1;ML1-P2;ML2-P1;ML2-P2;ML3-P1;ML3-P2"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SI-02;SI-02(04);SI-03;SI-08"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.7;8.8"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.7;8.8"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011.001;T1021.003;T1021.005;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.003;T1036.005;T1036.008;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1080;T1090;T1090.001;T1090.002;T1091;T1092;T1095;T1098.004;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1111;T1129;T1132;T1132.001;T1132.002;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1189;T1190;T1195;T1195.001;T1195.002;T1195.003;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1210;T1211;T1212;T1213.003;T1213.005;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1221;T1485;T1486;T1490;T1491;T1491.001;T1491.002;T1495;T1505.004;T1525;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.002;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.010;T1546.011;T1546.013;T1546.014;T1546.016;T1547.002;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.002;T1548.004;T1548.006;T1550.002;T1552;T1552.006;T1553;T1553.003;T1553.006;T1554;T1555;T1555.005;T1557;T1557.001;T1557.002;T1557.003;T1558;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.004;T1562.006;T1562.011;T1564.004;T1564.008;T1564.009;T1564.012;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.002;T1574.004;T1574.007;T1574.008;T1574.009;T1574.013;T1574.014;T1598;T1598.001;T1598.002;T1598.003;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1611;T1622"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-19(5);SC-39;CM-6;CM-7;SI-02;SI-02(04);SI-03;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.PS-02"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "11.3;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;5.4;5.4.1;6.3;6.3.1;6.3.3"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.8;CC6.8-POF4;CC8.1-POF14;CC8.1-POF16;CC9.2-POF13"
+        }
+      }
+    },
+    {
+      "id": "EXO-ANTISPAM-001",
+      "name": "Anti-Spam Policy Configuration",
+      "category": "ANTISPAM",
+      "severity": "Medium",
+      "rationale": "Failure to utilize anti-phishing and spam protection technologies to detect and take action on unsolicited messages transported by electronic mail exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Defender portal > Email & Collaboration > Policies & rules > Threat policies > Anti-spam > edit default inbound policy: spam action = Junk folder, high-confidence spam = Quarantine, phishing = Quarantine, BCL threshold = 6 or lower"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.6"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SI-08"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1204;T1204.001;T1204.002;T1204.003;T1221;T1566;T1566.001;T1566.002;T1566.003;T1598;T1598.001;T1598.002;T1598.003"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-08"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "5.4;5.4.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.8;CC7.1"
+        }
+      }
+    },
+    {
+      "id": "EXO-AUDIT-001",
+      "name": "Ensure 'AuditDisabled' organizationally is set to 'False'",
+      "category": "AUDIT",
+      "severity": "Low",
+      "rationale": "Failure to provide an event log report generation capability to aid in detecting and assessing anomalous activities exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {
+        "powershell": "Set-OrganizationConfig -AuditDisabled $false. Note: this is the Exchange org-level audit flag and is a pre-condition for UAL, but does not guarantee UAL ingestion is active. Verify UAL separately (COMPLIANCE-AUDIT-001)"
+      },
+      "frameworks": {
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.1.1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.6"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AU-07;AU-07(01);AU-12"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "6.8;8.15"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "6.8;8.15"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AU-2;AU-7;AU-12;AU-07;AU-07(01)"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.AE-03"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC7.2;CC7.3"
+        }
+      }
+    },
+    {
+      "id": "EXO-AUDIT-002",
+      "name": "Ensure 'AuditBypassEnabled' is not enabled on mailboxes",
+      "category": "AUDIT",
+      "severity": "Low",
+      "rationale": "Failure to provide an event log report generation capability to aid in detecting and assessing anomalous activities exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {
+        "powershell": "Set-MailboxAuditBypassAssociation -Identity <user> -AuditBypassEnabled $false for each bypassed mailbox"
+      },
+      "frameworks": {
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.1.3"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.EXO.13.1v1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.6"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AU-07;AU-07(01);AU-12"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "6.8;8.15"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "6.8;8.15"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AU-12;AU-3;AU-3(1);AU-7;AU-07;AU-07(01)"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.AE-03"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC7.2;CC7.3"
+        }
+      }
+    },
+    {
+      "id": "EXO-AUDIT-003",
+      "name": "Ensure mailbox audit actions are configured",
+      "category": "AUDIT",
+      "severity": "Medium",
+      "rationale": "Failure to provide an event log report generation capability to aid in detecting and assessing anomalous activities exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {},
+      "frameworks": {
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.1.2"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.EXO.13.1v1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AU.L2-3.3.6"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AU-07;AU-07(01);AU-12"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "6.8;8.15"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "6.8;8.15"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AU-12;AU-2;AU-7;AU-07;AU-07(01)"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.AE-03"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC7.2;CC7.3"
+        }
+      }
+    },
+    {
+      "id": "EXO-AUTH-001",
+      "name": "Ensure modern authentication for Exchange Online is enabled",
+      "category": "AUTH",
+      "severity": "Medium",
+      "rationale": "Failure to configure systems to provide only essential capabilities by specifically prohibiting or restricting the use of ports, protocols, and/or services exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Exchange admin center > Settings > Modern authentication > Enable",
+        "powershell": "Set-OrganizationConfig -OAuth2ClientProfileEnabled $true"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "4.0;4.6;4.8"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.5.1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "CM.L2-3.4.6"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-07"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.3;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.3;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1003;T1003.001;T1003.002;T1003.005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.005;T1021.006;T1021.008;T1027;T1036;T1036.005;T1036.007;T1036.008;T1037;T1037.001;T1040;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.005;T1059;T1059.005;T1059.007;T1059.009;T1059.010;T1068;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1092;T1095;T1098;T1098.001;T1098.004;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1112;T1127;T1127.002;T1129;T1133;T1135;T1136;T1136.002;T1136.003;T1176;T1187;T1190;T1195;T1195.001;T1195.002;T1197;T1199;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1482;T1484;T1489;T1490;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1525;T1530;T1537;T1542.004;T1542.005;T1543;T1546.002;T1546.006;T1546.008;T1546.009;T1546.010;T1547.004;T1547.006;T1547.007;T1547.009;T1548;T1548.001;T1548.003;T1548.004;T1548.006;T1552;T1552.003;T1552.005;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1555.004;T1555.006;T1556;T1556.002;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1559;T1559.002;T1559.003;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1563;T1563.001;T1563.002;T1564.002;T1564.003;T1564.006;T1564.008;T1564.009;T1565;T1565.003;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.006;T1574.007;T1574.008;T1574.009;T1574.012;T1574.014;T1590.002;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-17(2);IA-5;IA-5(1);SC-8;SC-8(1);CM-07"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.2.5;1.2.6;1.4;1.4.1;1.4.2;2.2.4"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC5.2-POF3;CC6.1-POF7;CC6.7-POF1"
+        }
+      }
+    },
+    {
+      "id": "EXO-AUTH-002",
+      "name": "Ensure SMTP AUTH is disabled",
+      "category": "AUTH",
+      "severity": "High",
+      "rationale": "Failure to configure systems to provide only essential capabilities by specifically prohibiting or restricting the use of ports, protocols, and/or services exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions.",
+      "licensing": "E3",
+      "remediation": {
+        "powershell": "Set-TransportConfig -SmtpClientAuthenticationDisabled $true. Disable SMTP AUTH org-wide and enable per-mailbox only where required"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "4.0;4.6;4.8"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.5.4"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.EXO.5.1v1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "CM.L2-3.4.6"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-07"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.3;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.3;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1003;T1003.001;T1003.002;T1003.005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.005;T1021.006;T1021.008;T1027;T1036;T1036.005;T1036.007;T1036.008;T1037;T1037.001;T1040;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.005;T1059;T1059.005;T1059.007;T1059.009;T1059.010;T1068;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1092;T1095;T1098;T1098.001;T1098.004;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1112;T1127;T1127.002;T1129;T1133;T1135;T1136;T1136.002;T1136.003;T1176;T1187;T1190;T1195;T1195.001;T1195.002;T1197;T1199;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1482;T1484;T1489;T1490;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1525;T1530;T1537;T1542.004;T1542.005;T1543;T1546.002;T1546.006;T1546.008;T1546.009;T1546.010;T1547.004;T1547.006;T1547.007;T1547.009;T1548;T1548.001;T1548.003;T1548.004;T1548.006;T1552;T1552.003;T1552.005;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1555.004;T1555.006;T1556;T1556.002;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1559;T1559.002;T1559.003;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1563;T1563.001;T1563.002;T1564.002;T1564.003;T1564.006;T1564.008;T1564.009;T1565;T1565.003;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.006;T1574.007;T1574.008;T1574.009;T1574.012;T1574.014;T1590.002;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "CM-7;AC-18;SC-23;CM-07"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.2.5;1.2.6;1.4;1.4.1;1.4.2;2.2.4"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC5.2-POF3;CC6.1-POF7;CC6.7-POF1"
+        }
+      }
+    },
+    {
+      "id": "EXO-CONNFILTER-001",
+      "name": "Ensure the connection filter IP allow list is not used",
+      "category": "CONNFILTER",
+      "severity": "High",
+      "rationale": "Failure to implement and govern Access Control Lists (ACLs) to provide data flow enforcement that explicitly restrict network traffic to only what is authorized exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Exchange admin center > Protection > Connection filter > Edit the policy and remove all IP allow list entries",
+        "powershell": "Set-HostedConnectionFilterPolicy -Identity <Policy> -IPAllowList @{}"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "12.6;13.4;3.3;4.6;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.12"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L2-3.1.3;AC.L3-3.1.3E"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-04;SI-08"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.14;8.2;8.3"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.14;8.2;8.3"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.005;T1003.006;T1008;T1020.001;T1021.001;T1021.002;T1021.003;T1021.005;T1021.006;T1029;T1030;T1041;T1046;T1048;T1048.001;T1048.002;T1048.003;T1068;T1070.008;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1090;T1090.001;T1090.002;T1090.003;T1095;T1098;T1098.001;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1114;T1114.001;T1114.002;T1114.003;T1132;T1132.001;T1132.002;T1133;T1134.005;T1136;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1187;T1189;T1190;T1197;T1199;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1205.002;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1218;T1218.012;T1219;T1221;T1482;T1484;T1489;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1528;T1530;T1537;T1547.003;T1552;T1552.001;T1552.005;T1552.007;T1552.008;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1559;T1559.001;T1559.002;T1563;T1563.002;T1564.008;T1565;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1567.001;T1567.002;T1567.003;T1567.004;T1568;T1568.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.004;T1574.005;T1574.007;T1574.008;T1574.009;T1574.010;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1611;T1622;T1654;T1659"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-3;SI-8;AC-04;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.3;1.3.1;1.3.2;1.4.2;1.4.3;5.4;5.4.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.1-POF6;CC6.6;CC6.6-POF1"
+        }
+      }
+    },
+    {
+      "id": "EXO-CONNFILTER-002",
+      "name": "Ensure the connection filter safe list is off",
+      "category": "CONNFILTER",
+      "severity": "Medium",
+      "rationale": "Failure to implement and govern Access Control Lists (ACLs) to provide data flow enforcement that explicitly restrict network traffic to only what is authorized exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Exchange admin center > Protection > Connection filter > Edit the policy and uncheck \"Turn on safe list\"",
+        "powershell": "Set-HostedConnectionFilterPolicy -Identity <Policy> -EnableSafeList $false"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "12.6;13.4;3.3;4.6;9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.13"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L2-3.1.3;AC.L3-3.1.3E"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-04;SI-08"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.14;8.2;8.3"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.14;8.2;8.3"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.005;T1003.006;T1008;T1020.001;T1021.001;T1021.002;T1021.003;T1021.005;T1021.006;T1029;T1030;T1041;T1046;T1048;T1048.001;T1048.002;T1048.003;T1068;T1070.008;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1090;T1090.001;T1090.002;T1090.003;T1095;T1098;T1098.001;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1114;T1114.001;T1114.002;T1114.003;T1132;T1132.001;T1132.002;T1133;T1134.005;T1136;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1187;T1189;T1190;T1197;T1199;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1205.002;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1218;T1218.012;T1219;T1221;T1482;T1484;T1489;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1528;T1530;T1537;T1547.003;T1552;T1552.001;T1552.005;T1552.007;T1552.008;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1559;T1559.001;T1559.002;T1563;T1563.002;T1564.008;T1565;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1567.001;T1567.002;T1567.003;T1567.004;T1568;T1568.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.004;T1574.005;T1574.007;T1574.008;T1574.009;T1574.010;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1611;T1622;T1654;T1659"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-3;SI-8;AC-04;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.3;1.3.1;1.3.2;1.4.2;1.4.3;5.4;5.4.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.1-POF6;CC6.6;CC6.6-POF1"
+        }
+      }
+    },
+    {
+      "id": "EXO-DIRECTSEND-001",
+      "name": "Ensure Direct Send is not allowed for unauthorized relay",
+      "category": "DIRECTSEND",
+      "severity": "High",
+      "rationale": "Failure to define, control and review organization-approved, secure remote access methods exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E5",
+      "remediation": {},
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "12.7;13.5;9.6"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.5.5"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L2-3.1.12;SC.L1-B.1.X;SC.L1-B.1.X[a];SC.L1-B.1.X[b];SC.L1-B.1.X[c];SC.L1-B.1.X[d];SC.L1-B.1.X[e];SC.L1-B.1.X[f];SC.L1-B.1.X[g];SC.L1-B.1.X[h];SC.L2-3.13.1"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-17;SC-07;SC-07(09);SC-07(11)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "6.7;8.2;8.21"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "6.7;8.2;8.21"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1008;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.008;T1029;T1030;T1036.008;T1037;T1037.001;T1040;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1068;T1070;T1070.001;T1070.002;T1070.008;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1078;T1080;T1090;T1090.001;T1090.002;T1090.003;T1095;T1098;T1098.001;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1114;T1114.001;T1114.002;T1114.003;T1119;T1127.002;T1132;T1132.001;T1132.002;T1133;T1136;T1136.002;T1136.003;T1137;T1137.002;T1176;T1187;T1189;T1190;T1197;T1199;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.005;T1218;T1218.012;T1218.015;T1219;T1221;T1482;T1489;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1505.005;T1530;T1537;T1542;T1542.004;T1542.005;T1543;T1547.003;T1547.004;T1547.009;T1547.012;T1547.013;T1550.001;T1552;T1552.001;T1552.002;T1552.004;T1552.005;T1552.007;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1560;T1560.001;T1563;T1563.001;T1563.002;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1567.001;T1567.002;T1567.003;T1567.004;T1568;T1568.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1619;T1622;T1647;T1648;T1651;T1659"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-18;SC-23;AC-17;AC-17(06);SC-07;SC-07(09);SC-07(11)"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.3.3;1.4;1.4.1;1.4.2;11.5.1;12.8.1;3.4.2;7.2.5;8.2.3;8.2.7"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.1-POF5;CC6.6;CC6.6-POF1;CC6.6-POF3;CC6.6-POF4;CC6.8"
+        }
+      }
+    },
+    {
+      "id": "EXO-DKIM-001",
+      "name": "DKIM Signing Configuration",
+      "category": "DKIM",
+      "severity": "High",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Defender portal > Email & Collaboration > Policies & rules > Threat policies > DKIM > select domain > Enable"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.4;10.7;12.1;18.0;18.3;3.1;7.0;7.1;7.3;7.4"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.9"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "RA.L2-3.11.3;SC.L2-3.13.8;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P1;ML1-P2;ML2-P1;ML2-P2;ML3-P1;ML3-P2"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SC-08;SC-08(01);SI-02;SI-02(04);SI-03"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.312(e)(1)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.14;8.24;8.26;8.7;8.8"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.14;8.24;8.26;8.7;8.8"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011.001;T1020.001;T1021.003;T1021.005;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.003;T1036.005;T1036.008;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1040;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1080;T1090;T1090.001;T1090.002;T1090.004;T1091;T1092;T1095;T1098.004;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1111;T1129;T1132;T1132.001;T1132.002;T1137;T1137.001;T1137.003;T1137.004;T1137.005;T1176;T1185;T1189;T1190;T1195;T1195.001;T1195.002;T1195.003;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1210;T1211;T1212;T1213.003;T1213.005;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1221;T1485;T1486;T1490;T1491;T1491.001;T1491.002;T1495;T1505.004;T1525;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.002;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.010;T1546.011;T1546.013;T1546.014;T1546.016;T1547.002;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.002;T1548.004;T1548.006;T1550.001;T1550.002;T1550.004;T1552;T1552.006;T1552.007;T1553;T1553.003;T1553.006;T1554;T1555;T1555.005;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.004;T1562.006;T1562.009;T1562.010;T1562.011;T1564.004;T1564.008;T1564.009;T1564.012;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.002;T1574.004;T1574.007;T1574.008;T1574.009;T1574.013;T1574.014;T1598;T1598.001;T1598.002;T1598.003;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1611;T1622"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SC-08;SC-08(01);SI-02;SI-02(04);SI-03"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.DS-02;PR.PS-02"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "11.3;4.2;4.2.1;4.2.1.2;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;6.3;6.3.1;6.3.3;8.3.2;A2.1;A2.1.1;A2.1.2"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.1;CC6.1-POF10;CC6.7;CC6.7-POF2;CC6.8;CC6.8-POF4;CC8.1-POF14;CC8.1-POF16;CC9.2-POF13"
+        }
+      }
+    },
+    {
+      "id": "EXO-EXTTAG-001",
+      "name": "Ensure email from external senders is identified",
+      "category": "EXTTAG",
+      "severity": "Low",
+      "rationale": "Failure to utilize anti-phishing and spam protection technologies to detect and take action on unsolicited messages transported by electronic mail exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege.",
+      "licensing": "E3",
+      "remediation": {
+        "powershell": "Set-ExternalInOutlook -Enabled $true. Tags external emails with a visual indicator in Outlook"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.2.3"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.EXO.7.1v1"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SI-08"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1204;T1204.001;T1204.002;T1204.003;T1221;T1566;T1566.001;T1566.002;T1566.003;T1598;T1598.001;T1598.002;T1598.003"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-8;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "5.4;5.4.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.8;CC7.1"
+        }
+      }
+    },
+    {
+      "id": "EXO-FORWARD-001",
+      "name": "Ensure all forms of mail forwarding are blocked and/or disabled",
+      "category": "FORWARD",
+      "severity": "High",
+      "rationale": "Failure to implement and govern Access Control Lists (ACLs) to provide data flow enforcement that explicitly restrict network traffic to only what is authorized exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions.",
+      "licensing": "E3",
+      "remediation": {
+        "powershell": "Set-RemoteDomain -Identity Default -AutoForwardEnabled $false. Also consider transport rules to block client-side forwarding"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "12.6;13.4;3.3;4.6"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.2.1"
+        },
+        "cisa-scuba": {
+          "label": "CISA Secure Cloud Business Applications (SCuBA)",
+          "controlId": "MS.EXO.1.1v2"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L2-3.1.3;AC.L3-3.1.3E"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-04"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.14;8.2;8.3"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.14;8.2;8.3"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.005;T1003.006;T1008;T1020.001;T1021.001;T1021.002;T1021.003;T1021.005;T1021.006;T1029;T1030;T1041;T1046;T1048;T1048.001;T1048.002;T1048.003;T1068;T1070.008;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1090;T1090.001;T1090.002;T1090.003;T1095;T1098;T1098.001;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1114;T1114.001;T1114.002;T1114.003;T1132;T1132.001;T1132.002;T1133;T1134.005;T1136;T1136.002;T1136.003;T1187;T1189;T1190;T1197;T1199;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1205.002;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1218;T1218.012;T1219;T1482;T1484;T1489;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1528;T1530;T1537;T1547.003;T1552;T1552.001;T1552.005;T1552.007;T1552.008;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1559;T1559.001;T1559.002;T1563;T1563.002;T1564.008;T1565;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1567.001;T1567.002;T1567.003;T1567.004;T1568;T1568.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.004;T1574.005;T1574.007;T1574.008;T1574.009;T1574.010;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1611;T1622;T1654;T1659"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-4;AC-04"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.DS-02"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.3;1.3.1;1.3.2;1.4.2;1.4.3"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.1-POF6;CC6.6;CC6.6-POF1"
+        }
+      }
+    },
+    {
+      "id": "EXO-HIDDEN-001",
+      "name": "Ensure no user mailboxes are hidden from the Global Address List",
+      "category": "HIDDEN",
+      "severity": "Low",
+      "rationale": "Failure to develop, document and maintain secure baseline configurations for Technology Assets, Applications and/or Services (TAAS) that are consistent with industry-accepted system hardening standards exposes the tenant to: Inability to maintain individual accountability.",
+      "licensing": "E3",
+      "remediation": {},
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.3;10.4;10.5;16.7;4.1;4.2;4.3;4.4;4.5;4.6;4.7;4.8"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L1-B.1.II;AC.L1-B.1.II[a];AC.L1-B.1.II[b];AC.L2-3.1.2;AU.L2-3.3.3;AU.L2-3.3.6;CM.L2-3.4.1;CM.L2-3.4.2"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P6;ML1-P7;ML2-P5;ML2-P6;ML2-P7;ML3-P4;ML3-P5;ML3-P6;ML3-P7"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-02;AU-07;AU-07(01);AU-12;CM-02;CM-06;PL-10;SA-08;SA-15(05)"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.312(a)(2)(ii);164.312(a)(2)(iii);164.312(e)(1);164.312(e)(2)(i);164.312(e)(2)(ii)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.15;5.16;5.18;6.8;8.12;8.15;8.25;8.26;8.3;8.5;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.15;5.16;5.18;6.8;8.12;8.15;8.25;8.26;8.3;8.5;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.007;T1021.008;T1025;T1027;T1027.010;T1029;T1030;T1036;T1036.001;T1036.003;T1036.005;T1036.007;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1053.007;T1055;T1055.008;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.009;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1078;T1078.001;T1078.002;T1078.003;T1078.004;T1080;T1087;T1087.001;T1087.002;T1087.004;T1090;T1090.001;T1090.002;T1090.003;T1091;T1092;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.005;T1098.006;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1111;T1114;T1114.002;T1114.003;T1119;T1127;T1127.001;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1134;T1134.001;T1134.002;T1134.003;T1134.005;T1135;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.003;T1197;T1199;T1201;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.003;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1482;T1484;T1485;T1485.001;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1496.002;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.001;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1538;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1543.005;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.010;T1546.013;T1546.014;T1546.016;T1547.002;T1547.003;T1547.004;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.012;T1547.013;T1548;T1548.001;T1548.002;T1548.003;T1548.004;T1548.005;T1548.006;T1550;T1550.001;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.003;T1552.004;T1552.005;T1552.006;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1554;T1555.004;T1555.005;T1555.006;T1556;T1556.001;T1556.002;T1556.003;T1556.004;T1556.005;T1556.006;T1556.007;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1558.005;T1559;T1559.001;T1559.002;T1559.003;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.007;T1562.008;T1562.009;T1562.010;T1562.011;T1562.012;T1563;T1563.001;T1563.002;T1564.002;T1564.006;T1564.007;T1564.009;T1565;T1565.001;T1565.002;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1569;T1569.001;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.012;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1578.005;T1580;T1585;T1585.001;T1585.002;T1585.003;T1586;T1586.001;T1586.002;T1586.003;T1590.002;T1598;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1606.002;T1609;T1610;T1611;T1612;T1613;T1619;T1621;T1622;T1647;T1648;T1651;T1653;T1654"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-02;AU-07;AU-07(01);AU-12;CM-02;CM-06;PL-10;SA-08;SA-15(05)"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.DS-10;PR.PS;PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.2.1;1.2.6;10.2;10.2.1;10.2.1.1;10.2.1.2;10.2.1.3;10.2.1.4;10.2.1.5;10.2.1.6;10.2.1.7;10.2.2;10.6;10.6.1;10.6.2;10.6.3;11.2;2.2;2.2.1;8.2.4;8.3.10;8.3.2;8.5;8.6;8.6.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.1-POF7;CC6.7-POF1;CC7.1;CC7.1-POF1;CC7.2;CC7.3;CC8.1;CC8.1-POF12;CC8.1-POF6"
+        }
+      }
+    },
+    {
+      "id": "EXO-LOCKBOX-001",
+      "name": "Ensure the customer lockbox feature is enabled",
+      "category": "LOCKBOX",
+      "severity": "Low",
+      "rationale": "Failure to utilize the concept of least privilege, allowing only authorized access to processes necessary to accomplish assigned tasks in accordance with organizational business functions exposes the tenant to: Inability to maintain individual accountability, Improper assignment.",
+      "licensing": "E5",
+      "remediation": {
+        "portal": "M365 admin center > Settings > Org settings > Security & privacy > Customer Lockbox > Require approval"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "5.4"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "1.3.6"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L1-B.1.I;AC.L1-B.1.I[a];AC.L1-B.1.I[b];AC.L1-B.1.I[d];AC.L1-B.1.I[e];AC.L1-B.1.I[f];AC.L1-B.1.Ic];AC.L2-3.1.1;AC.L2-3.1.5;IA.L1-B.1.V[b]"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P4;ML2-P4;ML3-P4"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-02;AC-03;AC-05;AC-06;SI-03;SI-04;SI-05;SI-07;SI-10"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.308(a)(3)(i);164.312(a)(1)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.15;5.18;8.12;8.3"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.15;5.18;8.12;8.3"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.007;T1021.008;T1025;T1027;T1027.010;T1036;T1036.003;T1036.005;T1036.008;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1053.007;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.009;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1071.004;T1072;T1078;T1078.001;T1078.002;T1078.003;T1078.004;T1080;T1087.004;T1090;T1090.003;T1091;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.005;T1098.006;T1098.007;T1106;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1112;T1114;T1114.002;T1127;T1127.002;T1129;T1133;T1134;T1134.001;T1134.002;T1134.003;T1134.005;T1136;T1136.001;T1136.002;T1136.003;T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1176;T1185;T1187;T1189;T1190;T1195;T1197;T1199;T1200;T1203;T1204;T1204.002;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.003;T1213.004;T1213.005;T1216;T1216.001;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.010;T1218.011;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1484;T1485;T1485.001;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1538;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1543.005;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.009;T1546.010;T1546.011;T1546.013;T1546.016;T1547.003;T1547.004;T1547.006;T1547.007;T1547.009;T1547.012;T1547.013;T1548;T1548.002;T1548.003;T1548.005;T1548.006;T1550;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.005;T1552.006;T1552.007;T1553;T1553.001;T1553.003;T1553.005;T1553.006;T1555;T1555.002;T1555.005;T1555.006;T1556;T1556.001;T1556.003;T1556.004;T1556.005;T1556.006;T1556.007;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1558.005;T1559;T1559.001;T1559.002;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.004;T1562.006;T1562.007;T1562.008;T1562.009;T1562.012;T1563;T1563.001;T1563.002;T1564.003;T1564.004;T1564.006;T1564.009;T1565;T1565.001;T1565.003;T1566.003;T1567;T1569;T1569.001;T1569.002;T1570;T1572;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.011;T1574.012;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1578.005;T1580;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1606.002;T1609;T1610;T1611;T1612;T1613;T1619;T1621;T1622;T1647;T1648;T1651;T1654;T1657"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-02;AC-03;AC-05;AC-06;SA-08(14);SI-03;SI-04;SI-05;SI-07;SI-10"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.AA-05;PR.DS-10"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.3;11.2;3.4;3.4.2;4.1;4.2.1;7.1;7.2;7.2.1;7.2.2;7.2.5;7.2.6;7.3;7.3.1;7.3.2;7.3.3;8.6;8.6.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC5.2-POF3;CC6.1;CC6.1-POF12;CC6.1-POF13;CC6.1-POF7;CC6.6;CC6.6-POF2;PI1.2-POF1;PI1.2-POF2;PI1.2-POF3"
+        }
+      }
+    },
+    {
+      "id": "EXO-MAILTIPS-001",
+      "name": "Ensure MailTips are enabled for end users",
+      "category": "MAILTIPS",
+      "severity": "Low",
+      "rationale": "Failure to provide all employees and contractors appropriate awareness education and training that is relevant for their job function exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {
+        "powershell": "Set-OrganizationConfig -MailTipsAllTipsEnabled $true"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "14.3;14.7;14.8"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.5.2"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AT.L2-3.2.1"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AT-02"
+        },
+        "hipaa": {
+          "label": "HIPAA",
+          "controlId": "164.308(a)(5)(i);164.530(b)(2)(i);164.530(b)(2)(i)(A);164.530(b)(2)(i)(B);164.530(b)(2)(i)(C);164.530(b)(2)(ii)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "6.3;7.4;7.4(a);7.4(b);7.4(c);7.4(d)"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "6.3;7.4;7.4(a);7.4(b);7.4(c);7.4(d)"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AT-02"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.AT;PR.AT-01"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "12.6;12.6.1;12.6.3;12.6.3.1;8.3.8;9.5.1;9.5.1.3"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC1.4-POF7;CC2.2-POF12;CC2.2-POF8"
+        }
+      }
+    },
+    {
+      "id": "EXO-MALWARE-001",
+      "name": "Malware Filter Policy Configuration",
+      "category": "MALWARE",
+      "severity": "High",
+      "rationale": "Failure to utilize antimalware technologies to detect and eradicate malicious code exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege escalation.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Defender portal > Email & Collaboration > Policies & rules > Threat policies > Anti-malware > edit default policy: enable common attachments filter, enable ZAP, configure admin notifications"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "10.0;10.1;10.2;10.4;10.7;12.1;18.0;18.3;7.0;7.1;7.3;7.4"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "2.1.2"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "RA.L2-3.11.3;SI.L1-B.1.XII;SI.L1-B.1.XIII;SI.L1-B.1.XIII[a];SI.L1-B.1.XIII[b];SI.L1-B.1.XII[a];SI.L1-B.1.XII[b];SI.L1-B.1.XII[c];SI.L1-B.1.XII[d];SI.L1-B.1.XII[e];SI.L1-B.1.XII[f];SI.L1-B.1.XIV;SI.L1-B.1.XIV[a];SI.L1-B.1.XV;SI.L1-B.1.XV[a];SI.L1-B.1.XV[b];SI.L2-3.14.1;SI.L2-3.14.2;SI.L2-3.14.4"
+        },
+        "essential-eight": {
+          "label": "ASD Essential Eight",
+          "controlId": "ML1-P1;ML1-P2;ML2-P1;ML2-P2;ML3-P1;ML3-P2"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-02;AC-03;AC-05;SI-02;SI-02(04);SI-03;SI-04;SI-05;SI-07;SI-10"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.7;8.8"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.7;8.8"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1011.001;T1021.002;T1021.003;T1021.005;T1025;T1027;T1027.002;T1027.007;T1027.008;T1027.009;T1027.010;T1027.012;T1027.013;T1027.014;T1029;T1030;T1036;T1036.003;T1036.005;T1036.008;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1055.015;T1056.002;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1070.010;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1072;T1080;T1090;T1090.001;T1090.002;T1090.003;T1091;T1092;T1095;T1098.004;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1111;T1127;T1127.002;T1129;T1132;T1132.001;T1132.002;T1137;T1137.001;T1137.003;T1137.004;T1137.005;T1176;T1185;T1187;T1189;T1190;T1195;T1195.001;T1195.002;T1195.003;T1197;T1201;T1203;T1204;T1204.001;T1204.002;T1204.003;T1210;T1211;T1212;T1213.003;T1213.005;T1216;T1216.001;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.008;T1218.009;T1218.010;T1218.011;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1485;T1486;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1525;T1530;T1537;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.002;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.009;T1546.010;T1546.011;T1546.013;T1546.014;T1546.016;T1547.002;T1547.004;T1547.005;T1547.006;T1547.007;T1547.008;T1547.009;T1547.013;T1548;T1548.002;T1548.004;T1548.006;T1550.002;T1552;T1552.005;T1552.006;T1553;T1553.001;T1553.003;T1553.005;T1553.006;T1554;T1555;T1555.005;T1557;T1557.001;T1557.002;T1557.003;T1558;T1558.002;T1558.003;T1558.004;T1559;T1559.001;T1559.002;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.004;T1562.006;T1562.011;T1564.003;T1564.004;T1564.006;T1564.008;T1564.009;T1564.012;T1566;T1566.001;T1566.002;T1566.003;T1567;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.002;T1574.004;T1574.006;T1574.007;T1574.008;T1574.009;T1574.012;T1574.013;T1574.014;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1609;T1611;T1622"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-02;AC-03;AC-05;SI-02;SI-02(04);SI-03;SI-04;SI-05;SI-07;SI-10"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09;ID.RA-01;ID.RA-08;PR.PS-02"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "11.3;5.2;5.2.1;5.2.2;5.3;5.3.1;5.3.2;5.3.2.1;5.3.3;5.3.4;5.3.5;6.3;6.3.1;6.3.3"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC3.2-POF7;CC3.2-POF9;CC3.4-POF6;CC6.8;CC6.8-POF4;CC8.1-POF14;CC8.1-POF16;CC9.2-POF13;PI1.2-POF1;PI1.2-POF2;PI1.2-POF3"
+        }
+      }
+    },
+    {
+      "id": "EXO-OWA-001",
+      "name": "Ensure additional storage providers are restricted in Outlook on the web",
+      "category": "OWA",
+      "severity": "Medium",
+      "rationale": "Failure to configure systems to provide only essential capabilities by specifically prohibiting or restricting the use of ports, protocols, and/or services exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions.",
+      "licensing": "E3",
+      "remediation": {
+        "powershell": "Set-OwaMailboxPolicy -Identity OwaMailboxPolicy-Default -AdditionalStorageProvidersAvailable $false"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "13.5;3.13;4.0;4.6;4.8;9.6"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.5.3"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "CM.L2-3.4.6;SC.L1-B.1.X;SC.L1-B.1.X[a];SC.L1-B.1.X[b];SC.L1-B.1.X[c];SC.L1-B.1.X[d];SC.L1-B.1.X[e];SC.L1-B.1.X[f];SC.L1-B.1.X[g];SC.L1-B.1.X[h];SC.L2-3.13.1"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "CM-07;SC-07;SC-07(09);SC-07(10);SC-07(11);SI-04(18)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "8.12;8.2;8.21;8.3;8.9"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "8.12;8.2;8.21;8.3;8.9"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.005;T1008;T1011;T1011.001;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.005;T1021.006;T1021.008;T1027;T1029;T1030;T1036;T1036.005;T1036.007;T1036.008;T1037;T1037.001;T1040;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.005;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1059;T1059.005;T1059.007;T1059.009;T1059.010;T1068;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1078;T1078.004;T1080;T1087;T1087.001;T1087.002;T1090;T1090.001;T1090.002;T1090.003;T1092;T1095;T1098;T1098.001;T1098.004;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1106;T1112;T1114;T1114.003;T1127;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1135;T1136;T1136.002;T1136.003;T1176;T1187;T1189;T1190;T1195;T1195.001;T1195.002;T1197;T1199;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1216;T1216.001;T1216.002;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1482;T1484;T1489;T1490;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1525;T1530;T1537;T1542;T1542.004;T1542.005;T1543;T1546.002;T1546.006;T1546.008;T1546.009;T1546.010;T1547.004;T1547.006;T1547.007;T1547.009;T1548;T1548.001;T1548.003;T1548.004;T1548.006;T1552;T1552.001;T1552.003;T1552.004;T1552.005;T1552.007;T1553;T1553.001;T1553.003;T1553.004;T1553.005;T1553.006;T1555.004;T1555.006;T1556;T1556.002;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1559;T1559.001;T1559.002;T1559.003;T1560;T1560.001;T1562;T1562.001;T1562.002;T1562.003;T1562.004;T1562.006;T1562.009;T1562.010;T1563;T1563.001;T1563.002;T1564.002;T1564.003;T1564.006;T1564.008;T1564.009;T1565;T1565.001;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1567.001;T1567.002;T1567.003;T1567.004;T1568;T1568.002;T1569;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.006;T1574.007;T1574.008;T1574.009;T1574.012;T1574.014;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1647;T1648;T1653;T1659"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-3;AC-5;AC-6;MP-2;CM-07;SC-07;SC-07(09);SC-07(10);SC-07(11);SI-04(18)"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.PS-05"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.2.5;1.2.6;1.3.2;1.3.3;1.4;1.4.1;1.4.2;11.5.1;2.2.4;A3.2.6"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC5.2-POF3;CC6.1;CC6.1-POF5;CC6.1-POF7;CC6.6;CC6.6-POF1;CC6.6-POF3;CC6.6-POF4;CC6.7-POF1;CC6.8"
+        }
+      }
+    },
+    {
+      "id": "EXO-SHARING-001",
+      "name": "Ensure 'External sharing' of calendars is not available",
+      "category": "SHARING",
+      "severity": "Low",
+      "rationale": "Failure to use automated mechanisms to prevent the unauthorized exfiltration of sensitive/regulated data across managed interfaces exposes the tenant to: Emergent properties and/or unintended consequences, Data loss / corruption, Information loss / corruption or system.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Exchange admin center > Organization > Sharing > Default sharing policy"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "13.5;3.13;9.6"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "1.3.3"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L1-B.1.I;AC.L1-B.1.I[a];AC.L1-B.1.I[b];AC.L1-B.1.I[d];AC.L1-B.1.I[e];AC.L1-B.1.I[f];AC.L1-B.1.Ic];AC.L2-3.1.1;IA.L1-B.1.V[b];SC.L1-B.1.X;SC.L1-B.1.X[a];SC.L1-B.1.X[b];SC.L1-B.1.X[c];SC.L1-B.1.X[d];SC.L1-B.1.X[e];SC.L1-B.1.X[f];SC.L1-B.1.X[g];SC.L1-B.1.X[h];SC.L2-3.13.1"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-02;AC-03;AC-05;AC-06;SC-07;SC-07(09);SC-07(10);SC-07(11);SI-03;SI-04;SI-04(18);SI-05;SI-07;SI-10"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.18;8.12;8.2;8.21"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.18;8.12;8.2;8.21"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.002;T1003.003;T1003.004;T1003.005;T1003.006;T1003.007;T1003.008;T1005;T1008;T1020.001;T1021;T1021.001;T1021.002;T1021.003;T1021.004;T1021.005;T1021.006;T1021.007;T1021.008;T1025;T1027;T1027.010;T1029;T1030;T1036;T1036.003;T1036.005;T1036.008;T1036.010;T1037;T1037.002;T1037.003;T1037.004;T1037.005;T1041;T1046;T1047;T1048;T1048.001;T1048.002;T1048.003;T1052;T1052.001;T1053;T1053.002;T1053.003;T1053.005;T1053.006;T1053.007;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1056.003;T1059;T1059.001;T1059.002;T1059.003;T1059.004;T1059.005;T1059.006;T1059.007;T1059.008;T1059.009;T1059.010;T1059.011;T1068;T1070;T1070.001;T1070.002;T1070.003;T1070.007;T1070.008;T1070.009;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1078;T1078.002;T1078.003;T1078.004;T1080;T1087.004;T1090;T1090.001;T1090.002;T1090.003;T1091;T1095;T1098;T1098.001;T1098.002;T1098.003;T1098.004;T1098.005;T1098.006;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1110;T1110.001;T1110.002;T1110.003;T1110.004;T1114;T1114.002;T1114.003;T1127;T1127.002;T1129;T1132;T1132.001;T1132.002;T1133;T1134;T1134.001;T1134.002;T1134.003;T1134.005;T1136;T1136.001;T1136.002;T1136.003;T1176;T1185;T1187;T1189;T1190;T1195;T1197;T1199;T1200;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.003;T1213.004;T1213.005;T1216;T1216.001;T1218;T1218.001;T1218.002;T1218.003;T1218.004;T1218.005;T1218.007;T1218.008;T1218.009;T1218.010;T1218.011;T1218.012;T1218.013;T1218.014;T1218.015;T1219;T1220;T1221;T1222;T1222.001;T1222.002;T1482;T1484;T1485;T1485.001;T1486;T1489;T1490;T1491;T1491.001;T1491.002;T1495;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505;T1505.002;T1505.003;T1505.004;T1505.005;T1525;T1528;T1530;T1537;T1538;T1539;T1542;T1542.001;T1542.003;T1542.004;T1542.005;T1543;T1543.001;T1543.002;T1543.003;T1543.004;T1543.005;T1546;T1546.002;T1546.003;T1546.004;T1546.006;T1546.008;T1546.009;T1546.010;T1546.013;T1547.003;T1547.004;T1547.006;T1547.007;T1547.009;T1547.012;T1547.013;T1548;T1548.002;T1548.003;T1548.005;T1548.006;T1550;T1550.002;T1550.003;T1552;T1552.001;T1552.002;T1552.004;T1552.005;T1552.007;T1553;T1553.001;T1553.003;T1553.005;T1555;T1555.002;T1555.005;T1555.006;T1556;T1556.001;T1556.003;T1556.004;T1556.006;T1556.007;T1556.008;T1556.009;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1558;T1558.001;T1558.002;T1558.003;T1558.004;T1558.005;T1559;T1559.001;T1559.002;T1560;T1560.001;T1561;T1561.001;T1561.002;T1562;T1562.001;T1562.002;T1562.004;T1562.006;T1562.007;T1562.008;T1562.009;T1562.012;T1563;T1563.001;T1563.002;T1564.003;T1564.004;T1564.006;T1564.009;T1565;T1565.001;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1567.001;T1567.002;T1567.003;T1567.004;T1568;T1568.002;T1569;T1569.001;T1569.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.001;T1574.004;T1574.005;T1574.006;T1574.007;T1574.008;T1574.009;T1574.010;T1574.012;T1574.013;T1574.014;T1578;T1578.001;T1578.002;T1578.003;T1578.005;T1580;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1606;T1606.001;T1606.002;T1609;T1610;T1611;T1612;T1613;T1619;T1622;T1647;T1648;T1651;T1654;T1659"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "CM-6;CM-7;AC-02;AC-03;AC-05;AC-06;SC-07;SC-07(09);SC-07(10);SC-07(11);SI-03;SI-04;SI-04(18);SI-05;SI-07;SI-10"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "PR.AA-05;PR.DS-01"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.3.2;1.3.3;1.4;1.4.1;1.4.2;11.2;11.5.1;4.1;4.2.1;7.2.1;7.2.2;7.2.5;7.2.6;A3.2.6"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.1-POF5;CC6.6;CC6.6-POF1;CC6.6-POF2;CC6.6-POF3;CC6.6-POF4;CC6.7-POF1;CC6.8;PI1.2-POF1;PI1.2-POF2;PI1.2-POF3"
+        }
+      }
+    },
+    {
+      "id": "EXO-TRANSPORT-001",
+      "name": "Ensure mail transport rules do not whitelist specific domains",
+      "category": "TRANSPORT",
+      "severity": "Medium",
+      "rationale": "Failure to utilize anti-phishing and spam protection technologies to detect and take action on unsolicited messages transported by electronic mail exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions, Privilege.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Exchange admin center > Mail flow > Rules"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "9.0;9.6;9.7"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.2.2"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "SI-08"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1137;T1137.001;T1137.002;T1137.003;T1137.004;T1137.005;T1137.006;T1204;T1204.001;T1204.002;T1204.003;T1221;T1566;T1566.001;T1566.002;T1566.003;T1598;T1598.001;T1598.002;T1598.003"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "SI-3;SI-8;SI-08"
+        },
+        "nist-csf": {
+          "label": "NIST Cybersecurity Framework 2.0",
+          "controlId": "DE.CM-09"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "5.4;5.4.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.8;CC7.1"
+        }
+      }
+    },
+    {
+      "id": "EXO-TRANSPORT-002",
+      "name": "Transport Rule Configuration for External Forwarding",
+      "category": "TRANSPORT",
+      "severity": "High",
+      "rationale": "Failure to implement and govern Access Control Lists (ACLs) to provide data flow enforcement that explicitly restrict network traffic to only what is authorized exposes the tenant to: Inability to maintain individual accountability, Improper assignment of privileged functions.",
+      "licensing": "E3",
+      "remediation": {
+        "portal": "Exchange Admin Center > Mail flow > Rules > New rule: apply to messages where recipient is outside the org and message type is Auto Forward > Block the message"
+      },
+      "frameworks": {
+        "cis-controls-v8": {
+          "label": "CIS Controls v8.1",
+          "controlId": "12.6;13.4;13.5;3.3;4.6;9.6"
+        },
+        "cis-m365-v6": {
+          "label": "CIS Microsoft 365 Foundations Benchmark v6.0.1",
+          "controlId": "6.2.1"
+        },
+        "cmmc": {
+          "label": "CMMC 2.0",
+          "controlId": "AC.L2-3.1.3;AC.L3-3.1.3E;SC.L1-B.1.X;SC.L1-B.1.X[a];SC.L1-B.1.X[b];SC.L1-B.1.X[c];SC.L1-B.1.X[d];SC.L1-B.1.X[e];SC.L1-B.1.X[f];SC.L1-B.1.X[g];SC.L1-B.1.X[h];SC.L2-3.13.1"
+        },
+        "fedramp": {
+          "label": "FedRAMP Rev 5",
+          "controlId": "AC-04;SC-07;SC-07(09);SC-07(11)"
+        },
+        "iso-27001": {
+          "label": "ISO/IEC 27001:2022",
+          "controlId": "5.14;8.2;8.21;8.3"
+        },
+        "iso-27002": {
+          "label": "ISO/IEC 27002:2022",
+          "controlId": "5.14;8.2;8.21;8.3"
+        },
+        "mitre-attack": {
+          "label": "MITRE ATT&CK",
+          "controlId": "T1001;T1001.001;T1001.002;T1001.003;T1003;T1003.001;T1003.005;T1003.006;T1008;T1020.001;T1021.001;T1021.002;T1021.003;T1021.005;T1021.006;T1029;T1030;T1036.008;T1041;T1046;T1048;T1048.001;T1048.002;T1048.003;T1055;T1055.001;T1055.002;T1055.003;T1055.004;T1055.005;T1055.008;T1055.009;T1055.011;T1055.012;T1055.013;T1055.014;T1068;T1070.008;T1071;T1071.001;T1071.002;T1071.003;T1071.004;T1071.005;T1072;T1078;T1080;T1090;T1090.001;T1090.002;T1090.003;T1095;T1098;T1098.001;T1098.007;T1102;T1102.001;T1102.002;T1102.003;T1104;T1105;T1114;T1114.001;T1114.002;T1114.003;T1132;T1132.001;T1132.002;T1133;T1134.005;T1136;T1136.002;T1136.003;T1176;T1187;T1189;T1190;T1197;T1199;T1203;T1204;T1204.001;T1204.002;T1204.003;T1205;T1205.001;T1205.002;T1210;T1211;T1212;T1213;T1213.001;T1213.002;T1213.004;T1213.005;T1218;T1218.012;T1218.015;T1219;T1221;T1482;T1484;T1489;T1498;T1498.001;T1498.002;T1499;T1499.001;T1499.002;T1499.003;T1499.004;T1505.004;T1528;T1530;T1537;T1542;T1542.004;T1542.005;T1547.003;T1552;T1552.001;T1552.004;T1552.005;T1552.007;T1552.008;T1557;T1557.001;T1557.002;T1557.003;T1557.004;T1559;T1559.001;T1559.002;T1560;T1560.001;T1563;T1563.002;T1564.008;T1565;T1565.001;T1565.003;T1566;T1566.001;T1566.002;T1566.003;T1567;T1567.001;T1567.002;T1567.003;T1567.004;T1568;T1568.002;T1570;T1571;T1572;T1573;T1573.001;T1573.002;T1574;T1574.004;T1574.005;T1574.007;T1574.008;T1574.009;T1574.010;T1590.002;T1598;T1598.001;T1598.002;T1598.003;T1599;T1599.001;T1601;T1601.001;T1601.002;T1602;T1602.001;T1602.002;T1609;T1610;T1611;T1612;T1613;T1622;T1648;T1654;T1659"
+        },
+        "nist-800-53": {
+          "label": "NIST SP 800-53 Rev 5",
+          "controlId": "AC-04;SC-07;SC-07(09);SC-07(11)"
+        },
+        "pci-dss": {
+          "label": "PCI DSS v4.0.1",
+          "controlId": "1.1;1.3;1.3.1;1.3.2;1.3.3;1.4;1.4.1;1.4.2;1.4.3;11.5.1"
+        },
+        "soc2": {
+          "label": "SOC 2 Trust Services Criteria",
+          "controlId": "CC6.1;CC6.1-POF5;CC6.1-POF6;CC6.6;CC6.6-POF1;CC6.6-POF3;CC6.6-POF4;CC6.8"
         }
       }
     },

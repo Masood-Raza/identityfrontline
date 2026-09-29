@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { HARDENED, DEFAULTS, mockFetch } from './fixtures.mjs';
+import { HARDENED, DEFAULTS, mockFetch, DNS_HARDENED, EVIDENCE_HARDENED } from './fixtures.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const html = readFileSync(join(root, 'assessments.html'), 'utf8');
@@ -55,7 +55,7 @@ window.document.createElement = (tag) => {
 let releaseStamp = 'v1';
 let missingModule = null;
 let reloads = 0;
-const graph = mockFetch(HARDENED);
+const graph = mockFetch(HARDENED, { dns: DNS_HARDENED });
 globalThis.fetch = async (url, opts) => {
   if (opts?.method === 'HEAD') {
     if (missingModule && String(url).endsWith(missingModule)) return { ok: false, status: 404 };
@@ -120,7 +120,10 @@ ok('two frameworks selected for the run', main.getState().frameworks.size === 2)
 // ---- step 2: scope ----------------------------------------------------------------------
 $('#next').click();
 ok('step 2 active', active() === 2);
-ok('five areas rendered with check counts', $$('#scopeAreas .choice').length === 5 && /37 checks/.test($('#scopeAreas').textContent));
+ok('seven areas rendered with check counts', $$('#scopeAreas .choice').length === 7 && /37 checks/.test($('#scopeAreas').textContent));
+ok('the DNS area discloses that lookups leave for a public resolver', /public resolver/.test($('#scopeAreas').textContent));
+ok('the Exchange area explains why it needs a file', /Export-ExchangeEvidence\.ps1/.test($('#scopeAreas').textContent));
+ok('the evidence picker is hidden until Exchange is selected', $('#evidenceRow').hidden);
 ok('identity is preselected', $$('#scopeAreas input:checked').map(i => i.value).join() === 'identity');
 ok('unreachable areas disclosed', $$('#scopeSoon .soon-item').length === 4);
 // Add Collaboration. Permissions must follow the selection.
@@ -273,6 +276,41 @@ ok('first run: no drift badges', $$('#resultRows .drift').length === 0);
   ok('page: search matches names and details', visible().length > 0 && visible().every(r => r.dataset.text.includes('sharing')));
   q.value = ''; q.dispatchEvent(new window.Event('input'));
   ok('page: executive summary is several paragraphs', $$('#execSummary p').length >= 3);
+
+// ---- the Exchange evidence file ------------------------------------------------------------
+{
+  // Selecting the area reveals the picker.
+  const exo = $$('#scopeAreas input').find(x => x.value === 'exchange');
+  exo.checked = true; exo.onchange();
+  ok('selecting Exchange reveals the evidence picker', !$('#evidenceRow').hidden);
+  ok('the picker says the file is not uploaded', /never uploaded/.test($('#evidenceRow').textContent));
+
+  const pick = async (name, text) => {
+    $('#evidenceFile').onchange({ target: { files: [{ name, text: async () => text }] } });
+    for (let i = 0; i < 6; i++) await tick();
+  };
+  await pick('rubbish.json', 'not json at all');
+  ok('a file that is not JSON is refused with a reason', /could not be used/.test($('#evidenceStatus').textContent) && main.getState().evidence === null);
+
+  await pick('old-schema.json', JSON.stringify({ schemaVersion: 99, data: {} }));
+  ok('a file from a different schema version is refused', /schema version 99/.test($('#evidenceStatus').textContent) && main.getState().evidence === null);
+
+  await pick('evidence.json', JSON.stringify(EVIDENCE_HARDENED));
+  ok('a good evidence file is accepted and summarised', main.getState().evidence !== null && /configuration group/.test($('#evidenceStatus').textContent));
+  ok('the summary names the file', /evidence\.json/.test($('#evidenceStatus').textContent));
+
+  await pick('stale.json', JSON.stringify({ ...EVIDENCE_HARDENED, collectedUtc: new Date(Date.now() - 200 * 86400000).toISOString() }));
+  ok('a stale evidence file is accepted but flagged', main.getState().evidence !== null && /days ago/.test($('#evidenceStatus').textContent));
+
+  await pick('wrong-tenant.json', JSON.stringify({ ...EVIDENCE_HARDENED, tenant: { name: 'other.onmicrosoft.com', domains: ['other.com'] } }));
+  ok('evidence from another tenant is flagged', /check you picked the right file/.test($('#evidenceStatus').textContent));
+
+  $('#evidenceClear').click();
+  ok('clearing the file forgets it', main.getState().evidence === null && $('#evidenceStatus').hidden);
+
+  exo.checked = false; exo.onchange();
+  ok('deselecting Exchange hides the picker again', $('#evidenceRow').hidden);
+}
 }
 ok('first run: HTML report has no changes section', !/Changes since/.test(buildHtmlReport(main.getState().report)));
 ok('run metadata names the scope', $('#runMeta').textContent.includes('Scope: '));
@@ -314,7 +352,7 @@ ok('sign-in button label reset', $('#btnSignIn').textContent === 'Sign in with M
 
 // ---- degraded run: a denied source must not break the page ------------------------------
 globalThis.fetch = (() => {
-  const g = mockFetch(DEFAULTS, { deny: ['/reports/authenticationMethods'] });
+  const g = mockFetch(DEFAULTS, { deny: ['/reports/authenticationMethods'], dns: DNS_HARDENED });
   return async (url, o) => o?.method === 'HEAD'
     ? (missingModule && String(url).endsWith(missingModule) ? { ok: false, status: 404 } : { ok: true, status: 200, headers: { get: (h) => (h === 'etag' ? releaseStamp : null) } })
     : String(url).includes('checks.json')

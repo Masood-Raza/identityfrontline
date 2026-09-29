@@ -32,8 +32,16 @@ ok('every check has a valid severity',
   cat.checks.every(c => ['Critical', 'High', 'Medium', 'Low'].includes(c.severity)),
   cat.checks.filter(c => !['Critical', 'High', 'Medium', 'Low'].includes(c.severity)).map(c => `${c.id}=${c.severity}`).join(', '));
 ok('every check has a rationale', cat.checks.every(c => c.rationale));
-ok('every check maps to at least one framework', cat.checks.every(c => Object.keys(c.frameworks).length > 0),
-  cat.checks.filter(c => !Object.keys(c.frameworks).length).map(c => c.id).join(', '));
+// DNS-MX-001 carries no framework mapping in the upstream registry. It is kept because a
+// tenant whose MX points away from Exchange Online is worth saying out loud, and it lands
+// in "Other findings" whenever a framework is selected. Naming it here keeps the guard on:
+// any other unmapped check still fails.
+const UNMAPPED = ['DNS-MX-001'];
+ok('every check maps to at least one framework, or is a known exception',
+  cat.checks.every(c => Object.keys(c.frameworks || {}).length > 0 || UNMAPPED.includes(c.id)),
+  cat.checks.filter(c => !Object.keys(c.frameworks || {}).length && !UNMAPPED.includes(c.id)).map(c => c.id).join(', '));
+ok('the unmapped exception list is still accurate',
+  UNMAPPED.every(id => cat.checks.some(c => c.id === id && !Object.keys(c.frameworks || {}).length)));
 ok('every framework mapping has a control ID',
   cat.checks.every(c => Object.values(c.frameworks).every(m => m.controlId && m.label)));
 // Upstream has no remediation text for a handful of count-style checks; three quarters is the floor.
@@ -50,11 +58,13 @@ const needName = (n) => n.replace(/^\?/, '');
 ok('every need resolves to a source', CHECKS.every(c => c.needs.every(n => SOURCES[needName(n)])),
   [...new Set(CHECKS.flatMap(c => c.needs))].filter(n => !SOURCES[needName(n)]).join(', '));
 ok('every check has an evaluate()', CHECKS.every(c => typeof c.evaluate === 'function'));
-ok('every Graph source declares scopes; local data needs none', Object.values(SOURCES).every(s => s.local ? Array.isArray(s.scopes) : s.scopes?.length));
+ok('every Graph source declares scopes; local and imported data need none',
+  Object.values(SOURCES).every(s => (s.local || s.imported) ? Array.isArray(s.scopes) : s.scopes?.length));
+ok('the Exchange evidence source asks for no Graph permission at all', SOURCES.exchangeEvidence.imported === true && SOURCES.exchangeEvidence.scopes.length === 0);
 ok('every source has a user-facing label', Object.values(SOURCES).every(s => s.label));
 ok('scopes are all read-only', REQUIRED_SCOPES.every(s => !/\.(Read)?Write|FullControl|AccessAsUser/i.test(s)), REQUIRED_SCOPES.join(', '));
 ok('identity scope set is the expected six', REQUIRED_SCOPES.length === 6, REQUIRED_SCOPES.join(', '));
-ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'collaboration', 'intune', 'privileged', 'signals'].includes(c.area)));
+ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'collaboration', 'intune', 'privileged', 'signals', 'dns', 'exchange'].includes(c.area)));
 const tiers = JSON.parse(readFileSync(join(root, 'assets/catalog/app-tiers.json'), 'utf8'));
 ok('app tier data shipped with tier 0, tier 1 and first-party lists',
   tiers.tier0.length > 30 && tiers.tier1.length >= 4 && tiers.firstPartyAppIds.length > 200 && tiers.firstPartyTenantIds.length === 4);

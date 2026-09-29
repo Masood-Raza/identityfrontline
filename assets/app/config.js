@@ -16,6 +16,8 @@
 //                       OrgSettings-Forms.Read.All
 //        Privileged:  Application.Read.All, AccessReview.Read.All
 //        Signals:     SecurityEvents.Read.All, SecurityAlert.Read.All
+//        DNS:         Domain.Read.All (already in Identity)
+//        Exchange:    none — reads a file from tools/Export-ExchangeEvidence.ps1
 //        Intune:      DeviceManagementConfiguration.Read.All,
 //                     DeviceManagementServiceConfig.Read.All, DeviceManagementManagedDevices.Read.All
 //      Only the scopes for the areas a user selects are requested at sign-in, but the

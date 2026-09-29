@@ -23,7 +23,11 @@ export const AREAS = [
   { id: 'collaboration', label: 'Collaboration',     summary: 'SharePoint and OneDrive sharing, sync and legacy authentication; Teams app consent; Microsoft Forms external access and phishing protection.' },
   { id: 'intune',        label: 'Intune & devices',  summary: 'Enrolment restrictions, compliance thresholds, encryption, removable media, VPN and Wi-Fi profiles.' },
   { id: 'privileged',    label: 'Applications & privileged access', summary: 'Enterprise apps and service principals: credentials, dangerous and Tier 0 permissions, owners, impersonation. PIM: eligibility, activation approval, MFA, duration, notifications. Access reviews.' },
-  { id: 'signals',       label: 'Microsoft security signals', summary: 'Microsoft Secure Score, how fresh it is and its top improvement actions, plus open Defender alerts — Microsoft\'s own view of the tenant next to ours.' }
+  { id: 'signals',       label: 'Microsoft security signals', summary: 'Microsoft Secure Score, how fresh it is and its top improvement actions, plus open Defender alerts — Microsoft\'s own view of the tenant next to ours.' },
+  { id: 'dns',           label: 'Email authentication (DNS)', summary: 'SPF, DKIM selectors, DMARC and MX for every verified domain.',
+    note: 'Reads public DNS. Lookups go to a public resolver rather than to Microsoft — the only part of the assessment that contacts anything else. Domain names are already public; nothing else about the tenant is sent.' },
+  { id: 'exchange',      label: 'Exchange &amp; email security', summary: 'Modern auth, SMTP AUTH, forwarding, transport rules, connectors, mailbox auditing, anti-phishing, Safe Links, Safe Attachments and anti-spam policy.',
+    note: 'Microsoft Graph does not expose any of this and the Exchange API refuses browser calls, so these checks read an evidence file produced by tools/Export-ExchangeEvidence.ps1. You pick the file on the run step; it is read in the browser and never uploaded.' }
 ];
 
 // ---- Effort and ownership ----
@@ -72,6 +76,34 @@ const boolFlag = (obj, key, expected, okMsg, badMsg) => {
   const v = obj[key];
   if (v === undefined || v === null) return unknown(`${key} was not returned for this tenant.`);
   return v === expected ? pass(okMsg) : fail(badMsg);
+};
+
+// ---- Email authentication helpers ----
+const few = (items) => items.slice(0, 5).join(', ') + (items.length > 5 ? ` and ${items.length - 5} more` : '');
+const resolvable = (d) => (d.dnsRecords?.domains || []).filter(x => !x.error);
+// No routable domain at all is NotApplicable; domains that exist but would not resolve are
+// Unknown with the resolver reason. Neither is a finding about the tenant.
+const dnsGate = (d) => {
+  const all = d.dnsRecords?.domains || [];
+  if (!all.length) return na('No routable custom domains are verified on this tenant.');
+  if (!all.some(x => !x.error)) return unknown(`DNS lookups did not complete: ${all[0].error}`);
+  return null;
+};
+const domList = (doms) => few(doms.map(x => x.name));
+
+// ---- Exchange evidence helpers ----
+const first = (v) => (Array.isArray(v) ? v[0] : v);
+const arr = (v) => (Array.isArray(v) ? v : (v === undefined || v === null ? [] : [v]));
+// Evidence is collected one cmdlet at a time, and a cmdlet the tenant cannot run is recorded
+// with its reason. Those checks report Unknown with that reason rather than a false failure.
+const fromEvidence = (d, key, fn) => {
+  const ev = d.exchangeEvidence;
+  if (!ev) return unknown('Exchange evidence was not imported.');
+  const why = ev.errors?.[key];
+  if (why) return unknown(why);
+  const v = ev.data?.[key];
+  if (v === undefined || v === null) return unknown(`"${key}" was not present in the evidence file.`);
+  return fn(v);
 };
 
 // ---- Applications & privileged access helpers ----
@@ -369,6 +401,21 @@ export const SOURCES = {
     optional: true,
     area: 'signals',
     label: 'Defender alerts'
+  },
+  // ---- Email authentication and Exchange ----
+  dnsRecords: {
+    // Resolved over DNS-over-HTTPS from the browser. Needs the verified domain list, so it
+    // carries the same scope the domains source does.
+    derived: 'dnsRecords',
+    scopes: ['Domain.Read.All'],
+    label: 'Public DNS records'
+  },
+  exchangeEvidence: {
+    // Not a Graph source at all: a JSON file the administrator produces with
+    // tools/Export-ExchangeEvidence.ps1 and picks on the run step.
+    imported: true,
+    scopes: [],
+    label: 'Exchange evidence file'
   },
   registrationDetails: {
     // Entra ID P1/P2. Absent on Business Basic/Standard tenants -> dependent checks go Unknown.
@@ -1670,6 +1717,497 @@ export const CHECKS = [
       if (pct >= 40) return warn(`${line} 70% or better is the common target.`);
       return fail(`${line} Below 40% leaves most of Microsoft\'s recommended controls unimplemented.`);
     }
+  },
+  // =====================================================================================
+  // Email authentication in public DNS
+  // =====================================================================================
+  {
+    id: 'DNS-SPF-001',
+    area: 'dns',
+    needs: ['dnsRecords'],
+    evaluate: (d) => {
+      const gate = dnsGate(d); if (gate) return gate;
+      const doms = resolvable(d);
+      const missing = doms.filter(x => !x.spf.found);
+      if (missing.length) return fail(`${missing.length} of ${doms.length} domain${doms.length === 1 ? '' : 's'} publish no SPF record: ${domList(missing)}. Anyone can send mail claiming to be them.`);
+      const permissive = doms.filter(x => /[?+]all\s*$/.test(x.spf.record || ''));
+      if (permissive.length) return warn(`All ${doms.length} domains publish SPF, but ${domList(permissive)} end${permissive.length === 1 ? 's' : ''} in "?all" or "+all", which asks receivers to accept mail from anywhere.`);
+      const soft = doms.filter(x => /~all\s*$/.test(x.spf.record || ''));
+      return soft.length
+        ? pass(`All ${doms.length} domain${doms.length === 1 ? '' : 's'} publish SPF; ${domList(soft)} use "~all" (soft fail) rather than "-all".`)
+        : pass(`All ${doms.length} domain${doms.length === 1 ? '' : 's'} publish SPF ending in "-all".`);
+    }
+  },
+  {
+    id: 'DNS-DMARC-001',
+    area: 'dns',
+    needs: ['dnsRecords'],
+    evaluate: (d) => {
+      const gate = dnsGate(d); if (gate) return gate;
+      const doms = resolvable(d);
+      const missing = doms.filter(x => !x.dmarc.found);
+      if (missing.length) return fail(`${missing.length} of ${doms.length} domain${doms.length === 1 ? '' : 's'} publish no DMARC record: ${domList(missing)}. Nothing tells receivers what to do with mail that fails authentication.`);
+      const none = doms.filter(x => x.dmarc.policy === 'none');
+      if (none.length) return warn(`All ${doms.length} domains publish DMARC, but ${domList(none)} use "p=none" — monitoring only, so spoofed mail is still delivered.`);
+      const quarantine = doms.filter(x => x.dmarc.policy === 'quarantine');
+      return quarantine.length
+        ? pass(`All ${doms.length} domain${doms.length === 1 ? '' : 's'} enforce DMARC; ${domList(quarantine)} at "p=quarantine" rather than "p=reject".`)
+        : pass(`All ${doms.length} domain${doms.length === 1 ? '' : 's'} enforce DMARC at "p=reject".`);
+    }
+  },
+  {
+    id: 'DNS-DKIM-001',
+    area: 'dns',
+    needs: ['dnsRecords'],
+    evaluate: (d) => {
+      const gate = dnsGate(d); if (gate) return gate;
+      const doms = resolvable(d);
+      const missing = doms.filter(x => !x.dkim.found);
+      // Published selectors prove the DNS half. Whether Exchange actually signs with them is
+      // EXO-DKIM-001, which needs the Exchange evidence file.
+      return missing.length
+        ? fail(`${missing.length} of ${doms.length} domain${doms.length === 1 ? '' : 's'} publish no DKIM selector records: ${domList(missing)}.`)
+        : pass(`All ${doms.length} domain${doms.length === 1 ? '' : 's'} publish DKIM selector records. Whether signing is switched on in Exchange is reported separately.`);
+    }
+  },
+  {
+    id: 'DNS-MX-001',
+    area: 'dns',
+    needs: ['dnsRecords'],
+    evaluate: (d) => {
+      const gate = dnsGate(d); if (gate) return gate;
+      const doms = resolvable(d);
+      const missing = doms.filter(x => !x.mx.found);
+      if (missing.length) return fail(`${missing.length} of ${doms.length} domain${doms.length === 1 ? '' : 's'} publish no MX record: ${domList(missing)}.`);
+      const elsewhere = doms.filter(x => !x.mx.isExchangeOnline);
+      return elsewhere.length
+        ? unknown(`${domList(elsewhere)} route mail somewhere other than Exchange Online (${elsewhere[0].mx.hosts.slice(0, 2).join(', ')}). If that is a gateway in front of Exchange it is expected; confirm it is intended.`)
+        : pass(`All ${doms.length} domain${doms.length === 1 ? '' : 's'} route mail to Exchange Online.`);
+    }
+  },
+
+  // =====================================================================================
+  // Exchange Online — from the evidence file
+  // =====================================================================================
+  {
+    id: 'EXO-AUTH-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'organizationConfig', (v) => {
+      const on = first(v)?.OAuth2ClientProfileEnabled;
+      if (on === undefined || on === null) return unknown('Modern authentication setting not returned.');
+      return on ? pass('Modern authentication is enabled for Exchange Online.')
+                : fail('Modern authentication is disabled, so Outlook can still fall back to basic authentication.');
+    })
+  },
+  {
+    id: 'EXO-AUTH-002',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'transportConfig', (v) => {
+      const off = first(v)?.SmtpClientAuthenticationDisabled;
+      if (off === undefined || off === null) return unknown('SMTP AUTH setting not returned.');
+      return off ? pass('SMTP AUTH is disabled tenant-wide.')
+                 : fail('SMTP AUTH is enabled tenant-wide. It bypasses MFA and is a standard route for compromised-account mail.');
+    })
+  },
+  {
+    id: 'EXO-AUDIT-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'organizationConfig', (v) => {
+      const disabled = first(v)?.AuditDisabled;
+      if (disabled === undefined || disabled === null) return unknown('Organisation audit setting not returned.');
+      return disabled ? fail('Mailbox auditing is disabled for the organisation, so mailbox activity is not recorded.')
+                      : pass('Mailbox auditing is enabled for the organisation.');
+    })
+  },
+  {
+    id: 'EXO-AUDIT-002',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'mailboxAuditBypass', (v) => {
+      const list = arr(v);
+      return list.length
+        ? fail(`${list.length} account${list.length === 1 ? ' bypasses' : 's bypass'} mailbox auditing: ${few(list.map(x => x.Name))}. Their activity is invisible to the audit log.`)
+        : pass('No account bypasses mailbox auditing.');
+    })
+  },
+  {
+    id: 'EXO-AUDIT-003',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'mailboxAuditSample', (v) => {
+      const list = arr(v);
+      if (!list.length) return unknown('No user mailboxes were returned.');
+      const off = list.filter(m => m.AuditEnabled === false);
+      return off.length
+        ? fail(`${off.length} of ${list.length} sampled mailboxes have auditing switched off: ${few(off.map(m => m.UserPrincipalName))}.`)
+        : pass(`All ${list.length} sampled mailboxes have auditing enabled.`);
+    })
+  },
+  {
+    id: 'EXO-LOCKBOX-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'organizationConfig', (v) => {
+      const on = first(v)?.CustomerLockBoxEnabled;
+      if (on === undefined || on === null) return unknown('Customer Lockbox setting not returned.');
+      return on ? pass('Customer Lockbox is enabled, so Microsoft engineers need explicit approval to access content.')
+                : warn('Customer Lockbox is disabled. It requires E5 or the compliance add-on; if you hold that licence, enable it.');
+    })
+  },
+  {
+    id: 'EXO-MAILTIPS-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'organizationConfig', (v) => {
+      const c = first(v) || {};
+      if (c.MailTipsAllTipsEnabled === undefined || c.MailTipsAllTipsEnabled === null) return unknown('MailTips settings not returned.');
+      const off = [
+        !c.MailTipsAllTipsEnabled && 'all tips',
+        !c.MailTipsExternalRecipientsTipsEnabled && 'external recipient tips',
+        !c.MailTipsGroupMetricsEnabled && 'group metrics'
+      ].filter(Boolean);
+      return off.length
+        ? warn(`MailTips are partly off (${off.join(', ')}), so users get less warning before mailing outside the organisation.`)
+        : pass('MailTips are enabled, including external recipient warnings.');
+    })
+  },
+  {
+    id: 'EXO-EXTTAG-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'externalInOutlook', (v) => {
+      const on = first(v)?.Enabled;
+      if (on === undefined || on === null) return unknown('External sender identification setting not returned.');
+      return on ? pass('Mail from outside the organisation is tagged as external in Outlook.')
+                : warn('External senders are not tagged in Outlook, removing a visual cue users rely on to spot impersonation.');
+    })
+  },
+  {
+    id: 'EXO-FORWARD-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'remoteDomains', (v) => {
+      const def = arr(v).find(x => x.IsDefault) || first(v);
+      if (!def || def.AutoForwardEnabled === undefined || def.AutoForwardEnabled === null) return unknown('Default remote domain not returned.');
+      return def.AutoForwardEnabled
+        ? fail('Automatic forwarding to external addresses is allowed on the default remote domain — the usual way data leaves after an account is compromised.')
+        : pass('Automatic forwarding to external addresses is blocked on the default remote domain.');
+    })
+  },
+  {
+    id: 'EXO-OWA-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'owaMailboxPolicies', (v) => {
+      const list = arr(v);
+      if (!list.length) return unknown('No Outlook on the web policies were returned.');
+      const open = list.filter(p => p.AdditionalStorageProvidersAvailable);
+      return open.length
+        ? warn(`${open.length} of ${list.length} Outlook web polic${list.length === 1 ? 'y allows' : 'ies allow'} third-party storage providers (${few(open.map(p => p.Name))}), so attachments can be saved outside the tenant.`)
+        : pass('Third-party storage providers are blocked in Outlook on the web.');
+    })
+  },
+  {
+    id: 'EXO-ADDINS-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'roleAssignmentPolicies', (v) => {
+      const def = arr(v).find(p => p.IsDefault) || first(v);
+      if (!def) return unknown('No default role assignment policy was returned.');
+      const roles = arr(def.AssignedRoles).map(String);
+      const addin = roles.filter(r => /My (Marketplace|Custom|ReadWriteMailbox) Apps|MyBaseOptions/i.test(r));
+      return addin.length
+        ? warn(`Users can install their own Outlook add-ins (${addin.join(', ')}). An add-in can read mail as the user.`)
+        : pass('Users cannot install their own Outlook add-ins.');
+    })
+  },
+  {
+    id: 'EXO-SHARING-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'sharingPolicies', (v) => {
+      const def = arr(v).find(p => p.Default) || first(v);
+      if (!def) return unknown('No default sharing policy was returned.');
+      const domains = arr(def.Domains).map(String);
+      const anyone = domains.some(x => x.includes('*'));
+      return anyone
+        ? warn(`Calendar details can be shared with anyone (${domains.join(', ')}). Restrict sharing to named partner domains.`)
+        : pass('Calendar sharing is restricted to named domains.');
+    })
+  },
+  {
+    id: 'EXO-CONNFILTER-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'hostedConnectionFilterPolicies', (v) => {
+      const def = arr(v).find(p => p.IsDefault) || first(v);
+      if (!def) return unknown('No connection filter policy was returned.');
+      const ips = arr(def.IPAllowList);
+      return ips.length
+        ? fail(`${ips.length} IP address${ips.length === 1 ? '' : 'es'} bypass spam filtering entirely: ${ips.slice(0, 5).join(', ')}${ips.length > 5 ? ` and ${ips.length - 5} more` : ''}.`)
+        : pass('No IP addresses bypass spam filtering.');
+    })
+  },
+  {
+    id: 'EXO-CONNFILTER-002',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'hostedConnectionFilterPolicies', (v) => {
+      const def = arr(v).find(p => p.IsDefault) || first(v);
+      if (!def || def.EnableSafeList === undefined || def.EnableSafeList === null) return unknown('Connection filter safe list setting not returned.');
+      return def.EnableSafeList
+        ? fail('The connection filter safe list is on, letting a third-party reputation list skip your filtering.')
+        : pass('The connection filter safe list is off.');
+    })
+  },
+  {
+    id: 'EXO-TRANSPORT-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'transportRules', (v) => {
+      const hits = arr(v).filter(r => Number(r.SetSCL) === -1 && arr(r.SenderDomainIs).length);
+      return hits.length
+        ? fail(`${hits.length} transport rule${hits.length === 1 ? '' : 's'} skip spam filtering for whole sender domains: ${few(hits.map(r => r.Name))}. Anyone able to spoof those domains reaches the inbox.`)
+        : pass('No transport rule whitelists a sender domain past spam filtering.');
+    })
+  },
+  {
+    id: 'EXO-TRANSPORT-002',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'transportRules', (v) => {
+      const targets = (r) => [...arr(r.RedirectMessageTo), ...arr(r.BlindCopyTo), ...arr(r.AddToRecipients), ...arr(r.CopyTo)].map(String);
+      const doms = (d.exchangeEvidence?.tenant?.domains || []).map(x => String(x).toLowerCase());
+      const external = (a) => a.includes('@') && !doms.some(dom => a.toLowerCase().endsWith('@' + dom));
+      const hits = arr(v).filter(r => targets(r).some(external));
+      return hits.length
+        ? fail(`${hits.length} transport rule${hits.length === 1 ? '' : 's'} copy or redirect mail to addresses outside the tenant: ${few(hits.map(r => r.Name))}.`)
+        : pass('No transport rule forwards mail outside the tenant.');
+    })
+  },
+  {
+    id: 'EXO-DIRECTSEND-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'inboundConnectors', (v) => {
+      const open = arr(v).filter(c => c.Enabled === true && c.RequireTls === false && c.RestrictDomainsToIPAddresses === false);
+      return open.length
+        ? fail(`${open.length} inbound connector${open.length === 1 ? '' : 's'} accept unauthenticated relay: ${few(open.map(c => c.Name))}. Anyone can send as your domain through them.`)
+        : pass('No inbound connector accepts unauthenticated relay.');
+    })
+  },
+  {
+    id: 'EXO-HIDDEN-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'hiddenMailboxes', (v) => {
+      const list = arr(v);
+      return list.length
+        ? unknown(`${list.length} user mailbox${list.length === 1 ? ' is' : 'es are'} hidden from the address list: ${few(list.map(m => m.PrimarySmtpAddress || m.UserPrincipalName))}. Confirm each is intended.`)
+        : pass('No user mailbox is hidden from the global address list.');
+    })
+  },
+  {
+    id: 'EXO-DKIM-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'dkimSigningConfigs', (v) => {
+      const list = arr(v).filter(c => !String(c.Domain || '').endsWith('.onmicrosoft.com'));
+      if (!list.length) return na('No custom domain has a DKIM signing configuration.');
+      const off = list.filter(c => !c.Enabled);
+      return off.length
+        ? fail(`DKIM signing is switched off for ${off.length} of ${list.length} domain${list.length === 1 ? '' : 's'}: ${few(off.map(c => c.Domain))}. Outbound mail is not signed.`)
+        : pass(`DKIM signing is enabled for all ${list.length} custom domain${list.length === 1 ? '' : 's'}.`);
+    })
+  },
+
+  // =====================================================================================
+  // Defender for Office 365 and EOP — from the evidence file
+  // =====================================================================================
+  {
+    id: 'EXO-ANTIPHISH-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'antiPhishPolicies', (v) => {
+      const p = arr(v).find(x => x.IsDefault) || first(v);
+      if (!p) return fail('No anti-phishing policy exists.');
+      const weak = [
+        Number(p.PhishThresholdLevel) < 2 && `threshold is ${p.PhishThresholdLevel} (2 or higher recommended)`,
+        !p.EnableSpoofIntelligence && 'spoof intelligence is off',
+        !p.HonorDmarcPolicy && 'DMARC policy is not honoured',
+        !p.EnableMailboxIntelligence && 'mailbox intelligence is off'
+      ].filter(Boolean);
+      return weak.length
+        ? fail(`The anti-phishing policy "${p.Name}" is weakened: ${weak.join('; ')}.`)
+        : pass(`The anti-phishing policy "${p.Name}" sets threshold ${p.PhishThresholdLevel} with spoof intelligence, DMARC honouring and mailbox intelligence on.`);
+    })
+  },
+  {
+    id: 'DEFENDER-ANTIPHISH-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'antiPhishPolicies', (v) => {
+      const list = arr(v).filter(p => p.Enabled !== false);
+      return list.length
+        ? pass(`${list.length} anti-phishing polic${list.length === 1 ? 'y is' : 'ies are'} in place.`)
+        : fail('No enabled anti-phishing policy exists.');
+    })
+  },
+  {
+    id: 'DEFENDER-SAFELINKS-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'safeLinksPolicies', (v) => {
+      const list = arr(v);
+      if (!list.length) return fail('No Safe Links policy exists, so URLs in mail and Office documents are not rewritten or checked at click time.');
+      const on = list.filter(p => p.IsEnabled !== false);
+      if (!on.length) return fail(`${list.length} Safe Links polic${list.length === 1 ? 'y exists but is' : 'ies exist but all are'} disabled.`);
+      const gaps = on.filter(p => !p.EnableSafeLinksForEmail || !p.EnableSafeLinksForTeams || !p.EnableSafeLinksForOffice);
+      return gaps.length
+        ? warn(`${on.length} Safe Links polic${on.length === 1 ? 'y is' : 'ies are'} enabled, but ${few(gaps.map(p => p.Name))} do not cover email, Teams and Office together.`)
+        : pass(`${on.length} Safe Links polic${on.length === 1 ? 'y covers' : 'ies cover'} email, Teams and Office.`);
+    })
+  },
+  {
+    id: 'DEFENDER-SAFEATTACH-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'safeAttachmentPolicies', (v) => {
+      const list = arr(v);
+      if (!list.length) return fail('No Safe Attachments policy exists, so attachments are not detonated before delivery.');
+      const on = list.filter(p => p.Enable !== false);
+      if (!on.length) return fail(`${list.length} Safe Attachments polic${list.length === 1 ? 'y exists but is' : 'ies exist but all are'} disabled.`);
+      const weak = on.filter(p => !['Block', 'Replace', 'DynamicDelivery'].includes(String(p.Action)));
+      return weak.length
+        ? warn(`${on.length} Safe Attachments polic${on.length === 1 ? 'y is' : 'ies are'} enabled, but ${few(weak.map(p => p.Name))} only monitor rather than block.`)
+        : pass(`${on.length} Safe Attachments polic${on.length === 1 ? 'y blocks' : 'ies block'} or replaces malicious attachments.`);
+    })
+  },
+  {
+    id: 'DEFENDER-SAFEATTACH-002',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'atpPolicyForO365', (v) => {
+      const p = first(v);
+      if (!p || p.EnableATPForSPOTeamsODB === undefined || p.EnableATPForSPOTeamsODB === null) return unknown('Safe Attachments for SharePoint, OneDrive and Teams setting not returned.');
+      return p.EnableATPForSPOTeamsODB
+        ? pass('Safe Attachments covers SharePoint, OneDrive and Teams.')
+        : fail('Safe Attachments does not cover SharePoint, OneDrive or Teams, so a malicious file uploaded there is not detonated.');
+    })
+  },
+  {
+    id: 'DEFENDER-ZAP-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'hostedContentFilterPolicies', (v) => {
+      const p = arr(v).find(x => x.IsDefault) || first(v);
+      if (!p) return unknown('No content filter policy was returned.');
+      const off = [!p.SpamZapEnabled && 'spam', !p.PhishZapEnabled && 'phishing'].filter(Boolean);
+      return off.length
+        ? fail(`Zero-hour auto purge is off for ${off.join(' and ')}, so mail found malicious after delivery stays in the inbox.`)
+        : pass('Zero-hour auto purge is on for spam and phishing.');
+    })
+  },
+  {
+    id: 'DEFENDER-ANTIMALWARE-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'malwareFilterPolicies', (v) => {
+      const p = arr(v).find(x => x.IsDefault) || first(v);
+      if (!p) return unknown('No malware filter policy was returned.');
+      if (!p.EnableFileFilter) return fail('The common attachment types filter is off, so executable attachments are not blocked by type.');
+      const n = arr(p.FileTypes).length;
+      return n >= 20
+        ? pass(`The common attachment types filter is on, blocking ${n} file types.`)
+        : warn(`The common attachment types filter is on but blocks only ${n} file types; the recommended list is longer.`);
+    })
+  },
+  {
+    id: 'DEFENDER-ANTIMALWARE-002',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'malwareFilterPolicies', (v) => {
+      const p = arr(v).find(x => x.IsDefault) || first(v);
+      if (!p || p.EnableInternalSenderAdminNotifications === undefined || p.EnableInternalSenderAdminNotifications === null) return unknown('Internal sender notification setting not returned.');
+      return p.EnableInternalSenderAdminNotifications
+        ? pass('Administrators are notified when an internal user sends malware.')
+        : warn('Nobody is notified when an internal user sends malware, so a compromised mailbox can go unnoticed.');
+    })
+  },
+  {
+    id: 'EXO-MALWARE-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'malwareFilterPolicies', (v) => {
+      const list = arr(v);
+      if (!list.length) return fail('No malware filter policy exists.');
+      const p = list.find(x => x.IsDefault) || list[0];
+      const weak = [!p.EnableFileFilter && 'attachment type filter off', !p.ZapEnabled && 'zero-hour auto purge off'].filter(Boolean);
+      return weak.length
+        ? warn(`The malware filter policy "${p.Name}" is weakened: ${weak.join('; ')}.`)
+        : pass(`The malware filter policy "${p.Name}" has attachment filtering and auto purge on.`);
+    })
+  },
+  {
+    id: 'EXO-ANTISPAM-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'hostedContentFilterPolicies', (v) => {
+      const p = arr(v).find(x => x.IsDefault) || first(v);
+      if (!p) return fail('No anti-spam (content filter) policy exists.');
+      const quarantines = (a) => ['Quarantine', 'MoveToJmf'].includes(String(a));
+      const weak = [
+        Number(p.BulkThreshold) > 6 && `bulk threshold is ${p.BulkThreshold} (6 or lower recommended)`,
+        String(p.HighConfidencePhishAction) !== 'Quarantine' && `high-confidence phishing is "${p.HighConfidencePhishAction}" rather than quarantined`,
+        !quarantines(p.SpamAction) && `spam action is "${p.SpamAction}"`
+      ].filter(Boolean);
+      return weak.length
+        ? warn(`The anti-spam policy "${p.Name}" is weakened: ${weak.join('; ')}.`)
+        : pass(`The anti-spam policy "${p.Name}" quarantines high-confidence phishing with a bulk threshold of ${p.BulkThreshold}.`);
+    })
+  },
+  {
+    id: 'DEFENDER-ANTISPAM-002',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'hostedContentFilterPolicies', (v) => {
+      const hits = arr(v).filter(p => arr(p.AllowedSenderDomains).length);
+      if (!hits.length) return pass('No inbound anti-spam policy allow-lists a sender domain.');
+      const total = hits.reduce((n, p) => n + arr(p.AllowedSenderDomains).length, 0);
+      const doms = hits.flatMap(p => arr(p.AllowedSenderDomains).map(x => x.Domain || x));
+      return fail(`${total} sender domain${total === 1 ? ' is' : 's are'} allow-listed past spam filtering: ${few(doms)}. Spoofing any of them reaches the inbox.`);
+    })
+  },
+  {
+    id: 'DEFENDER-ANTISPAM-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'hostedOutboundSpamFilterPolicies', (v) => {
+      const p = arr(v).find(x => x.IsDefault) || first(v);
+      if (!p) return unknown('No outbound spam filter policy was returned.');
+      const notify = p.NotifyOutboundSpam || arr(p.NotifyOutboundSpamRecipients).length || p.BccSuspiciousOutboundMail;
+      return notify
+        ? pass('Administrators are notified when a user sends outbound spam.')
+        : warn('Nobody is notified when a user sends outbound spam, which is usually the first sign of a compromised mailbox.');
+    })
+  },
+  {
+    id: 'DEFENDER-OUTBOUND-001',
+    area: 'exchange',
+    needs: ['exchangeEvidence'],
+    evaluate: (d) => fromEvidence(d, 'hostedOutboundSpamFilterPolicies', (v) => {
+      const p = arr(v).find(x => x.IsDefault) || first(v);
+      if (!p) return unknown('No outbound spam filter policy was returned.');
+      const mode = String(p.AutoForwardingMode || '');
+      const limits = [p.RecipientLimitExternalPerHour, p.RecipientLimitInternalPerHour, p.RecipientLimitPerDay].map(Number);
+      if (mode !== 'Off') return fail(`Automatic external forwarding is "${mode}" rather than "Off", so a compromised mailbox can forward mail out silently.`);
+      return limits.every(n => n > 0)
+        ? pass(`External forwarding is off and outbound recipient limits are set (${limits[0]}/hour external, ${limits[2]}/day).`)
+        : warn('External forwarding is off, but outbound recipient limits are not all set.');
+    })
   }
 ];
 
