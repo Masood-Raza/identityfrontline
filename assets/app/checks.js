@@ -26,7 +26,7 @@ export const AREAS = [
   { id: 'signals',       label: 'Microsoft security signals', summary: 'Microsoft Secure Score, how fresh it is and its top improvement actions, plus open Defender alerts — Microsoft\'s own view of the tenant next to ours.' },
   { id: 'dns',           label: 'Email authentication (DNS)', summary: 'SPF, DKIM selectors, DMARC and MX for every verified domain.',
     note: 'Reads public DNS. Lookups go to a public resolver rather than to Microsoft — the only part of the assessment that contacts anything else. Domain names are already public; nothing else about the tenant is sent.' },
-  { id: 'exchange',      label: 'Exchange &amp; email security', summary: 'Modern auth, SMTP AUTH, forwarding, transport rules, connectors, mailbox auditing, anti-phishing, Safe Links, Safe Attachments and anti-spam policy.',
+  { id: 'exchange',      label: 'Exchange & email security', summary: 'Modern auth, SMTP AUTH, forwarding, transport rules, connectors, mailbox auditing, anti-phishing, Safe Links, Safe Attachments and anti-spam policy.',
     note: 'Microsoft Graph does not expose any of this and the Exchange API refuses browser calls, so these checks read an evidence file produced by tools/Export-ExchangeEvidence.ps1. You pick the file on the run step; it is read in the browser and never uploaded.' }
 ];
 

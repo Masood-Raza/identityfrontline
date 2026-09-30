@@ -10,8 +10,8 @@ import { runAssessment as realRun, scopesFor, ALL_SCOPES, checksFor } from './en
 import { AREAS } from './checks.js';
 import * as history from './history.js';
 import { sortResults, downloadCsv, downloadJson, downloadHtml, downloadXlsx, downloadPlanMarkdown, printReport, executiveSummaryParts, scopeLabel, fixText, esc,
-  areaCardsHtml, planHtml, signalsHtml, ticketText, effortLabel, ownerLabel, remediationPlan } from './report.js';
-import { explorer, rowAttrs, explorerToolbar, EXPLORER_CSS } from './explore.js';
+  areaCardsHtml, planHtml, signalsHtml, ticketText, effortLabel, ownerLabel, remediationPlan, heroHtml, alertBannerHtml, frameworkPickerHtml } from './report.js';
+import { explorer, reportChrome, rowAttrs, explorerToolbar, EXPLORER_CSS, REPORT_CSS } from './explore.js';
 
 // Injectable for tests: the flow can be driven end to end with sign-in and Graph mocked.
 const deps = {
@@ -106,6 +106,7 @@ async function bootUi() {
   bootStamp = await releaseStamp();
 
   document.head.appendChild(Object.assign(document.createElement('style'), { textContent: EXPLORER_CSS }));
+  document.head.appendChild(Object.assign(document.createElement('style'), { textContent: REPORT_CSS }));
 
   renderFrameworks();
   renderScope();
@@ -409,14 +410,8 @@ async function doRun() {
 // ---------------------------------------------------------------------------------------
 function renderResults(report) {
   const s = report.summary;
-  el('scoreCards').innerHTML = [
-    [s.passRate === null ? '—' : s.passRate + '%', 'Pass rate'],
-    [s.pass, 'Passed'],
-    [s.fail, 'Failed'],
-    [s.warning, 'Warning'],
-    [s.unknown, 'Unknown'],
-    [s.notApplicable, 'N/A']
-  ].map(([v, l]) => `<div class="fact"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
+  el('scoreCards').innerHTML = heroHtml(report);
+  el('alertBanner').innerHTML = alertBannerHtml(report);
 
   const sev = ['Critical', 'High', 'Medium', 'Low']
     .filter(k => s.failedBySeverity[k] > 0)
@@ -485,7 +480,9 @@ function renderResults(report) {
   show('planWrap', plan.length > 0);
   el('signalsWrap').innerHTML = signalsHtml(report).replace('<h2>Microsoft security signals</h2>', '<h4 class="results-h">Microsoft security signals</h4>');
   show('signalsWrap', Boolean(report.signals));
+  el('fwPicker').innerHTML = frameworkPickerHtml(report);
   explorer(document.querySelector('[data-panel="5"]'));
+  reportChrome(document.querySelector('[data-panel="5"]'));
 
   el('frameworkRows').innerHTML = report.frameworks.map(f => `
     <tr><td>${esc(f.label)}</td><td class="num">${f.pass}</td><td class="num">${f.fail}</td>

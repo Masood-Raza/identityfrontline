@@ -60,7 +60,6 @@ tr.s-pass td{opacity:.7}
 <b>Exchange evidence</b>
 <p class="hint">Microsoft Graph does not expose Exchange, EOP or Defender for Office policy, and the Exchange API refuses browser calls — so these checks read a file you produce. Run <code>tools/Export-ExchangeEvidence.ps1</code> as an administrator, then pick the JSON it writes. It is read in this tab and never uploaded. Without it the Exchange checks report as Unknown and the rest of the assessment runs normally.</p>
 <p class="hint"><a href="tools/Export-ExchangeEvidence.ps1" download>Download Export-ExchangeEvidence.ps1</a> — read it before you run it: it is a few hundred lines, every call is a read-only <code>Get-</code> cmdlet, and it writes one file.</p>
-<p class="hint"><a href="tools/Export-ExchangeEvidence.ps1" download>Download Export-ExchangeEvidence.ps1</a> — read it before you run it: it is a few hundred lines, every call is a read-only <code>Get-</code> cmdlet, and it writes one file.</p>
 <input type="file" id="evidenceFile" accept="application/json,.json">
 <button class="button secondary" id="evidenceClear" type="button">Clear</button>
 <p class="hint" id="evidenceStatus" hidden></p>
@@ -73,7 +72,7 @@ tr.s-pass td{opacity:.7}
 </div>
 
 <div class="panel" data-panel="5"><span class="step-label">Step 5</span><h3>Results</h3><p class="run-meta" id="runMeta"></p>
-<div class="facts score-cards" id="scoreCards"></div><div id="areaCards"></div>
+<div id="scoreCards"></div><div id="alertBanner"></div><div id="areaCards"></div>
 <p class="sev-row" id="sevRow"></p><p class="hint" id="scopeNote"></p><div class="exec-summary" id="execSummary"></div><div id="priorityWrap" hidden><h4 class="results-h">Fix first</h4><ol class="priorities" id="priorityList"></ol></div>
 <p class="plan-summary" id="planSummary"></p>
 <div id="signalsWrap" hidden></div>
@@ -82,7 +81,7 @@ tr.s-pass td{opacity:.7}
 <div class="notice"><strong>Confidential.</strong>Reports contain administrator identities, policy configuration and tenant settings. Store them as you would any security assessment and do not upload them to public storage.</div>
 <h4 class="results-h" id="findingsTitle">Findings</h4><div id="explorer"></div>
 <div style="overflow:auto"><table class="permission-table results"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th></tr></thead><tbody id="resultRows" data-explore></tbody></table></div>
-<div id="otherWrap" hidden><h4 class="results-h" id="otherTitle"></h4><p class="hint" id="otherNote"></p><div style="overflow:auto"><table class="permission-table results"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th></tr></thead><tbody id="otherRows" data-explore></tbody></table></div></div><h4 class="results-h">Framework coverage</h4><p class="hint" id="frameworkNote"></p>
+<div id="otherWrap" hidden><h4 class="results-h" id="otherTitle"></h4><p class="hint" id="otherNote"></p><div style="overflow:auto"><table class="permission-table results"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th></tr></thead><tbody id="otherRows" data-explore></tbody></table></div></div><h4 class="results-h">Framework coverage</h4><p class="hint" id="frameworkNote"></p><div id="fwPicker"></div>
 <div id="planWrap" hidden></div>
 <div style="overflow:auto"><table class="permission-table"><thead><tr><th>Framework</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Partial</th><th class="num">Rate</th></tr></thead><tbody id="frameworkRows"></tbody></table></div>
 <div id="unavailableWrap" hidden><h4 class="results-h">Not collected</h4><p class="hint">These areas could not be read. Dependent checks are Unknown and excluded from the pass rate.</p><ul class="unavailable" id="unavailableRows"></ul></div>
