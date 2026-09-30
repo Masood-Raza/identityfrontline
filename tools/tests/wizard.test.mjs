@@ -174,8 +174,17 @@ ok('consent button hidden once granted', !visible('btnConsent'));
 $('#btnRun').click();
 for (let i = 0; i < 40 && active() !== 5; i++) await tick();
 ok('run lands on results', active() === 5);
-ok('score cards rendered, including partial', $$('#scoreCards .fact').length === 6 && /Warning/.test($('#scoreCards').textContent));
-ok('hardened tenant shows 100% pass rate', $('#scoreCards').textContent.includes('100%'));
+ok('hero and four stat tiles rendered, including Partial', $$('#scoreCards .tile').length === 4 && /Partial/.test($('#scoreCards').textContent));
+// #scoreCards once held the old flat 6-column grid of cards and still carried the CSS classes
+// for it ("facts score-cards"); left in place, they turn the single new .hero block into a
+// lone grid item squeezed into one of six columns instead of spanning full width. Guard against
+// that regressing silently — jsdom has no layout engine, so this is the class list, not pixels.
+ok('the score container carries no leftover grid classes from the old card layout', !$('#scoreCards').className.trim());
+{
+  const r = main.getState().report;
+  const headline = (r.signals?.secureScore && r.signals.secureScore.percent !== null) ? `${r.signals.secureScore.percent}%` : (r.summary.passRate === null ? '—' : `${r.summary.passRate}%`);
+  ok('hero shows the correct headline (Secure Score when present, else the pass rate)', $('#scoreCards').textContent.includes(headline), headline);
+}
 ok('in-scope findings listed', $$('#resultRows tr').length === main.getState().report.scope.inScopeCount, `got ${$$('#resultRows tr').length}`);
 ok('framework rollup rendered', $$('#frameworkRows tr').length > 0);
 ok('nothing unavailable on a full run', !visible('unavailableWrap'));
@@ -339,7 +348,7 @@ let printed = false, written = '';
 window.open = () => ({ document: { open() {}, write(h) { written = h; }, close() {} }, focus() {}, print() { printed = true; } });
 $('#btnPrint').click();
 await new Promise(r => setTimeout(r, 400));
-ok('print opens the report in a new window', /Microsoft 365 security assessment/.test(written));
+ok('print opens the report in a new window', /Security posture report/.test(written));
 ok('print dialog invoked', printed);
 ok('report carries print styles', /@media print/.test(written) && /@page/.test(written));
 
@@ -390,6 +399,63 @@ ok('executive summary mentions the change', /Since the run on/.test($('#execSumm
 const rpt2 = buildHtmlReport(rep2);
 ok('HTML report has a changes section', /Changes since/.test(rpt2) && /Regressed/.test(rpt2));
 ok('HTML report says comparison data stays in the browser', /kept only in the browser/.test(rpt2));
+
+// ---- the redesigned report: sidebar, hero, alert banner, framework picker, theme toggle ----
+ok('report has no double-escaped HTML entities (a real bug this catalog once had)', !/&amp;amp;/.test(rpt2));
+ok('report carries the sidebar brand and nav groups', /IdentityFrontline/.test(rpt2.replace(/<\/?em>/g, '')) && /rc-nav-h">Executive</.test(rpt2) && /rc-nav-h">Details</.test(rpt2));
+ok('report carries the section anchors the sidebar links to', ['id="overview"', 'id="posture"', 'id="findings"', 'id="appendix"'].every(s => rpt2.includes(s)));
+ok('report has a hero score with four stat tiles', /class="hero-score"/.test(rpt2) && (rpt2.match(/class="tile tile-/g) || []).length === 4);
+{
+  const critFail = rep2.results.find(r => r.inScope !== false && r.status === 'Fail' && r.severity === 'Critical');
+  if (critFail) {
+    ok('report shows a critical-findings banner naming a real check, not truncated', rpt2.includes('class="alert-banner"') && rpt2.includes(critFail.name));
+  } else {
+    ok('no critical fails: no banner is shown', !rpt2.includes('class="alert-banner"'));
+  }
+}
+
+// Interactive checks against the standalone report, same pattern as the explorer block above.
+{
+  const rdom2 = new JSDOM(rpt2, { runScripts: 'dangerously' });
+  const d2 = rdom2.window.document;
+  const html2 = d2.documentElement;
+  const rows2 = () => [...d2.querySelectorAll('tbody[data-explore] tr[data-status]')];
+  const visible2 = () => rows2().filter(r => !r.hasAttribute('hidden'));
+
+  const themeBtn = d2.querySelector('.rc-theme');
+  ok('standalone report: theme toggle present and defaults to dark (no data-theme attribute)', !!themeBtn && !html2.getAttribute('data-theme'));
+  themeBtn.click();
+  ok('standalone report: theme toggle switches to light', html2.getAttribute('data-theme') === 'light' && themeBtn.getAttribute('aria-pressed') === 'true');
+  themeBtn.click();
+  ok('standalone report: theme toggle switches back to dark', html2.getAttribute('data-theme') === 'dark' && themeBtn.getAttribute('aria-pressed') === 'false');
+
+  const bannerLink = d2.querySelector('.alert-banner [data-jump]');
+  if (bannerLink) {
+    bannerLink.click();
+    ok('standalone report: the critical-findings banner link filters to Fail + Critical', visible2().length > 0 && visible2().every(r => r.dataset.status === 'fail' && r.dataset.sev === 'critical'));
+    d2.querySelector('.x-clear').click();
+  }
+
+  const sidebarDomainLink = d2.querySelector('.rc-nav a[data-jump^="area:"]');
+  if (sidebarDomainLink) {
+    const areaId = sidebarDomainLink.getAttribute('data-jump').split(':')[1];
+    sidebarDomainLink.click();
+    ok('standalone report: a sidebar domain link filters the findings to that domain', visible2().length > 0 && visible2().every(r => r.dataset.area === areaId));
+    d2.querySelector('.x-clear').click();
+  }
+
+  const fwSelect = d2.querySelector('.rc-fw-select');
+  if (fwSelect && fwSelect.options.length > 1) {
+    const before = d2.querySelector('.fw-panel b').textContent;
+    fwSelect.value = fwSelect.options[1].value;
+    fwSelect.dispatchEvent(new rdom2.window.Event('change'));
+    ok('standalone report: changing the framework picker updates the detail panel', d2.querySelector('.fw-panel b').textContent !== before && d2.querySelector('.fw-panel b').textContent === fwSelect.options[1].textContent);
+  } else if (fwSelect) {
+    ok('standalone report: a single-framework scope still shows a detail panel', !!d2.querySelector('.fw-panel b').textContent);
+  }
+
+  ok('standalone report: print button is wired without throwing', (() => { rdom2.window.print = () => {}; d2.querySelector('.rc-print').click(); return true; })());
+}
 const wb2 = buildWorkbook(rep2, XLSXlib);
 ok('workbook gains a Changes sheet', wb2.SheetNames.includes('Changes'));
 ok('two runs remembered for the tenant', history.list(rep2.tenant).length === 2);

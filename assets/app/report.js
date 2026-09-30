@@ -6,7 +6,7 @@
 
 import { frameworksOf } from './engine.js';
 import { EFFORT, OWNERS } from './checks.js';
-import { explorer, rowAttrs, explorerToolbar, EXPLORER_CSS } from './explore.js';
+import { explorer, reportChrome, rowAttrs, explorerToolbar, EXPLORER_CSS, REPORT_CSS } from './explore.js';
 
 // ---------------------------------------------------------------------------------------
 // Shared building blocks: tickets, the remediation plan, area cards, signals
@@ -71,16 +71,22 @@ export function downloadPlanMarkdown(report) {
   download(`remediation-plan-${stamp(report)}.md`, planMarkdown(report), 'text/markdown;charset=utf-8');
 }
 
-// Area score cards; clickable, they toggle the matching area filter.
+// Area score cards; clickable, they toggle the matching area filter. The bar is segmented —
+// pass/partial/fail as proportions of what was actually scored — rather than one bar at the
+// pass-rate width, so a 90%-scored-but-half-Unknown area doesn't read the same as a clean one.
 export function areaCardsHtml(report) {
   const areas = report.areaSummary || [];
   if (areas.length < 2) return '';
-  return `<div class="area-cards">${areas.map(a => `
+  return `<div class="area-cards">${areas.map(a => {
+    const total = a.scored || 0;
+    const pct = (n) => total ? Math.round((n / total) * 100) : 0;
+    return `
     <button type="button" class="area-card" data-area-card="${esc(a.id)}" title="Show only ${esc(a.label)}">
       <span>${esc(a.label)}</span><b>${a.passRate === null ? '—' : a.passRate + '%'}</b>
-      <div class="bar"><i style="width:${a.passRate || 0}%"></i></div>
+      <div class="bar"><i class="seg-pass" style="width:${pct(a.pass)}%"></i><i class="seg-warn" style="width:${pct(a.warning)}%"></i><i class="seg-fail" style="width:${pct(a.fail)}%"></i></div>
       <small>${a.pass} passed · ${a.fail} failed${a.warning ? ` · ${a.warning} partial` : ''}${a.unknown ? ` · ${a.unknown} unknown` : ''}</small>
-    </button>`).join('')}</div>`;
+    </button>`;
+  }).join('')}</div>`;
 }
 
 export function planHtml(report) {
@@ -124,6 +130,83 @@ export function signalsHtml(report) {
   return `<h2>Microsoft security signals</h2>
   <p class="muted">Microsoft\'s own posture number and its open alerts, read from the Defender portal APIs. They sit beside this assessment rather than inside its score.</p>
   ${scoreBlock}${alertBlock}`;
+}
+
+// The headline number and four stat tiles at the top of the results. When Microsoft's own
+// Secure Score is available (the signals area was run and returned one), it leads — that is
+// Microsoft's number, not ours, and a reader comparing the two wants to see it first. Otherwise
+// the headline is the scope-aware pass rate already used everywhere else in the report.
+export function heroHtml(report) {
+  const s = report.summary;
+  const scope = scopeLabel(report);
+  const ss = report.signals?.secureScore;
+  const useSecureScore = Boolean(ss && ss.percent !== null);
+  const heroLabel = useSecureScore ? 'Microsoft Secure Score' : `Pass rate${scope ? ' — ' + scope : ''}`;
+  const heroValue = useSecureScore ? `${ss.percent}%` : (s.passRate === null ? '—' : `${s.passRate}%`);
+  const heroSub = useSecureScore
+    ? `${ss.current} of ${ss.max} points${ss.daysOld === null ? '' : ` · updated ${ss.daysOld === 0 ? 'today' : ss.daysOld + (ss.daysOld === 1 ? ' day' : ' days') + ' ago'}`}`
+    : (s.scored ? `${s.pass} of ${s.scored} checks passed` : `${s.total} check${s.total === 1 ? '' : 's'} assessed, none scorable`);
+  const barPct = Math.max(0, Math.min(100, useSecureScore ? ss.percent : (s.passRate ?? 0)));
+
+  const d = report.drift;
+  const deltaHtml = d && d.delta !== null
+    ? ` <span class="hero-delta ${d.delta > 0 ? 'up' : d.delta < 0 ? 'down' : ''}">${d.delta > 0 ? '▲' : d.delta < 0 ? '▼' : '='} ${Math.abs(d.delta)} pt${Math.abs(d.delta) === 1 ? '' : 's'} vs last run</span>`
+    : (report.remembered ? '<span class="hero-delta">First run remembered for this tenant</span>' : '');
+
+  const critCount = s.failedBySeverity?.Critical || 0;
+  const tiles = [
+    { n: critCount, label: 'Critical findings', cls: 'critical', hint: critCount ? 'need immediate attention' : 'none open' },
+    { n: s.fail, label: 'Failed', cls: 'fail', hint: `of ${s.scored || s.total} checks` },
+    { n: s.warning, label: 'Partial', cls: 'warning', hint: 'review and harden' },
+    { n: s.pass, label: 'Passing', cls: 'pass', hint: 'controls validated' }
+  ];
+
+  return `
+  <div class="hero">
+    <div class="hero-score">
+      <span class="hero-label">${esc(heroLabel)}</span>
+      <b>${esc(heroValue)}</b>
+      <div class="hero-bar"><i style="width:${barPct}%"></i></div>
+      <span class="hero-sub">${esc(heroSub)}${deltaHtml}</span>
+    </div>
+    <div class="hero-tiles">
+      ${tiles.map(t => `<div class="tile tile-${t.cls}"><b>${t.n}</b><span>${esc(t.label)}</span><small>${esc(t.hint)}</small></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// A single banner naming the Critical-severity failures, with a link that both jumps to the
+// findings table and pre-applies the Fail + Critical filters. Nothing to show, nothing rendered.
+export function alertBannerHtml(report) {
+  const crit = (report.results || []).filter(r => r.inScope !== false && r.status === 'Fail' && r.severity === 'Critical');
+  if (!crit.length) return '';
+  const named = crit.slice(0, 2).map(r => r.name.replace(/\.$/, ''));
+  const more = crit.length > 2 ? ` and ${crit.length - 2} more` : '';
+  return `
+  <div class="alert-banner" role="alert">
+    <b>${crit.length} critical finding${crit.length === 1 ? '' : 's'}</b> need attention before anything else: ${named.map(esc).join('; ')}${more}.
+    <a href="#findings" data-jump="status:fail,sev:critical">Review critical findings →</a>
+  </div>`;
+}
+
+// A framework <select> driving a small detail panel (coverage %, gaps, checks assessed) for
+// whichever framework is chosen — one framework at a time is easier to read than a full table
+// when there are more than a couple. The full table stays too, further down, for comparison.
+export function frameworkPickerHtml(report) {
+  const fws = report.frameworks || [];
+  if (!fws.length) return '';
+  const scoped = report.frameworkFilter && report.frameworkFilter.length === 1 ? report.frameworkFilter[0] : null;
+  const defaultId = scoped && fws.some(f => f.id === scoped) ? scoped : fws[0].id;
+  const stats = {};
+  fws.forEach(f => { stats[f.id] = { label: f.label, passRate: f.passRate, gaps: f.fail + f.warning, checks: f.scored }; });
+  return `
+  <div class="fw-picker">
+    <label class="fw-select-label">Framework
+      <select class="rc-fw-select">${fws.map(f => `<option value="${esc(f.id)}"${f.id === defaultId ? ' selected' : ''}>${esc(f.label)}</option>`).join('')}</select>
+    </label>
+    <div class="fw-panel" data-fw-id="${esc(defaultId)}"></div>
+    <script type="application/json" class="rc-fw-data">${JSON.stringify(stats).replace(/</g, '\u003c')}</script>
+  </div>`;
 }
 
 const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Unknown'];
@@ -463,13 +546,15 @@ export async function downloadXlsx(report) {
 export function buildHtmlReport(report) {
   const s = report.summary;
   const when = new Date(report.started).toLocaleString();
+  const duration = report.durationMs !== undefined ? `${(report.durationMs / 1000).toFixed(1)}s` : null;
 
   const sevRow = SEVERITY_ORDER.slice(0, 4)
     .filter(k => s.failedBySeverity[k] > 0)
     .map(k => `<span class="pill ${k.toLowerCase()}">${s.failedBySeverity[k]} ${k}</span>`)
     .join(' ') || '<span class="pill none">No failures</span>';
   const warnPill = s.warning ? ` <span class="pill warning">${s.warning} partial</span>` : '';
-  const areaLine = (report.areas || []).map(a => esc(a.label)).join(', ');
+  const areaList = report.areas || [];
+  const areaLine = areaList.map(a => esc(a.label)).join(', ');
 
   // Control IDs beyond the first eight fold away: a check that maps to two hundred MITRE
   // techniques should not be two screens tall.
@@ -508,19 +593,24 @@ export function buildHtmlReport(report) {
   const d = report.drift;
   const driftLi = (r, note) => `<li><b>${esc(r.name)}</b> <code>${esc(r.id)}</code> — ${esc(note)}<div class="muted">${esc(r.detail)}</div></li>`;
   const driftSection = d ? `
+  <section id="changes" class="rc-section">
   <h2>Changes since ${esc(new Date(d.previousStarted).toLocaleString())}</h2>
   <p class="muted">Pass rate ${d.previousPassRate === null ? '—' : d.previousPassRate + '%'} → ${d.passRate === null ? '—' : d.passRate + '%'}.
   ${d.fixed.length} fixed, ${d.regressed.length} regressed, ${d.added.length} newly assessed, ${d.unchanged} unchanged${d.dropped ? `, ${d.dropped} not assessed this time` : ''}.
   Comparison data is kept only in the browser that ran the assessment.</p>
   ${d.regressed.length ? `<h3>Regressed</h3><ul class="drift">${d.regressed.map(r => driftLi(r, `was ${r.previousStatus}, now ${r.status}`)).join('')}</ul>` : ''}
   ${d.fixed.length ? `<h3>Fixed</h3><ul class="drift">${d.fixed.map(r => driftLi(r, r.partial ? 'was Fail, now Warning' : `was ${r.previousStatus}, now Pass`)).join('')}</ul>` : ''}
-  ${d.changed.length ? `<h3>Still failing, detail changed</h3><ul class="drift">${d.changed.map(r => driftLi(r, `previously: ${r.previousDetail || r.previousStatus}`)).join('')}</ul>` : ''}` : '';
+  ${d.changed.length ? `<h3>Still failing, detail changed</h3><ul class="drift">${d.changed.map(r => driftLi(r, `previously: ${r.previousDetail || r.previousStatus}`)).join('')}</ul>` : ''}
+  </section>` : '';
 
   const scope = scopeLabel(report);
   const sAll = report.summaryAll || s;
   const scopeNote = scope
     ? `${report.scope.inScopeCount} of ${report.results.length} checks map to ${scope}. Controls shown are for the selected framework${report.scope.frameworks.length === 1 ? '' : 's'} only.`
     : 'All frameworks. Controls shown are every mapping for each check.';
+  const overviewNote = scope
+    ? `Scored against the ${report.scope.inScopeCount} checks that map to ${esc(scope)}; ${s.scored} of those could be scored. Across all ${report.results.length} checks regardless of framework the pass rate is ${sAll.passRate === null ? 'n/a' : sAll.passRate + '%'} (${sAll.pass} of ${sAll.scored}).`
+    : `Pass rate counts only the ${s.scored} checks that could be scored.`;
 
   const frameworks = report.frameworks.map(f => `
     <tr>
@@ -533,119 +623,268 @@ export function buildHtmlReport(report) {
     </tr>`).join('');
 
   const unavailable = report.unavailable.length ? `
-    <h2>Not collected</h2>
+    <h3>Not collected</h3>
     <p class="muted">These areas could not be read, so the checks depending on them are reported as Unknown and excluded from the pass rate.</p>
     <table><thead><tr><th>Area</th><th>Reason</th></tr></thead><tbody>
     ${report.unavailable.map(u => `<tr><td>${esc(u.label)}</td><td>${esc(u.reason)}</td></tr>`).join('')}
     </tbody></table>` : '';
 
+  const planBlock = planHtml(report);
+  const hasPlan = Boolean(planBlock);
+  const hasDomains = Boolean(areaCardsHtml(report));
+  const hasFrameworks = Boolean(report.frameworks.length);
+  const hasSignals = Boolean(report.signals);
+
+  // Sidebar: Executive links always include Overview and Posture score; the rest only when
+  // that section actually exists in this report, so the nav never promises an empty page.
+  const navLink = (href, label, badge) =>
+    `<a href="${href}">${label}${badge !== undefined ? ` <span class="rc-badge">${badge}</span>` : ''}</a>`;
+  const execLinks = [
+    navLink('#overview', 'Overview'),
+    navLink('#posture', 'Posture score'),
+    d ? navLink('#changes', 'Changes since last run') : '',
+    hasSignals ? navLink('#signals', 'Microsoft signals') : '',
+    hasDomains ? navLink('#domains', 'Domain posture') : '',
+    hasFrameworks ? navLink('#frameworks', 'Frameworks') : ''
+  ].filter(Boolean).join('');
+  const domainLinks = (report.areaSummary || []).map(a =>
+    `<a href="#findings" data-jump="area:${esc(a.id)}">${esc(a.label)} <span class="rc-badge${a.fail + a.warning ? '' : ' rc-badge-zero'}">${a.fail + a.warning}</span></a>`).join('');
+  const detailLinks = [
+    navLink('#findings', 'All findings', report.results.length),
+    hasPlan ? navLink('#plan', 'Remediation plan') : '',
+    navLink('#appendix', 'Appendix')
+  ].filter(Boolean).join('');
+
+  const tenantFacts = [
+    ['Tenant', esc(report.tenant?.name || 'Unknown')],
+    report.tenant?.id && report.tenant.id !== report.tenant.name ? ['Tenant ID', esc(report.tenant.id)] : null,
+    ['Run', esc(when)],
+    duration ? ['Duration', esc(duration)] : null,
+    ['Areas', String(areaList.length)],
+    ['Scope', scope ? esc(scope) : 'All frameworks']
+  ].filter(Boolean);
+
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Security assessment — ${esc(report.tenant?.name || 'tenant')}${scope ? ' — ' + esc(scope) : ''}</title>
 <style>
-:root{--ink:#0d1b2a;--muted:#5a6a7d;--rule:#dfe4ea;--bg:#f5f7fa}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-header{background:#080d1f;color:#fff;padding:36px 40px}
-header h1{margin:0 0 6px;font-size:26px}header p{margin:0;color:#aab3c1;font-size:13px}
-main{max-width:1180px;margin:0 auto;padding:32px 24px 64px}
-h2{font-size:19px;margin:34px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--rule)}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:20px}
-.card{background:#fff;border:1px solid var(--rule);padding:16px;border-radius:3px}
-.card b{display:block;font-size:28px;line-height:1.1}.card span{font-size:12px;color:var(--muted)}
+:root{--bg:#080d1f;--bg-grad:radial-gradient(circle at 85% -10%,#16265a 0,transparent 45%),var(--bg);--panel:#0f1830;--panel-2:#131d38;--ink:#eef1f6;--muted:#9aa7bc;--rule:rgba(255,255,255,.11);--accent:#8c6cff;--accent-2:#35d7ff;--accent-grad:linear-gradient(90deg,#8c6cff,#35d7ff)}
+:root[data-theme="light"]{--bg:#f5f7fa;--bg-grad:var(--bg);--panel:#ffffff;--panel-2:#f3f5f7;--ink:#0d1b2a;--muted:#5a6a7d;--rule:#dfe4ea;--accent:#8b0055;--accent-2:#c9366e;--accent-grad:linear-gradient(90deg,#8b0055,#c9366e)}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg-grad);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+a{color:var(--accent)}
+.muted{color:var(--muted);font-size:13px}
+h2{font-size:19px;margin:0 0 12px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+h3{font-size:15px;margin:20px 0 8px}
+code{font:12px ui-monospace,Consolas,monospace;background:var(--panel-2);padding:1px 4px;border-radius:2px}
+table{width:100%;border-collapse:collapse;background:var(--panel);font-size:13px;margin-top:10px;border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+th{background:var(--panel-2);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+th,td{padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
 .pill{display:inline-block;padding:3px 10px;border-radius:11px;font-size:12px;margin-right:5px}
 .pill.critical{background:#4a0d18;color:#fff}.pill.high{background:#fde2e2;color:#8c1d1d}
 .pill.medium{background:#fff3d6;color:#7a4f00}.pill.warning{background:#fff3d6;color:#7a4f00}.pill.low{background:#e6eef7;color:#274b6d}.pill.none{background:#e5f5ee;color:#146c55}
-table{width:100%;border-collapse:collapse;background:#fff;font-size:13px;margin-top:10px}
-th{background:#eef1f5;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-th,td{padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
-td.num{text-align:right;font-variant-numeric:tabular-nums}
 .status{font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap}
 .status.pass{background:#e5f5ee;color:#146c55}.status.fail{background:#fde2e2;color:#8c1d1d}
 .status.warning{background:#fff3d6;color:#7a4f00}.status.unknown{background:#eceff3;color:#5a6a7d}.status.notapplicable{background:#f2f2f2;color:#888}
-.sev{font-size:11px;white-space:nowrap}.sev.critical{color:#8c1d1d;font-weight:700}.sev.high{color:#b03030}
-.sev.medium{color:#7a4f00}.sev.low{color:#4a6580}
-code{font:12px ui-monospace,Consolas,monospace;background:#f0f2f5;padding:1px 4px;border-radius:2px}
+.sev{font-size:11px;white-space:nowrap}.sev.critical{color:#c0364a;font-weight:700}.sev.high{color:#d6455f}
+.sev.medium{color:#c98a00}.sev.low{color:#6e8cad}
 .nm{margin-top:4px;color:var(--muted);font-size:12px}
 .rem{margin-top:7px;padding-left:9px;border-left:2px solid var(--rule);font-size:12px;color:var(--muted)}
 .fw{font-size:11px;color:var(--muted);max-width:230px;word-break:break-word}
-.muted{color:var(--muted);font-size:13px}
 tr.s-pass td{opacity:.72}
-footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--rule);font-size:11px;color:var(--muted)}
-.lead{font-size:15px;line-height:1.7;max-width:900px}
-.scope{display:inline-block;font-size:13px;font-weight:400;background:rgba(255,255,255,.12);padding:3px 10px;border-radius:11px;vertical-align:middle;margin-left:8px}
-.priorities{padding-left:22px}.priorities li{margin-bottom:12px}.priorities li>b{font-size:14px}
-h3{font-size:15px;margin:18px 0 6px}.drift{padding-left:22px}.drift li{margin-bottom:9px}
-.lead{margin:0 0 10px}
+.lead{font-size:15px;line-height:1.7;max-width:900px;margin:0 0 10px}
+.priorities{padding-left:22px;margin:0}.priorities li{margin-bottom:12px}.priorities li>b{font-size:14px}
+.drift{padding-left:22px}.drift li{margin-bottom:9px}
+.sev-row-report{margin:14px 0}
+details.more{margin-top:4px}details.more summary{cursor:pointer;color:var(--accent-2);font-size:11px}
 table.findings th:nth-child(1),table.findings td:nth-child(1){width:88px;white-space:nowrap}
 table.findings th:nth-child(2),table.findings td:nth-child(2){width:78px;white-space:nowrap}
 table.findings th:nth-child(3),table.findings td:nth-child(3){width:26%}
 table.findings th:nth-child(5),table.findings td:nth-child(5){width:200px}
-table.findings thead th{position:sticky;top:0;z-index:1}
-details.more{margin-top:4px}details.more summary{cursor:pointer;color:#274b6d;font-size:11px}
 table.plan th:nth-child(1),table.plan td:nth-child(1){width:36px}table.plan th:nth-child(3),table.plan td:nth-child(3),table.plan th:nth-child(4),table.plan td:nth-child(4){width:110px;white-space:nowrap}
-table.signals td a{color:#274b6d}.sev.high,.sev.medium,.sev.low,.sev.informational{text-transform:capitalize}
+table.signals td a{color:var(--accent-2)}.sev.high,.sev.medium,.sev.low,.sev.informational{text-transform:capitalize}
 ${EXPLORER_CSS}
+${REPORT_CSS}
+
+/* ---- layout: sidebar + topbar shell, report-only (the live page has neither) ---- */
+.rc-shell{display:flex;align-items:flex-start}
+.rc-sidebar{flex:0 0 250px;width:250px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;background:var(--panel);border-right:1px solid var(--rule);padding:20px 16px 30px}
+.rc-nav-summary{display:none}
+.rc-brand{margin-bottom:22px}
+.rc-brand-mark{font-size:19px;font-weight:700;letter-spacing:.01em}
+.rc-brand-mark em{color:var(--accent);font-style:normal}
+.rc-brand-sub{display:block;font-size:10px;letter-spacing:.12em;color:var(--muted);margin-top:2px}
+.rc-nav{display:flex;flex-direction:column;margin-bottom:22px}
+.rc-nav-h{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;font-weight:700}
+.rc-nav-h:first-child{margin-top:0}
+.rc-nav a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:4px;color:var(--ink);text-decoration:none;font-size:13px;line-height:1.35}
+.rc-nav a:hover{background:var(--panel-2)}
+.rc-nav a.active{background:var(--panel-2);color:var(--accent);font-weight:600}
+.rc-badge{font-size:10.5px;background:var(--panel-2);color:var(--muted);border-radius:8px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.rc-badge-zero{opacity:.55}
+.rc-tenant-card{border-top:1px solid var(--rule);padding-top:14px}
+.rc-tenant-card dl{margin:8px 0 0;font-size:12px}
+.rc-tenant-card dl>div{display:flex;justify-content:space-between;gap:10px;padding:3px 0;color:var(--muted)}
+.rc-tenant-card dt{white-space:nowrap}
+.rc-tenant-card dd{margin:0;color:var(--ink);text-align:right;word-break:break-word}
+.rc-main{flex:1;min-width:0}
+.rc-topbar{position:sticky;top:0;z-index:6;height:56px;background:var(--panel);border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;padding:0 26px;gap:16px}
+.rc-topbar-title{display:flex;flex-direction:column;line-height:1.25;overflow:hidden}
+.rc-topbar-title b{font-size:14px}
+.rc-topbar-title span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-topbar-actions{display:flex;gap:8px;flex:0 0 auto}
+.rc-theme,.rc-print{font:12px inherit;border:1px solid var(--rule);background:var(--panel-2);color:var(--ink);padding:7px 12px;border-radius:4px;cursor:pointer}
+.rc-theme:hover,.rc-print:hover{border-color:var(--accent)}
+.rc-content{max-width:1180px;margin:0 auto;padding:26px 28px 70px}
+.rc-section{margin:0 0 42px;scroll-margin-top:66px}
+.rc-appendix-note{margin-top:20px}
+@media(min-width:881px){
+  .rc-nav-toggle{display:block}
+  .rc-nav-toggle summary{display:none}
+  .rc-nav-toggle>*{display:block!important}
+}
+@media(max-width:880px){
+  .rc-shell{display:block}
+  .rc-sidebar{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--rule)}
+  .rc-nav-toggle summary{display:block;cursor:pointer;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 0}
+}
+
+/* ---- dark theme: the components imported from explore.js use literal light colors so they
+   read correctly on the live page too; these overrides restyle them for the report's own
+   default dark view, and are screen-only so print is always the light, paper-safe version. ---- */
+@media screen{
+:root:not([data-theme="light"]) .hero-score,
+:root:not([data-theme="light"]) .tile,
+:root:not([data-theme="light"]) .fw-picker,
+:root:not([data-theme="light"]) .area-card,
+:root:not([data-theme="light"]) .explorer,
+:root:not([data-theme="light"]) .x-copy{background:var(--panel);border-color:var(--rule);color:var(--ink)}
+:root:not([data-theme="light"]) .hero-bar,:root:not([data-theme="light"]) .fw-bar,:root:not([data-theme="light"]) .area-card .bar{background:var(--panel-2)}
+:root:not([data-theme="light"]) .hero-bar i{background:var(--accent-grad)}
+:root:not([data-theme="light"]) .fw-bar i{background:var(--accent-2)}
+:root:not([data-theme="light"]) .hero-label,:root:not([data-theme="light"]) .hero-sub,:root:not([data-theme="light"]) .tile small,:root:not([data-theme="light"]) .fw-rate,:root:not([data-theme="light"]) .fw-panel small,:root:not([data-theme="light"]) .x-count,:root:not([data-theme="light"]) .area-card span,:root:not([data-theme="light"]) .area-card small{color:var(--muted)}
+:root:not([data-theme="light"]) .x-search,:root:not([data-theme="light"]) .fw-select-label select{background:var(--panel-2);border-color:var(--rule);color:var(--ink)}
+:root:not([data-theme="light"]) .x-chip{background:var(--panel-2);border-color:var(--rule);color:var(--ink)}
+:root:not([data-theme="light"]) .x-clear{background:var(--panel-2);border-color:var(--rule);color:var(--ink)}
+:root:not([data-theme="light"]) .x-copy{color:var(--accent-2)}
+:root:not([data-theme="light"]) tr.x-empty td{color:var(--muted)}
+}
 @page{margin:14mm}
-@media print{body{background:#fff;font-size:12px}header{background:#fff;color:#000;border-bottom:2px solid #000;padding:0 0 12px}header p{color:#444}main{padding:0;max-width:none}h2{break-after:avoid}tr{break-inside:avoid}table{font-size:11px}th,td{padding:6px 8px}.cards{grid-template-columns:repeat(5,1fr)}.card b{font-size:20px}tr.s-pass td{opacity:1}details.more{display:none}table.findings thead th{position:static}}
-</style></head><body>
-<header>
-  <h1>Microsoft 365 security assessment${scope ? ` <span class="scope">${esc(scope)}</span>` : ''}</h1>
-  <p>${esc(report.tenant?.name || 'Tenant')}${report.tenant?.id && report.tenant.id !== report.tenant.name ? ' &middot; ' + esc(report.tenant.id) : ''} &middot; ${esc(when)}${areaLine ? ` &middot; ${areaLine}` : ''}${scope ? ` &middot; Scope: ${esc(scope)}` : ' &middot; All frameworks'}</p>
+@media print{
+:root{--bg:#fff;--bg-grad:#fff;--panel:#fff;--panel-2:#f3f5f7;--ink:#0d1b2a;--muted:#5a6a7d;--rule:#dfe4ea;--accent:#8b0055;--accent-2:#8b0055}
+body{font-size:12px}
+.rc-sidebar,.rc-topbar{display:none}
+.rc-shell{display:block}
+.rc-content{max-width:none;padding:0;margin:0}
+.rc-section{break-inside:avoid-page;scroll-margin-top:0}
+h2{break-after:avoid}
+tr{break-inside:avoid}
+table{font-size:11px}
+th,td{padding:6px 8px}
+.hero{break-inside:avoid}
+.hero-score b{font-size:32px}
+tr.s-pass td{opacity:1}
+details.more{display:none}
+}
+</style></head>
+<body>
+<div class="rc-shell">
+<aside class="rc-sidebar">
+<details class="rc-nav-toggle" open>
+<summary class="rc-nav-summary">Navigate</summary>
+<div class="rc-brand"><span class="rc-brand-mark">Identity<em>Frontline</em></span><span class="rc-brand-sub">SECURITY REPORT</span></div>
+<nav class="rc-nav">
+<p class="rc-nav-h">Executive</p>
+${execLinks}
+${hasDomains ? `<p class="rc-nav-h">Domains</p>${domainLinks}` : ''}
+<p class="rc-nav-h">Details</p>
+${detailLinks}
+</nav>
+<div class="rc-tenant-card">
+<p class="rc-nav-h">Tenant</p>
+<dl>${tenantFacts.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+</div>
+</details>
+</aside>
+<div class="rc-main">
+<header class="rc-topbar">
+<div class="rc-topbar-title"><b>Security posture report</b><span>${esc(report.tenant?.name || 'Tenant')}${scope ? ` · ${esc(scope)}` : ''}</span></div>
+<div class="rc-topbar-actions">
+<button type="button" class="rc-theme" aria-label="Switch theme" aria-pressed="false">◐</button>
+<button type="button" class="rc-print">Print</button>
+</div>
 </header>
-<main>
-  <div class="cards">
-    <div class="card"><b>${s.passRate === null ? '—' : s.passRate + '%'}</b><span>Pass rate${scope ? ' — ' + esc(scope) : ''}</span></div>
-    <div class="card"><b>${s.pass}</b><span>Passed</span></div>
-    <div class="card"><b>${s.fail}</b><span>Failed</span></div>
-    <div class="card"><b>${s.warning || 0}</b><span>Partial</span></div>
-    <div class="card"><b>${s.unknown}</b><span>Unknown</span></div>
-    <div class="card"><b>${s.notApplicable}</b><span>Not applicable</span></div>
-  </div>
-  ${areaCardsHtml(report)}
-  <p style="margin-top:14px">${sevRow}${warnPill}</p>
-  <p class="muted">${scope
-    ? `Scored against the ${report.scope.inScopeCount} checks that map to ${esc(scope)}; ${s.scored} of those could be scored. Across all ${report.results.length} checks regardless of framework the pass rate is ${sAll.passRate === null ? 'n/a' : sAll.passRate + '%'} (${sAll.pass} of ${sAll.scored}).`
-    : `Pass rate counts only the ${s.scored} checks that could be scored.`} Unknown and not-applicable results are excluded rather than counted as failures.</p>
+<main class="rc-content">
 
-  <h2>Executive summary</h2>
-  ${executiveSummaryParts(report).map(p => `<p class="lead">${esc(p)}</p>`).join('')}
+<section id="overview" class="rc-section">
+<h2>Overview</h2>
+<p class="muted">${esc(overviewNote)} Unknown and not-applicable results are excluded rather than counted as failures.</p>
+${executiveSummaryParts(report).map(p => `<p class="lead">${esc(p)}</p>`).join('')}
+</section>
 
-  ${priorities ? `<h2>Fix first</h2><ol class="priorities">${priorities}</ol>` : ''}
-  ${driftSection}
-  ${signalsHtml(report)}
+<section id="posture" class="rc-section">
+<h2>Posture score</h2>
+${heroHtml(report)}
+${alertBannerHtml(report)}
+<p class="sev-row-report">${sevRow}${warnPill}</p>
+${priorities ? `<h3>Fix first</h3><ol class="priorities">${priorities}</ol>` : ''}
+</section>
 
-  <h2>Findings${scope ? ` — ${esc(scope)}` : ''}</h2>
-  <p class="muted">${esc(scopeNote)}</p>
-  ${explorerToolbar(report)}
-  <table class="findings"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
-  <tbody data-explore>${findings}</tbody></table>
+${driftSection}
 
-  ${others.length ? `
-  <h2>Other findings — not mapped to ${esc(scope)}</h2>
-  <p class="muted">${others.length} check${others.length === 1 ? '' : 's'} were assessed but do not map to the selected
-  framework${report.scope.frameworks.length === 1 ? '' : 's'}: ${othersSummary.pass} passed, ${othersSummary.fail} failed, ${othersSummary.other} other.
-  They are excluded from the score above and listed here so nothing is hidden. Controls shown are all their mappings.</p>
-  <table class="findings"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
-  <tbody data-explore>${othersRows}</tbody></table>` : ''}
+${hasSignals ? `<section id="signals" class="rc-section">${signalsHtml(report)}</section>` : ''}
 
-  ${planHtml(report)}
+${hasDomains ? `
+<section id="domains" class="rc-section">
+<h2>Security posture by domain</h2>
+<p class="muted">Each bar shows passed, partial and failed as a share of what could be scored. Click a card to filter the findings table to that domain.</p>
+${areaCardsHtml(report)}
+</section>` : ''}
 
-  <h2>Compliance framework coverage</h2>
-  <p class="muted">One technical condition maps to many frameworks. These figures reflect only the
-  ${s.total} checks in this assessment, not each framework in full.</p>
-  <table><thead><tr><th>Framework</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Partial</th><th class="num">Rate</th><th>Failing controls</th></tr></thead>
-  <tbody>${frameworks}</tbody></table>
+${hasFrameworks ? `
+<section id="frameworks" class="rc-section">
+<h2>Framework coverage</h2>
+${frameworkPickerHtml(report)}
+<p class="muted">One technical condition maps to many frameworks. These figures reflect only the ${s.total} checks in this assessment, not each framework in full.</p>
+<table><thead><tr><th>Framework</th><th class="num">Pass</th><th class="num">Fail</th><th class="num">Partial</th><th class="num">Rate</th><th>Failing controls</th></tr></thead>
+<tbody>${frameworks}</tbody></table>
+</section>` : ''}
 
-  ${unavailable}
+<section id="findings" class="rc-section">
+<h2>Findings${scope ? ` — ${esc(scope)}` : ''}</h2>
+<p class="muted">${esc(scopeNote)}</p>
+${explorerToolbar(report)}
+<table class="findings"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
+<tbody data-explore>${findings}</tbody></table>
+${others.length ? `
+<h3>Other findings — not mapped to ${esc(scope)}</h3>
+<p class="muted">${others.length} check${others.length === 1 ? '' : 's'} were assessed but do not map to the selected
+framework${report.scope.frameworks.length === 1 ? '' : 's'}: ${othersSummary.pass} passed, ${othersSummary.fail} failed, ${othersSummary.other} other.
+They are excluded from the score above and listed here so nothing is hidden. Controls shown are all their mappings.</p>
+<table class="findings"><thead><tr><th>Status</th><th>Severity</th><th>Check</th><th>Detail</th><th>Controls</th></tr></thead>
+<tbody data-explore>${othersRows}</tbody></table>` : ''}
+</section>
 
-  <footer>
-    Generated locally in the browser. No tenant data was transmitted to identityfrontline.com.<br>
-    Control definitions and framework mappings from
-    M365-Assess (&copy; Galvnyz, MIT licensed) &mdash; registry ${esc(report.catalog?.source?.registry?.dataVersion || 'n/a')}.<br>
-    This is a posture snapshot and remediation guide, not a certification or formal audit opinion.<br>
-    <strong>Confidential.</strong> Contains tenant configuration and administrator identities.
-  </footer>
+${hasPlan ? `<section id="plan" class="rc-section">${planBlock}</section>` : ''}
+
+<section id="appendix" class="rc-section">
+<h2>Appendix</h2>
+${unavailable}
+<p class="muted rc-appendix-note">
+Generated locally in the browser. No tenant data was transmitted to identityfrontline.com.<br>
+Control definitions and framework mappings from
+M365-Assess (&copy; Galvnyz, MIT licensed) &mdash; registry ${esc(report.catalog?.source?.registry?.dataVersion || 'n/a')}.<br>
+This is a posture snapshot and remediation guide, not a certification or formal audit opinion.<br>
+<strong>Confidential.</strong> Contains tenant configuration and administrator identities. Store and share it as you would any security assessment.
+</p>
+</section>
+
 </main>
-<script>(${explorer.toString()})(document.body);</script>
+</div>
+</div>
+<script>(${explorer.toString()})(document.body);(${reportChrome.toString()})(document.body);</script>
 </body></html>`;
 }
