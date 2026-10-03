@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automate the Leaver: Offboarding Without the Loose Ends — Identity Frontline</title>
+<meta name="description" content="Build the n8n workflow that revokes Entra ID sign-in sessions, cascades deprovisioning to AWS via SCIM, converts the mailbox, and logs it all automatically the moment someone leaves.">
+<meta property="og:title" content="Automate the Leaver: Offboarding Without the Loose Ends">
+<meta property="og:description" content="Disabling the AD account isn't offboarding. Revoke the sessions, cascade the SCIM deprovisioning, convert the mailbox — automatically, in the same homelab.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0d1b2a;--paper:#f5f7fa;--teal:#8b0055;--teal-dark:#6a0042;--teal-pale:#f5d0e3;--rule:rgba(13,27,42,.1);--muted:#5a6a7d;--amber:#e8a020;--amber-pale:#fdf3dc;--orange:#e05d20;--orange-pale:#fde8dc}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif;font-weight:300;line-height:1.76;font-size:17px;overflow-x:hidden}
+.nav-bar{position:sticky;top:0;z-index:100;background:var(--ink);padding:0 52px;display:flex;align-items:center;justify-content:space-between;height:58px;border-bottom:1px solid rgba(255,255,255,.07)}
+.logo{font-family:"Bebas Neue",sans-serif;font-size:22px;letter-spacing:.08em;color:#fff;text-decoration:none;flex-shrink:0}
+.logo em{font-style:normal;color:var(--teal)}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.42);text-decoration:none;transition:color .18s}
+.nav-links a:hover{color:var(--teal)}
+.nav-toggle{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.nav-toggle span{display:block;width:22px;height:1.5px;background:rgba(255,255,255,.6);transition:all .22s}
+.nav-toggle.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.nav-toggle.open span:nth-child(2){opacity:0}
+.nav-toggle.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+.mobile-nav{display:none;position:fixed;top:58px;left:0;right:0;background:var(--ink);border-bottom:1px solid rgba(255,255,255,.1);z-index:99;padding:24px 28px 28px;flex-direction:column}
+.mobile-nav.open{display:flex}
+.mobile-nav a{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6);text-decoration:none;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06);transition:color .18s}
+.mobile-nav a:last-child{border-bottom:none}
+.mobile-nav a:hover{color:var(--teal)}
+.progress-bar{position:fixed;top:58px;left:0;z-index:98;height:2px;background:var(--teal);width:0%;transition:width .1s linear}
+.post-hero{background:var(--ink);padding:72px 52px 64px;border-bottom:1.5px solid rgba(255,255,255,.06)}
+.post-meta-row{display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.post-cat{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);background:rgba(139,0,85,.12);padding:4px 12px;border-radius:2px}
+.post-date,.post-read{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)}
+.post-date::before,.post-read::before{content:"\00B7";margin-right:16px;color:rgba(255,255,255,.15)}
+.post-hero h1{font-family:"Bebas Neue",sans-serif;font-size:clamp(44px,6vw,76px);line-height:.95;letter-spacing:.01em;color:#fff;margin-bottom:24px;max-width:820px}
+.post-hero h1 em{font-style:normal;color:var(--teal)}
+.post-subtitle{font-size:18px;font-weight:300;color:rgba(255,255,255,.55);line-height:1.65;max-width:680px;margin-bottom:40px}
+.author-row{display:flex;align-items:center;gap:14px;padding-top:32px;border-top:1px solid rgba(255,255,255,.07)}
+.author-avatar{width:44px;height:44px;border-radius:4px;background:rgba(139,0,85,.15);border:1px solid rgba(139,0,85,.3);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:16px;color:var(--teal);flex-shrink:0}
+.author-info{display:flex;flex-direction:column;gap:2px}
+.author-name{font-size:14px;font-weight:500;color:#fff}
+.author-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.post-layout{display:grid;grid-template-columns:1fr 280px;gap:0;max-width:1100px;margin:0 auto;padding:0 52px;align-items:start}
+.post-body{padding:64px 64px 64px 0;border-right:1px solid var(--rule);min-width:0}
+.post-body p{font-size:17px;font-weight:300;color:var(--muted);line-height:1.82;margin-bottom:20px}
+.post-body p strong{color:var(--ink);font-weight:500}
+.post-body p.lead{font-size:20px;font-weight:300;color:var(--ink);line-height:1.7;margin-bottom:28px}
+.post-body h2{font-family:"Bebas Neue",sans-serif;font-size:clamp(32px,4vw,46px);letter-spacing:.01em;line-height:1;color:var(--ink);margin:48px 0 18px}
+.post-body h3{font-size:18px;font-weight:500;color:var(--ink);margin:32px 0 14px;display:flex;align-items:center;gap:10px}
+.post-body h3::before{content:"";display:block;width:16px;height:2px;background:var(--teal);flex-shrink:0}
+.post-body ul,.post-body ol{margin:0 0 24px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.post-body ul li{display:flex;gap:12px;align-items:flex-start;font-size:16px;font-weight:300;color:var(--muted);line-height:1.7}
+.post-body ul li::before{content:"";display:block;width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:10px}
+.post-body ol{counter-reset:lc}
+.post-body ol li{counter-increment:lc;display:flex;gap:14px;align-items:flex-start;font-size:16px;font-weight:300;color:var(--muted);line-height:1.7}
+.post-body ol li::before{content:counter(lc);font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:500;color:var(--teal);background:rgba(139,0,85,.1);min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.post-body li strong{color:var(--ink);font-weight:500}
+.callout{border-left:3px solid var(--teal);background:var(--teal-pale);padding:20px 24px;margin:28px 0;border-radius:0 4px 4px 0}
+.callout-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-dark);margin-bottom:8px;font-weight:500}
+.callout p{font-size:15px!important;color:#4a0028!important;margin-bottom:0!important;line-height:1.65!important}
+.callout-amber{border-left-color:var(--amber);background:var(--amber-pale)}
+.callout-amber .callout-label{color:#7a4400}
+.callout-amber p{color:#4a2d00!important}
+.callout-orange{border-left-color:var(--orange);background:var(--orange-pale)}
+.callout-orange .callout-label{color:#8a3a10}
+.callout-orange p{color:#4a2000!important}
+.section-divider{display:flex;align-items:center;gap:14px;margin:56px 0 8px}
+.section-divider-line{height:1px;background:var(--rule);flex:1}
+.section-divider-text{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);flex-shrink:0}
+.code-block{font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--ink);color:#e2e8f0;padding:20px 24px;border-radius:6px;margin:16px 0 24px;line-height:1.65;overflow-x:auto;white-space:pre}
+.code-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin-bottom:6px}
+.arch-box{background:var(--ink);border-radius:8px;padding:28px;margin:28px 0}
+.arch-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.arch-node{background:rgba(139,0,85,.1);border:1px solid rgba(139,0,85,.3);border-radius:6px;padding:14px 20px;text-align:center;min-width:140px}
+.arch-node-title{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;color:var(--teal);text-transform:uppercase;margin-bottom:4px}
+.arch-node-desc{font-size:11px;color:rgba(255,255,255,.5)}
+.arch-node-orange{background:rgba(224,93,32,.1);border-color:rgba(224,93,32,.3)}
+.arch-node-orange .arch-node-title{color:var(--orange)}
+.arch-arrow{color:var(--teal);font-size:20px;flex-shrink:0}
+.pull-quote{font-style:italic;font-size:22px;font-weight:300;color:var(--ink);line-height:1.45;border-left:3px solid var(--teal);padding-left:24px;margin:36px 0}
+.post-rule{border:none;border-top:1px solid var(--rule);margin:48px 0}
+.post-rule-teal{border-top-color:var(--teal);border-top-width:2px}
+.step-table{width:100%;border-collapse:collapse;margin:20px 0 28px;font-size:15px}
+.step-table th{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:10px 16px;text-align:left;background:var(--ink);color:rgba(255,255,255,.7)}
+.step-table td{padding:14px 16px;border-bottom:1px solid var(--rule);vertical-align:top;font-weight:300;color:var(--muted);line-height:1.65}
+.step-table tr:nth-child(odd) td{background:rgba(139,0,85,.03)}
+.step-table td:first-child{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:500;color:var(--teal);white-space:nowrap;width:40px;text-align:center}
+.step-table td strong{color:var(--ink);font-weight:500}
+.step-table code{font-family:"JetBrains Mono",monospace;font-size:13px;background:rgba(139,0,85,.08);padding:1px 6px;border-radius:3px;color:var(--ink)}
+.checklist{margin:20px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.checklist li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);line-height:1.6;padding:8px 12px;background:rgba(139,0,85,.04);border-radius:4px;border-left:2px solid var(--teal)}
+.checklist li::before{content:"☐";font-size:14px;color:var(--teal);flex-shrink:0;margin-top:1px}
+.post-sidebar{padding:64px 0 64px 48px}
+.sidebar-widget{border:.5px solid var(--rule);border-radius:4px;margin-bottom:24px;overflow:hidden}
+.sidebar-widget-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.5);background:var(--ink);padding:10px 16px}
+.sidebar-widget-body{padding:16px}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:0}
+.toc-list li{border-bottom:.5px solid var(--rule)}
+.toc-list li:last-child{border-bottom:none}
+.toc-list a{display:block;padding:9px 4px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--muted);text-decoration:none;transition:color .15s,padding-left .15s;line-height:1.45}
+.toc-list a:hover,.toc-list a.active{color:var(--teal);padding-left:8px}
+.sidebar-sub{background:var(--ink);border-radius:4px;padding:20px 18px;margin-bottom:24px}
+.sidebar-sub-title{font-family:"Bebas Neue",sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;margin-bottom:10px;line-height:1}
+.sidebar-sub-desc{font-size:12px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:16px}
+.sidebar-sub-btn{width:100%;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:2px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.sidebar-sub-btn:hover{background:var(--teal-dark)}
+.sidebar-sub-note{font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;text-align:center}
+.share-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:2px;text-decoration:none;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:.5px solid var(--rule);color:var(--muted);transition:all .18s;background:0 0;cursor:pointer;width:100%;text-align:left;margin-bottom:8px}
+.share-btn:hover{border-color:var(--teal);color:var(--teal);background:rgba(139,0,85,.05)}
+.share-btn svg{width:14px;height:14px;flex-shrink:0}
+.post-footer-section{background:var(--ink);padding:72px 52px;border-top:1px solid rgba(255,255,255,.06)}
+.post-footer-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;max-width:1100px;margin:0 auto}
+.post-footer-sub h2{font-family:"Bebas Neue",sans-serif;font-size:clamp(36px,4vw,52px);line-height:.95;color:#fff;margin-bottom:16px}
+.post-footer-sub p{font-size:15px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:24px}
+.footer-sub-btn{padding:14px 28px;background:var(--teal);color:#fff;border:none;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:background .2s}
+.footer-sub-btn:hover{background:var(--teal-dark)}
+.resource-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.resource-list li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:rgba(255,255,255,.5)}
+.resource-list li::before{content:"→";color:var(--teal);flex-shrink:0}
+.resource-list a{color:rgba(255,255,255,.65);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.15);transition:color .15s}
+.resource-list a:hover{color:var(--teal);border-color:var(--teal)}
+footer{background:var(--ink);padding:24px 52px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.06)}
+.footer-logo{font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.08em;color:#fff}
+.footer-logo em{font-style:normal;color:var(--teal)}
+.footer-copy{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.2)}
+@media(max-width:900px){.nav-bar{padding:0 20px}.nav-links{display:none}.nav-toggle{display:flex}.post-hero{padding:48px 20px 44px}.post-layout{grid-template-columns:1fr;padding:0 20px}.post-body{padding:40px 0;border-right:none}.post-sidebar{padding:0 0 40px;border-top:1px solid var(--rule)}.post-footer-section{padding:52px 20px}.post-footer-grid{grid-template-columns:1fr;gap:40px}footer{flex-direction:column;gap:12px;text-align:center;padding:24px 20px}.arch-flow{flex-direction:column}.arch-arrow{transform:rotate(90deg)}}
+@media(max-width:480px){.post-hero h1{font-size:38px}.post-body h2{font-size:30px}.code-block{font-size:11px;padding:14px 16px}}
+
+.workflow-box{background:var(--ink);border-radius:8px;padding:28px;margin:28px 0}
+.workflow-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+.workflow-steps{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.workflow-step{background:rgba(139,0,85,.1);border:1px solid rgba(139,0,85,.3);border-radius:6px;padding:10px 16px;text-align:center;min-width:110px}
+.workflow-step-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.08em;color:var(--teal);text-transform:uppercase;margin-bottom:3px}
+.workflow-step-desc{font-size:10px;color:rgba(255,255,255,.5)}
+.workflow-step-purple{background:rgba(155,89,182,.1);border-color:rgba(155,89,182,.3)}
+.workflow-step-purple .workflow-step-title{color:#9B59B6}
+.workflow-step-amber{background:rgba(232,160,32,.1);border-color:rgba(232,160,32,.3)}
+.workflow-step-amber .workflow-step-title{color:var(--amber)}
+.workflow-step-orange{background:rgba(224,93,32,.1);border-color:rgba(224,93,32,.3)}
+.workflow-step-orange .workflow-step-title{color:var(--orange)}
+.workflow-arrow{color:var(--teal);font-size:16px;flex-shrink:0}
+/* Dark identity-security theme */
+:root {
+  --ink: #f5f7ff; --paper: #060b1c; --teal: #35d7ff; --teal-dark: #1aaed9;
+  --teal-pale: rgba(53,215,255,.12); --rule: rgba(147,185,255,.18); --muted: #a9b5cd;
+  --surface: #0e1730; --amber: #f2b84b; --amber-pale: rgba(242,184,75,.12); --nav: #080d1f;
+}
+body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
+.nav-bar,.mobile-nav,.post-hero,.post-footer-section,footer,.sidebar-sub,.arch-box,.code-block,.workflow-box,.sidebar-widget-title,.step-table th{background:var(--nav)}
+.post-hero h1 em{background:linear-gradient(90deg,#35d7ff,#8c6cff,#e95cd7);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Callouts: the dark theme darkens their tint, so their text must be light too. */
+.callout-label { color: #35d7ff; }
+.callout p { color: #d6dff0 !important; }
+.callout-amber .callout-label { color: #f2b84b; }
+.callout-amber p { color: #efe1c3 !important; }
+.callout-orange { background: rgba(224,93,32,.14); }
+.callout-orange .callout-label { color: #ff9a66; }
+.callout-orange p { color: #f3d9cc !important; }
+</style>
+</head>
+<body>
+<nav class="nav-bar">
+  <a href="index.html" class="logo"><svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display:inline-block;margin-right:8px;vertical-align:middle"><path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#0e1730" stroke="#35d7ff" stroke-width="1.5"/><path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(140,108,255,.6)" stroke-width="1"/><rect x="22.5" y="17" width="7" height="26" rx="1" fill="#35d7ff"/><rect x="17" y="17" width="18" height="4.5" rx="1" fill="#35d7ff"/><rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#35d7ff"/></svg>Identity<em>Frontline</em></a>
+  <ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a href="assessments.html">Assessments</a></li><li><a href="jobs.html">Jobs</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li><li><a href="about.html#subscribe">Subscribe</a></li></ul>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
+</nav>
+<div class="mobile-nav" id="mobile-nav"><a href="index.html" onclick="closeMobileNav()">Blog</a><a href="assessments.html" onclick="closeMobileNav()">Assessments</a><a href="jobs.html" onclick="closeMobileNav()">Jobs</a><a href="about.html#topics" onclick="closeMobileNav()">Topics</a><a href="about.html#about" onclick="closeMobileNav()">About</a><a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a></div>
+<div class="progress-bar" id="progress-bar"></div>
+
+<header class="post-hero">
+  <div class="post-meta-row"><span class="post-cat" style="color:#9B59B6;background:rgba(155,89,182,.12)">Automation</span><span class="post-date">September 2026</span><span class="post-read">20 min read</span></div>
+  <h1>Automate the Leaver<br><em>Offboarding Without the Loose Ends</em></h1>
+  <p class="post-subtitle">Disabling the account in Active Directory feels like offboarding. It is not. The SSO session can still be alive, the SCIM-synced AWS access can still be active, and the mailbox just goes silent. Build the n8n workflow that closes every one of those gaps automatically &mdash; the moment someone leaves.</p>
+  <div class="author-row"><div class="author-avatar">MR</div><div class="author-info"><span class="author-name">Syed Masood Raza</span><span class="author-title">IAM Architect &middot; AI + Security Automation &middot; Fortune 500 SME</span></div></div>
+</header>
+
+<div class="post-layout">
+<article class="post-body">
+
+<p class="lead">Post 4 ended with a list of what to build next, and the first item on it was this: the Leaver workflow. Not because it is the hardest automation to build &mdash; it is actually simpler than onboarding &mdash; but because it is the one most environments get wrong, including plenty of real enterprises with full-time IAM teams.</p>
+
+<p>Across the audits and reviews I have done, the single most common finding &mdash; at nearly every maturity level &mdash; is not a missing Conditional Access policy or a weak password rule. It is enabled accounts and live access that belong to people who no longer work there. That finding exists because "offboarding" usually means one action: disable the AD account. Everything downstream of that account &mdash; federated sessions, synced groups, mailbox access &mdash; is left to expire on its own schedule, which can be days, weeks, or never.</p>
+
+<p>This guide builds the workflow that actually closes those gaps, using the exact same homelab and the exact same n8n instance from Post 4.</p>
+
+<p><strong>By the end of this guide, you will have:</strong></p>
+
+<ul>
+<li>A workflow that triggers the moment a user is disabled in Active Directory</li>
+<li>Automatic revocation of every active Entra ID sign-in session &mdash; not just the account disable</li>
+<li>Automatic group removal that cascades through SCIM to pull the user's AWS IAM Identity Center access too</li>
+<li>A mailbox that gets an auto-reply and a forwarding rule instead of going silent</li>
+<li>Manager notification and a compliance-ready audit log entry</li>
+<li>The second half of a Joiner-Mover-Leaver portfolio story &mdash; most candidates only ever show the first half</li>
+</ul>
+
+<div class="callout"><div class="callout-label">Prerequisites</div><p>You need the n8n instance and the "IAM &ndash; New User Onboarding" workflow from <a href="blog-post-4.html" style="color:var(--teal-dark)">Post 4</a>, and the Entra ID &harr; AWS IAM Identity Center SSO from <a href="blog-post-3.html" style="color:var(--teal-dark)">Post 3</a>. This guide assumes both are running.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Why This Matters</span><div class="section-divider-line"></div></div>
+<h2 id="why-leavers">The Leaver Nobody Finishes</h2>
+
+<p>Joiner automation gets built first because it is urgent and visible &mdash; a new hire blocked on day one generates a ticket within the hour. Mover automation gets built second because it is annoying enough to justify the effort. Leaver automation gets built last, if at all, because a disabled account is quiet. Nobody files a ticket complaining that their offboarding was incomplete. The exposure just sits there until an audit, a access review, or an incident finds it.</p>
+
+<div class="workflow-box"><div class="workflow-label">The Leaver Stage, Expanded</div><div class="workflow-steps">
+<div class="workflow-step"><div class="workflow-step-title">Disable</div><div class="workflow-step-desc">AD account<br>set to disabled</div></div>
+<span class="workflow-arrow">&rarr;</span>
+<div class="workflow-step workflow-step-orange"><div class="workflow-step-title">Revoke</div><div class="workflow-step-desc">Entra ID sessions<br>killed instantly</div></div>
+<span class="workflow-arrow">&rarr;</span>
+<div class="workflow-step workflow-step-purple"><div class="workflow-step-title">Deprovision</div><div class="workflow-step-desc">Groups removed<br>SCIM cascade to AWS</div></div>
+<span class="workflow-arrow">&rarr;</span>
+<div class="workflow-step"><div class="workflow-step-title">Redirect</div><div class="workflow-step-desc">Mailbox auto-reply<br>+ forwarding</div></div>
+<span class="workflow-arrow">&rarr;</span>
+<div class="workflow-step workflow-step-amber"><div class="workflow-step-title">Log</div><div class="workflow-step-desc">Manager notified<br>audit entry written</div></div>
+</div></div>
+
+<p>Five steps. In a manual process, each one is a separate ticket, owned by a different team, with no guarantee any of them happen the same day &mdash; or at all. Automated, they happen in sequence, every time, in under a minute.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">The Gap</span><div class="section-divider-line"></div></div>
+<h2 id="what-breaks">What "Disable the Account" Misses</h2>
+
+<p>This is the part that surprises people who are new to federated identity: disabling a user in Active Directory does not end their active sessions anywhere else.</p>
+
+<ul>
+<li><strong>Federated SSO sessions survive the disable.</strong> The SAML/SCIM setup from Post 3 means a user authenticates to AWS IAM Identity Center through Entra ID. If they already have a valid session or refresh token, disabling the AD account does not revoke it &mdash; it just blocks the <em>next</em> fresh sign-in. The existing session keeps working until it naturally expires.</li>
+<li><strong>Group membership is usually forgotten.</strong> The SCIM provisioning from Post 3 deprovisions AWS access when the user is removed from the synced group &mdash; but only if someone remembers to remove them. Disabling the account does not touch group membership at all.</li>
+<li><strong>The mailbox just stops.</strong> No auto-reply, no forwarding, nothing to tell senders the person is gone. Important email either bounces or disappears into a mailbox nobody is reading.</li>
+<li><strong>There is no consistent record.</strong> When an audit asks "prove this person's access was revoked within 24 hours of termination," a disabled AD account with no timestamped log of session revocation, group removal, and mailbox handling is not proof of anything.</li>
+</ul>
+
+<div class="callout-orange callout"><div class="callout-label">The gap that matters most</div><p>Entra ID sign-in sessions are not tied to the AD account's enabled state. They are ended explicitly, via the Microsoft Graph <code>revokeSignInSessions</code> endpoint, or implicitly, when a refresh token expires on its own schedule. If your offboarding process does not call that endpoint, a disabled user can keep using an active session against any federated app &mdash; including the AWS access from Post 3 &mdash; for as long as that token remains valid.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 1</span><div class="section-divider-line"></div></div>
+<h2 id="phase-1">Detect the Leaver Event</h2>
+
+<p>Same pattern as Post 4's onboarding trigger, mirrored for the opposite event. In production, HR marking someone as terminated fires this. In the homelab, a PowerShell script watches AD for accounts that just became disabled and sends their details to a new n8n webhook.</p>
+
+<h3>Create the Second Webhook in n8n</h3>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>In n8n, click <strong>New Workflow</strong></td></tr>
+<tr><td>2</td><td>Name it: <code>IAM - Leaver Offboarding</code></td></tr>
+<tr><td>3</td><td>Add a <strong>Webhook</strong> node, HTTP Method <strong>POST</strong></td></tr>
+<tr><td>4</td><td>Copy the <strong>Test URL</strong> for the PowerShell script below</td></tr>
+</tbody>
+</table>
+
+<h3>Create the PowerShell Trigger Script</h3>
+
+<p>On DC01, create a script that polls for accounts disabled since the last check and posts them to the new webhook:</p>
+
+<div class="code-label">Monitor-DisabledUsers.ps1</div>
+<div class="code-block"># Monitor AD for newly-disabled users and trigger the Leaver workflow
+$webhookUrl = "YOUR_N8N_LEAVER_WEBHOOK_URL_HERE"
+$checkInterval = 60  # seconds
+$knownDisabled = @{}
+
+Write-Host "Monitoring for newly-disabled AD users..." -ForegroundColor Cyan
+
+while ($true) {
+    $disabledUsers = Get-ADUser -Filter {
+        Enabled -eq $false
+    } -Properties ObjectGUID, Title, Department,
+                  EmailAddress, Manager, whenChanged
+
+    foreach ($user in $disabledUsers) {
+        $key = $user.ObjectGUID.ToString()
+        if (-not $knownDisabled.ContainsKey($key)) {
+            $managerEmail = $null
+            if ($user.Manager) {
+                $managerEmail = (Get-ADUser $user.Manager `
+                    -Properties EmailAddress).EmailAddress
+            }
+
+            $payload = @{
+                samAccountName = $user.SamAccountName
+                displayName    = $user.Name
+                email          = $user.UserPrincipalName
+                title          = $user.Title
+                department     = $user.Department
+                managerEmail   = $managerEmail
+                disabledAt     = $user.whenChanged.ToString("o")
+            } | ConvertTo-Json
+
+            Invoke-RestMethod -Uri $webhookUrl `
+                -Method POST `
+                -Body $payload `
+                -ContentType "application/json"
+
+            $knownDisabled[$key] = $true
+            Write-Host "Triggered offboarding for: $($user.Name)" `
+                -ForegroundColor Yellow
+        }
+    }
+
+    Start-Sleep -Seconds $checkInterval
+}</div>
+
+<div class="callout"><div class="callout-label">What this script does</div><p>Every 60 seconds, it checks for AD accounts with <code>Enabled -eq $false</code> and keeps an in-memory set of ones it has already reported, so each disable fires the webhook exactly once. It also looks up the user's manager so the notification step later has someone to notify.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 2</span><div class="section-divider-line"></div></div>
+<h2 id="phase-2">Build the Offboarding Workflow in n8n</h2>
+
+<p>This is the workflow that does the actual work. Five nodes, each one closing a gap that manual offboarding leaves open.</p>
+
+<div class="workflow-box"><div class="workflow-label">n8n Workflow &mdash; Leaver Offboarding</div><div class="workflow-steps">
+<div class="workflow-step"><div class="workflow-step-title">Webhook</div><div class="workflow-step-desc">Receives leaver<br>data from AD</div></div>
+<span class="workflow-arrow">&rarr;</span>
+<div class="workflow-step workflow-step-orange"><div class="workflow-step-title">Revoke Sessions</div><div class="workflow-step-desc">Graph API kills<br>all sign-ins</div></div>
+<span class="workflow-arrow">&rarr;</span>
+<div class="workflow-step workflow-step-purple"><div class="workflow-step-title">Remove Groups</div><div class="workflow-step-desc">Graph API, cascades<br>to AWS via SCIM</div></div>
+<span class="workflow-arrow">&rarr;</span>
+<div class="workflow-step"><div class="workflow-step-title">Redirect Mail</div><div class="workflow-step-desc">Auto-reply +<br>forwarding rule</div></div>
+<span class="workflow-arrow">&rarr;</span>
+<div class="workflow-step workflow-step-amber"><div class="workflow-step-title">Notify + Log</div><div class="workflow-step-desc">Manager email,<br>audit entry</div></div>
+</div></div>
+
+<h3>Node 1: Revoke Entra ID Sign-In Sessions</h3>
+
+<p>This is the step that most manual offboarding processes skip entirely, and it is the single most important one in this workflow.</p>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Add an <strong>HTTP Request</strong> node after the Webhook (or the <strong>Microsoft Entra ID</strong> node if your n8n instance has it)</td></tr>
+<tr><td>2</td><td>Set up OAuth2 credentials for Microsoft Graph with the <code>User.RevokeSessions.All</code> application permission</td></tr>
+<tr><td>3</td><td><strong>Method:</strong> <code>POST</code></td></tr>
+<tr><td>4</td><td><strong>URL:</strong> <code>https://graph.microsoft.com/v1.0/users/{{ $json.samAccountName }}@iamlab.onmicrosoft.com/revokeSignInSessions</code></td></tr>
+</tbody>
+</table>
+
+<div class="callout-orange callout"><div class="callout-label">Why this comes first</div><p>Revoking sign-in sessions invalidates every refresh token the user holds, immediately. Any app using one of those tokens &mdash; including the AWS IAM Identity Center session from Post 3 &mdash; is forced to re-authenticate, and the disabled AD account blocks that re-authentication. This is the step that actually turns "disabled" into "locked out," not just "unable to log in fresh."</p></div>
+
+<h3>Node 2: Remove All Group Memberships</h3>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Add an <strong>HTTP Request</strong> node: <code>GET /users/{id}/memberOf</code> to list current groups</td></tr>
+<tr><td>2</td><td>Add a <strong>Split Out</strong> node to iterate over the returned group list</td></tr>
+<tr><td>3</td><td>Add an <strong>HTTP Request</strong> node inside the loop: <code>DELETE /groups/{groupId}/members/{userId}/$ref</code></td></tr>
+<tr><td>4</td><td>Add a <strong>Set</strong> node to collect the removed group names for the audit log later</td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="callout-label">The part that closes the AWS gap</div><p>Because AWS IAM Identity Center is SCIM-provisioned from these same Entra ID groups (Post 3), removing the membership here fires the SCIM deprovisioning call to AWS automatically. There is no separate "remove from AWS" step to forget &mdash; it is a side effect of this node, which is exactly why federated group-based provisioning is worth setting up correctly the first time.</p></div>
+
+<h3>Node 3: Redirect the Mailbox</h3>
+
+<p>Rather than reaching for Exchange Online PowerShell remoting inside n8n, this uses two Graph API calls that are more reliable from a webhook-driven workflow: an auto-reply and a forwarding rule.</p>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Add an <strong>HTTP Request</strong> node: <code>PATCH /users/{id}/mailboxSettings</code> to set <code>automaticRepliesSetting</code> to enabled, with a message pointing senders to the manager</td></tr>
+<tr><td>2</td><td>Add a second <strong>HTTP Request</strong> node: <code>POST /users/{id}/mailFolders('inbox')/messageRules</code> creating a rule that forwards all mail to the manager's address</td></tr>
+</tbody>
+</table>
+
+<div class="code-label">Forwarding rule request body</div>
+<div class="code-block">{
+  "displayName": "Offboarding forward",
+  "sequence": 1,
+  "conditions": {},
+  "actions": {
+    "forwardTo": [{
+      "emailAddress": { "address": "{{ $json.managerEmail }}" }
+    }],
+    "stopProcessingRules": false
+  }
+}</div>
+
+<h3>Node 4: Notify the Manager</h3>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Add an <strong>Email Send</strong> or <strong>Microsoft Teams</strong> node</td></tr>
+<tr><td>2</td><td><strong>To:</strong> <code>{{ $json.managerEmail }}</code></td></tr>
+<tr><td>3</td><td><strong>Message:</strong> <code>{{ $json.displayName }}'s access has been revoked. Entra ID sessions ended, {{ $json.removedGroups.length }} group memberships removed, mailbox forwarding to you is active.</code></td></tr>
+</tbody>
+</table>
+
+<h3>Node 5: Audit Log</h3>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Add a <strong>Google Sheets</strong> node pointing at the same <code>IAM Audit Log</code> sheet from Post 4</td></tr>
+<tr><td>2</td><td>Map: Timestamp = <code>{{ $now }}</code>, Action = <code>USER_OFFBOARDED</code>, User = <code>{{ $json.displayName }}</code>, Groups Removed = <code>{{ $json.removedGroups.join(", ") }}</code>, Status = <code>COMPLETED</code></td></tr>
+</tbody>
+</table>
+
+<div class="callout"><div class="callout-label">What you just built</div><p>A complete offboarding automation: AD disable detected &rarr; Entra ID sessions revoked &rarr; groups removed (cascading to AWS via SCIM) &rarr; mailbox redirected &rarr; manager notified &rarr; audit entry written. The exact audit evidence that "prove access was revoked within 24 hours" requires &mdash; generated automatically, every time.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 3</span><div class="section-divider-line"></div></div>
+<h2 id="phase-3">Test End-to-End</h2>
+
+<p>Use the same test user from Post 4 &mdash; Alex Morgan &mdash; to run the full cycle.</p>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>Activate</strong> the "IAM - Leaver Offboarding" workflow in n8n</td></tr>
+<tr><td>2</td><td><strong>Start</strong> <code>Monitor-DisabledUsers.ps1</code> on DC01</td></tr>
+<tr><td>3</td><td><strong>Disable the test user</strong> via PowerShell:</td></tr>
+</tbody>
+</table>
+
+<div class="code-label">Disable the test user to trigger the workflow</div>
+<div class="code-block">Disable-ADAccount -Identity "amorgan"</div>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>4</td><td><strong>Verify:</strong> Entra ID sign-in logs show a <code>revokeSignInSessions</code> event for the user</td></tr>
+<tr><td>5</td><td><strong>Verify:</strong> AWS IAM Identity Center no longer lists the user as provisioned &mdash; confirming the SCIM cascade fired</td></tr>
+<tr><td>6</td><td><strong>Verify:</strong> an email to Alex Morgan's address gets an auto-reply and arrives in the manager's inbox instead</td></tr>
+<tr><td>7</td><td><strong>Verify:</strong> the manager received the offboarding notification</td></tr>
+<tr><td>8</td><td><strong>Verify:</strong> the audit log has a new <code>USER_OFFBOARDED</code> row with the removed groups listed</td></tr>
+</tbody>
+</table>
+
+<p><strong>That is a closed loop.</strong> One account disabled. Five automated actions, across two identity providers. Nothing left half-finished for someone to find in next quarter's access review.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 4</span><div class="section-divider-line"></div></div>
+<h2 id="phase-4">Add an AI Offboarding Summary</h2>
+
+<p>Post 4 used an AI node to make a provisioning decision. Here, use one to generate something more useful for offboarding: a plain-English access summary, written for whoever has to prove this was handled correctly &mdash; your manager, an auditor, or future-you six months from now.</p>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Add an <strong>OpenAI</strong> or <strong>Anthropic</strong> node after the group-removal step</td></tr>
+<tr><td>2</td><td>Pass in the user's title, department, and the list of removed groups</td></tr>
+<tr><td>3</td><td>Use this prompt:</td></tr>
+</tbody>
+</table>
+
+<div class="code-label">AI Prompt for Offboarding Summary</div>
+<div class="code-block">You are an IAM compliance assistant writing an
+offboarding summary for an audit record.
+
+User: {{ $json.displayName }}
+Title: {{ $json.title }}
+Department: {{ $json.department }}
+Groups removed: {{ $json.removedGroups.join(", ") }}
+
+Write a two-sentence plain-English summary of what
+access this person had and confirm it was revoked.
+Flag anything that looks like unusually broad access
+for their title (for example, admin groups on a
+non-admin role).</div>
+
+<p>Append the AI's output as a column in the audit log row. Now every offboarding event carries a human-readable summary and a flag for anything that looks wrong &mdash; access that should have been caught at a Mover event but never was, and is only visible now that the person is leaving.</p>
+
+<div class="callout-amber callout"><div class="callout-label">Why this matters for your career</div><p>Most IAM automation portfolios stop at onboarding, because onboarding is the half that gets demanded. An offboarding workflow that revokes federated sessions, cascades through SCIM, and produces audit-ready evidence is the half that actually prevents breaches &mdash; and it is the half most environments, including real enterprise ones, still do by hand or incompletely. Showing this finished is what tells a hiring manager you understand where IAM programs actually fail.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Document It</span><div class="section-divider-line"></div></div>
+<h2 id="portfolio">Document for Your Portfolio</h2>
+
+<ul>
+<li><strong>Export both workflows</strong> &mdash; the Joiner workflow from Post 4 and the Leaver workflow from this post. Together they tell a complete story, not just half of one.</li>
+<li><strong>Screenshot the session-revocation call succeeding</strong> &mdash; this is the detail that shows you understand federated identity, not just AD administration.</li>
+<li><strong>Record a before/after of the AWS console</strong> &mdash; the user provisioned, then gone, with no manual AWS-side step in between.</li>
+<li><strong>Write the business case</strong> &mdash; "This workflow revokes federated access within 60 seconds of an AD disable, versus a manual process that averaged several days across the SCIM-connected applications in scope."</li>
+</ul>
+
+<div class="pull-quote">&ldquo;I built an automated leaver workflow that revokes Entra ID sessions, cascades deprovisioning through SCIM to connected apps, and produces audit-ready evidence &mdash; not just an AD account toggled to disabled.&rdquo; That is the sentence that separates a Joiner-only portfolio from a complete one.</div>
+
+<hr class="post-rule post-rule-teal">
+<h2 id="checklist">Your Offboarding Lab Checklist</h2>
+
+<ul class="checklist">
+<li>Created the "IAM - Leaver Offboarding" workflow in n8n</li>
+<li>Added Webhook trigger node</li>
+<li>Created Monitor-DisabledUsers.ps1 and confirmed it fires once per disable</li>
+<li>Added the Graph API session-revocation node</li>
+<li>Added the group-removal loop and confirmed the SCIM cascade to AWS</li>
+<li>Added the mailbox auto-reply and forwarding-rule nodes</li>
+<li>Connected the manager notification node</li>
+<li>Pointed the audit log at the same sheet used in Post 4</li>
+<li>Tested end-to-end by disabling the Post 4 test user</li>
+<li>Verified: sessions revoked, AWS access gone, mail redirected, manager notified, log written</li>
+<li>Added the AI offboarding summary node</li>
+<li>Exported both workflow JSONs to GitHub</li>
+<li>Captured screenshots and the before/after AWS console recording</li>
+</ul>
+
+<hr class="post-rule">
+<h2 id="whats-next">What to Build Next</h2>
+<ul>
+<li><strong>Mover workflow</strong> &mdash; detect department changes in AD and reconcile group membership against the new role, removing what no longer applies instead of only adding what's new</li>
+<li><strong>Privileged Identity Management</strong> &mdash; now that standing access is cleaned up on exit, add just-in-time elevation so it never accumulates as standing access in the first place</li>
+<li><strong>Access reviews</strong> &mdash; schedule a recurring Entra ID Governance review against the AWS app from Post 3, using the SCIM group as the review's source of truth</li>
+<li><strong>Risk-based Conditional Access</strong> &mdash; feed Identity Protection's risky sign-in signal into this same n8n instance for an automated response, not just a disable after the fact</li>
+</ul>
+
+<p>Five posts in. Your homelab now covers Active Directory, hybrid identity, Conditional Access, SAML SSO, SCIM provisioning, and a complete Joiner-Leaver automation loop with an AI layer on both ends. That is not a lab project anymore. That is a working IAM program, built for free, that most mid-size organisations do not have.</p>
+
+<p><strong>Keep automating. The loose ends are where the breaches happen.</strong></p>
+
+<p>&mdash; <strong>Masood</strong></p>
+<p style="font-size:13px;color:var(--muted)">IAM Architect &middot; AI + Security Automation &middot; identityfrontline.com</p>
+
+</article>
+
+<aside class="post-sidebar">
+<div class="sidebar-sub"><div class="sidebar-sub-title">Stay on the Frontline</div><p class="sidebar-sub-desc">IAM labs, automation workflows, and career guides. Weekly.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="sidebar-sub-btn" style="display:block;text-align:center;text-decoration:none;color:#fff">Join the frontline &rarr;</a><p class="sidebar-sub-note">Subscribe on Substack. Free.</p></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">In this guide</div><div class="sidebar-widget-body"><ul class="toc-list">
+<li><a href="#why-leavers" class="toc-link">Why this matters</a></li>
+<li><a href="#what-breaks" class="toc-link">What disable misses</a></li>
+<li><a href="#phase-1" class="toc-link">Phase 1: Detect the event</a></li>
+<li><a href="#phase-2" class="toc-link">Phase 2: Build the workflow</a></li>
+<li><a href="#phase-3" class="toc-link">Phase 3: Test end-to-end</a></li>
+<li><a href="#phase-4" class="toc-link">Phase 4: AI summary</a></li>
+<li><a href="#portfolio" class="toc-link">Portfolio</a></li>
+<li><a href="#checklist" class="toc-link">Checklist</a></li>
+<li><a href="#whats-next" class="toc-link">What to build next</a></li>
+</ul></div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">Share this guide</div><div class="sidebar-widget-body">
+<a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https://identityfrontline.com/blog-post-5.html" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Share on LinkedIn</a>
+<button class="share-btn" onclick="copyLink()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><span id="copy-label">Copy link</span></button>
+</div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">Previous guides</div><div class="sidebar-widget-body">
+<a href="blog-post-4.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Automate User Lifecycle (the Joiner)</a>
+<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Automation &middot; 22 min</span>
+<hr style="border:none;border-top:1px solid var(--rule);margin:10px 0">
+<a href="blog-post-3.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Configure SSO with an External App</a>
+<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Hands-On Lab &middot; 20 min</span>
+<hr style="border:none;border-top:1px solid var(--rule);margin:10px 0">
+<a href="blog-post-2.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Build Your IAM Homelab for Free</a>
+<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Hands-On Lab &middot; 25 min</span>
+</div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">About the author</div><div style="padding:16px"><div class="author-avatar" style="width:52px;height:52px;font-size:20px;margin-bottom:12px">MR</div><div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px">Syed Masood Raza</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">IAM Architect &middot; AI + Automation</div><p style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6">24+ years in IAM. Builds n8n automation workflows with AI agents for Fortune 500 companies. 500+ automations deployed.</p></div></div>
+</aside>
+</div>
+
+<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>Finish what you started.</h2><p>Onboarding without offboarding is half a program. Subscribe for the Mover workflow and what comes after it.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="footer-sub-btn" style="display:inline-block;text-decoration:none;color:#fff">Join the frontline &rarr;</a></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>n8n &mdash; <a href="https://n8n.io" target="_blank">n8n.io</a> (free workflow automation)</li><li>Microsoft Graph &mdash; <a href="https://learn.microsoft.com/graph/api/user-revokesigninsessions" target="_blank">revokeSignInSessions reference</a></li><li>Microsoft Graph API &mdash; <a href="https://learn.microsoft.com/graph" target="_blank">learn.microsoft.com/graph</a></li><li>n8n Documentation &mdash; <a href="https://docs.n8n.io" target="_blank">docs.n8n.io</a></li></ul></div></div></section>
+
+<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span></footer>
+
+<script>
+window.addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress-bar').style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight))*100+'%'});
+const hs=document.querySelectorAll('h2[id]'),tls=document.querySelectorAll('.toc-link');
+const to=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){tls.forEach(l=>l.classList.remove('active'));const m=document.querySelector('.toc-link[href="#'+en.target.id+'"]');if(m)m.classList.add('active')}})},{rootMargin:'-10% 0px -70% 0px'});
+hs.forEach(h=>to.observe(h));
+const nt=document.getElementById('nav-toggle'),mn=document.getElementById('mobile-nav');
+nt.addEventListener('click',()=>{const o=mn.classList.toggle('open');nt.classList.toggle('open',o)});
+document.addEventListener('click',e=>{if(!nt.contains(e.target)&&!mn.contains(e.target)){mn.classList.remove('open');nt.classList.remove('open')}});
+function closeMobileNav(){mn.classList.remove('open');nt.classList.remove('open')}
+function copyLink(){navigator.clipboard.writeText(window.location.href).then(()=>{const l=document.getElementById('copy-label');l.textContent='Copied!';setTimeout(()=>l.textContent='Copy link',2000)})}
+</script>
+</body>
+</html>
