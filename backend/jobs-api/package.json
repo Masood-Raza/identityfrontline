@@ -1,0 +1,16 @@
+{
+  "name": "identityfrontline-jobs-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Azure Functions backend for the Identity Frontline IAM job board: email verification and resume intake.",
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.16.5",
+    "@azure/data-tables": "^13.3.2",
+    "@azure/storage-blob": "^12.34.0",
+    "@azure/communication-email": "^1.1.0"
+  }
+}

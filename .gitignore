@@ -1,0 +1,5 @@
+node_modules/
+backend/jobs-api/local.settings.json
+backend/jobs-api/bin/
+backend/jobs-api/obj/
+*.zip

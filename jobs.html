@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAM Job Board — Identity Frontline</title>
+<meta name="description" content="Open Identity and Access Management roles, curated for Identity Frontline subscribers. Subscribe once, apply to any posting.">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0d1b2a;
+  --paper: #f5f7fa;
+  --teal: #8b0055;
+  --teal-dark: #6a0042;
+  --teal-pale: #f5d0e3;
+  --rule: rgba(13,27,42,0.10);
+  --muted: #5a6a7d;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  line-height: 1.76;
+  font-size: 17px;
+  overflow-x: hidden;
+}
+
+/* ── NAV ── */
+.nav-bar {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--ink);
+  padding: 0 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 58px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: 0.08em;
+  color: #fff; text-decoration: none; flex-shrink: 0;
+}
+.logo em { font-style: normal; color: var(--teal); }
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.42); text-decoration: none; transition: color 0.18s;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--teal); }
+.nav-toggle {
+  display: none; flex-direction: column; gap: 5px;
+  background: none; border: none; cursor: pointer; padding: 4px;
+}
+.nav-toggle span {
+  display: block; width: 22px; height: 1.5px;
+  background: rgba(255,255,255,0.6); transition: all 0.22s;
+}
+.nav-toggle.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.nav-toggle.open span:nth-child(2) { opacity: 0; }
+.nav-toggle.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+.mobile-nav {
+  display: none; position: fixed; top: 58px; left: 0; right: 0;
+  background: var(--ink); border-bottom: 1px solid rgba(255,255,255,0.1);
+  z-index: 99; padding: 24px 28px 28px; flex-direction: column; gap: 0;
+}
+.mobile-nav.open { display: flex; }
+.mobile-nav a {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: rgba(255,255,255,0.6); text-decoration: none;
+  padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06); transition: color 0.18s;
+}
+.mobile-nav a:last-child { border-bottom: none; }
+.mobile-nav a:hover { color: var(--teal); }
+
+/* ── HERO ── */
+.hero {
+  background: var(--ink);
+  padding: 88px 52px 72px;
+  border-bottom: 1.5px solid rgba(255,255,255,0.06);
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 20px;
+}
+.hero-tag::before {
+  content: ''; display: block; width: 24px; height: 1.5px;
+  background: var(--teal); flex-shrink: 0;
+}
+.hero h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 8vw, 84px);
+  line-height: 0.94; letter-spacing: 0.01em;
+  color: #fff; margin-bottom: 18px; max-width: 760px;
+}
+.hero h1 em { font-style: normal; color: var(--teal); }
+.hero p {
+  font-size: 18px; font-weight: 300;
+  color: rgba(255,255,255,0.55); max-width: 620px;
+  line-height: 1.68;
+}
+.hero-note {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 22px; padding: 9px 16px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.7);
+}
+
+/* ── JOBS SECTION ── */
+.jobs-section { max-width: 1000px; margin: 0 auto; padding: 72px 52px; }
+.jobs-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 12px;
+}
+.jobs-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 6vw, 58px);
+  letter-spacing: 0.01em; line-height: 1;
+  color: var(--ink); margin-bottom: 20px;
+}
+.jobs-intro { color: var(--muted); max-width: 640px; margin-bottom: 44px; font-size: 16px; }
+.jobs-intro strong { color: var(--ink); font-weight: 500; }
+
+.jobs-list { display: flex; flex-direction: column; gap: 16px; }
+
+.job-card {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+.job-card > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 26px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  transition: background 0.18s;
+}
+.job-card > summary::-webkit-details-marker { display: none; }
+.job-card > summary:hover { background: rgba(139,0,85,0.03); }
+.job-head-main { min-width: 0; }
+.job-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.job-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--teal); background: rgba(139,0,85,0.1);
+  padding: 3px 10px; border-radius: 2px;
+}
+.job-badge.sample { color: var(--muted); background: rgba(90,106,125,0.1); }
+.job-title { font-family: 'Bebas Neue', sans-serif; font-size: 23px; letter-spacing: 0.01em; color: var(--ink); line-height: 1.1; margin-bottom: 4px; }
+.job-sub { font-size: 13px; color: var(--muted); }
+.job-sub b { color: var(--ink); font-weight: 500; }
+.job-chevron {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  border: 1.5px solid var(--rule); display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--muted);
+  transition: transform 0.2s;
+}
+.job-card[open] .job-chevron { transform: rotate(45deg); }
+
+.job-body { padding: 0 28px 32px; border-top: 1px solid var(--rule); }
+.job-body-inner { padding-top: 24px; }
+.job-body h4 {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--teal); margin: 20px 0 10px;
+}
+.job-body h4:first-child { margin-top: 0; }
+.job-body p { font-size: 15px; color: var(--muted); margin-bottom: 10px; }
+.job-body ul { padding-left: 20px; margin-bottom: 4px; }
+.job-body li { font-size: 15px; color: var(--muted); margin-bottom: 6px; }
+
+/* ── APPLY GATE ── */
+.apply-gate { margin-top: 28px; border: 1.5px dashed var(--rule); border-radius: 6px; padding: 24px; }
+.apply-step { }
+.apply-step + .apply-step { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.apply-kicker {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+.apply-kicker b { color: var(--teal); }
+.apply-step p { font-size: 14px; color: var(--muted); margin-bottom: 12px; max-width: 520px; }
+.apply-unlock-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.gate-email-input {
+  flex: 1 1 220px; padding: 12px 14px; border: 1.5px solid var(--rule);
+  background: var(--paper); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 300;
+  color: var(--ink); border-radius: 2px; outline: none; transition: border-color 0.18s;
+}
+.gate-email-input:focus { border-color: var(--teal); }
+.gate-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; margin-top: 10px; display: none; }
+.gate-status.ok { display: block; color: #146c55; }
+.gate-status.err { display: block; color: #b0263d; }
+.gate-also { margin-top: 12px; font-size: 12px; }
+.gate-also a { color: var(--teal); text-decoration: none; }
+.btn[disabled] { opacity: 0.6; cursor: default; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px; border: none; border-radius: 3px;
+  background: var(--ink); color: #fff; text-decoration: none;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; transition: background 0.2s;
+}
+.btn:hover { background: var(--teal); }
+.btn-outline { background: transparent; color: var(--ink); border: 1.5px solid var(--rule); }
+.btn-outline:hover { background: rgba(139,0,85,0.06); color: var(--teal); border-color: var(--teal); }
+.subscribed-pill {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em;
+  color: #146c55; background: rgba(20,108,85,0.1); padding: 7px 14px; border-radius: 2px;
+  display: none; align-items: center; gap: 6px;
+}
+.apply-gate.unlocked .apply-step.gate-step { display: none; }
+.apply-gate.unlocked .subscribed-banner { display: flex; }
+.subscribed-banner {
+  display: none; align-items: center; gap: 8px; margin-bottom: 18px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em;
+  color: #146c55;
+}
+.apply-gate:not(.unlocked) .apply-step.apply-form-step { display: none; }
+
+.apply-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.apply-form .full { grid-column: 1 / -1; }
+.apply-form label {
+  display: block; font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+.apply-form input, .apply-form textarea {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--rule);
+  background: var(--paper); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 300;
+  color: var(--ink); border-radius: 2px; outline: none; transition: border-color 0.18s;
+}
+.apply-form input:focus, .apply-form textarea:focus { border-color: var(--teal); }
+.apply-form input[type="file"] { padding: 9px 14px; font-size: 13px; }
+.apply-form textarea { resize: vertical; min-height: 80px; }
+.apply-submit-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+.apply-note { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); opacity: 0.8; }
+.apply-success {
+  display: none; align-items: center; gap: 10px; padding: 14px 18px;
+  background: rgba(20,108,85,0.1); color: #146c55; border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.04em;
+  grid-column: 1 / -1;
+}
+.apply-error {
+  display: none; grid-column: 1 / -1; padding: 12px 16px; background: rgba(176,38,61,0.1);
+  color: #b0263d; border-radius: 3px; font-size: 13px;
+}
+
+/* ── EMPLOYERS NOTE ── */
+.employers-note {
+  max-width: 1000px; margin: 0 auto 72px; padding: 0 52px;
+}
+.employers-note p {
+  font-size: 13px; color: var(--muted); padding: 18px 22px;
+  border-left: 2px solid var(--rule);
+}
+.employers-note a { color: var(--teal); text-decoration: none; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--ink); padding: 28px 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; color: #fff; }
+.footer-logo em { font-style: normal; color: var(--teal); }
+.footer-copy { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.08em; color: rgba(255,255,255,0.2); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .nav-bar { padding: 0 20px; }
+  .nav-links { display: none; }
+  .nav-toggle { display: flex; }
+  .hero { padding: 48px 20px 40px; }
+  .jobs-section { padding: 48px 20px; }
+  .job-card > summary { padding: 20px; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .job-chevron { align-self: flex-end; }
+  .job-body { padding: 0 20px 26px; }
+  .apply-form { grid-template-columns: 1fr; }
+  .employers-note { padding: 0 20px; }
+  footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 20px; }
+}
+/* Dark identity-security theme */
+:root {
+  --ink: #f5f7ff;
+  --paper: #060b1c;
+  --teal: #35d7ff;
+  --teal-dark: #1aaed9;
+  --teal-pale: rgba(53,215,255,.12);
+  --rule: rgba(147,185,255,.18);
+  --muted: #a9b5cd;
+  --nav: #080d1f;
+  --surface: #0e1730;
+}
+body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36%); }
+.nav-bar, .mobile-nav, .hero, footer { background: var(--nav); }
+.hero h1 em { background: linear-gradient(90deg, #35d7ff, #8c6cff, #e95cd7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.job-card { background: var(--surface); }
+.job-card > summary:hover { background: rgba(53,215,255,.06); }
+.apply-form input, .apply-form textarea, .gate-email-input { background: var(--surface); color: var(--ink); }
+.btn { background: var(--nav); border: 1px solid var(--rule); color: #fff; }
+.btn:hover { background: var(--teal); color: #060b1c; }
+.btn-outline { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav-bar">
+  <a href="index.html" class="logo">
+    <svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display: inline-block; margin-right: 8px; vertical-align: middle;">
+      <path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#0e1730" stroke="#35d7ff" stroke-width="1.5"/>
+      <path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(140,108,255,0.6)" stroke-width="1"/>
+      <rect x="22.5" y="17" width="7" height="26" rx="1" fill="#35d7ff"/>
+      <rect x="17" y="17" width="18" height="4.5" rx="1" fill="#35d7ff"/>
+      <rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#35d7ff"/>
+    </svg>
+    Identity<em>Frontline</em>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Blog</a></li>
+    <li><a href="assessments.html">Assessments</a></li>
+    <li><a href="jobs.html" class="active">Jobs</a></li>
+    <li><a href="about.html#topics">Topics</a></li>
+    <li><a href="about.html#about">About</a></li>
+    <li><a href="about.html#subscribe">Subscribe</a></li>
+  </ul>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="mobile-nav" id="mobile-nav">
+  <a href="index.html" onclick="closeMobileNav()">Blog</a>
+  <a href="assessments.html" onclick="closeMobileNav()">Assessments</a>
+  <a href="jobs.html" onclick="closeMobileNav()">Jobs</a>
+  <a href="about.html#topics" onclick="closeMobileNav()">Topics</a>
+  <a href="about.html#about" onclick="closeMobileNav()">About</a>
+  <a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a>
+</div>
+
+<!-- Hero -->
+<header class="hero">
+  <p class="hero-tag">IAM job board</p>
+  <h1>Open roles.<br><em>Vetted for IAM.</em></h1>
+  <p>Identity and Access Management roles worth your time — engineer, architect, analyst, consultant. No recruiter spam, no account to create.</p>
+  <span class="hero-note">🔒 Subscribe once below to unlock applying to any posting on this page</span>
+</header>
+
+<!-- Jobs -->
+<section class="jobs-section">
+  <p class="jobs-label">Open positions</p>
+  <h2 class="jobs-title">Current postings</h2>
+  <p class="jobs-intro">Click a role to read the full description. <strong>Subscribing unlocks the application form for every posting</strong> — do it once, apply to as many roles as you like.</p>
+
+  <div class="jobs-list">
+
+    <!-- Job 1 -->
+    <details class="job-card">
+      <summary>
+        <div class="job-head-main">
+          <div class="job-badges"><span class="job-badge sample">Sample listing</span><span class="job-badge">Full-time</span></div>
+          <div class="job-title">IAM Engineer</div>
+          <div class="job-sub"><b>Northfield Health Systems</b> · Remote (US) · Mid-level · Posted Sep 2026</div>
+        </div>
+        <span class="job-chevron">+</span>
+      </summary>
+      <div class="job-body"><div class="job-body-inner">
+        <h4>About the role</h4>
+        <p>Own day-to-day administration of Entra ID and Active Directory for a 4,000-seat healthcare org: Conditional Access, lifecycle automation, and access reviews. You'll be the first dedicated IAM hire reporting into the security team.</p>
+        <h4>What you'll do</h4>
+        <ul>
+          <li>Administer Conditional Access policies, MFA, and PIM for all privileged roles</li>
+          <li>Build and maintain joiner/mover/leaver automation in Entra ID and on-prem AD</li>
+          <li>Run quarterly access reviews and clean up stale app permissions</li>
+          <li>Partner with the compliance team on HIPAA-driven audit evidence</li>
+        </ul>
+        <h4>What we're looking for</h4>
+        <ul>
+          <li>2–4 years hands-on with Entra ID / Azure AD and hybrid identity</li>
+          <li>Comfortable with PowerShell and Microsoft Graph</li>
+          <li>Bonus: SailPoint or Saviynt exposure</li>
+        </ul>
+
+        <!-- Apply gate: step 1 (subscribe) is self-attested and unlocks every posting on this
+             page via localStorage — this is a UX gate, not an access-control one, since the
+             site has no backend to verify a Substack subscription. Good enough to keep casual
+             drive-by applicants out while staying friction-free for real subscribers. -->
+        <div class="apply-gate" data-job="IAM Engineer — Northfield Health Systems (sample listing)">
+          <div class="subscribed-banner">✓ Subscribed — application unlocked</div>
+
+          <div class="apply-step gate-step">
+            <p class="apply-kicker">Step <b>1</b> of 2 — verify your email to apply</p>
+            <p>Enter your email and we'll send a one-click confirmation link. Confirming unlocks the application form for every posting on this page.</p>
+            <form class="gate-email-form js-gate-form">
+              <div class="apply-unlock-row">
+                <input type="email" class="gate-email-input" name="email" placeholder="you@example.com" required>
+                <button type="submit" class="btn">Send verification link</button>
+              </div>
+              <p class="gate-status" aria-live="polite"></p>
+            </form>
+            <p class="gate-also"><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
+          </div>
+
+          <div class="apply-step apply-form-step">
+            <p class="apply-kicker">Step <b>2</b> of 2 — submit your application</p>
+            <form class="apply-form js-apply-form" enctype="multipart/form-data">
+              <input type="hidden" name="job" value="IAM Engineer — Northfield Health Systems (sample listing)">
+              <input type="hidden" name="verifyToken" value="">
+              <div><label>Full name</label><input type="text" name="name" required></div>
+              <div><label>Email</label><input type="email" name="email" required></div>
+              <div><label>Phone (optional)</label><input type="tel" name="phone"></div>
+              <div><label>LinkedIn (optional)</label><input type="url" name="linkedin" placeholder="https://linkedin.com/in/…"></div>
+              <div class="full"><label>Résumé (PDF or Word)</label><input type="file" name="resume" accept=".pdf,.doc,.docx" required></div>
+              <div class="full"><label>Anything else? (optional)</label><textarea name="note" placeholder="A line on why this role fits, or a question for the hiring team."></textarea></div>
+              <div class="apply-success"><span>✓</span><span>Thanks — your application was sent. We'll be in touch.</span></div>
+              <div class="apply-error">Something went wrong sending that. Please try again, or email your résumé directly.</div>
+              <div class="apply-submit-row">
+                <button type="submit" class="btn">Submit application</button>
+                <span class="apply-note">Stored securely and shared only with the hiring contact.</span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div></div>
+    </details>
+
+    <!-- Job 2 -->
+    <details class="job-card">
+      <summary>
+        <div class="job-head-main">
+          <div class="job-badges"><span class="job-badge sample">Sample listing</span><span class="job-badge">Full-time</span></div>
+          <div class="job-title">Senior Identity Architect</div>
+          <div class="job-sub"><b>Cascade Federal Credit Union</b> · Hybrid — Austin, TX · Senior · Posted Sep 2026</div>
+        </div>
+        <span class="job-chevron">+</span>
+      </summary>
+      <div class="job-body"><div class="job-body-inner">
+        <h4>About the role</h4>
+        <p>Lead the design of a Zero Trust access model across Entra ID, on-prem AD, and a growing SaaS footprint. You'll set architecture direction, not just execute tickets.</p>
+        <h4>What you'll do</h4>
+        <ul>
+          <li>Design Conditional Access and identity governance architecture end to end</li>
+          <li>Lead the SSO/SCIM rollout for 40+ SaaS applications</li>
+          <li>Mentor two IAM engineers and own the vendor relationship with the IGA platform</li>
+        </ul>
+        <h4>What we're looking for</h4>
+        <ul>
+          <li>7+ years in IAM, with at least one greenfield Zero Trust rollout</li>
+          <li>Deep Entra ID / Azure AD and SAML/OIDC fluency</li>
+          <li>Financial services or other regulated-industry experience a plus</li>
+        </ul>
+
+        <div class="apply-gate" data-job="Senior Identity Architect — Cascade Federal Credit Union (sample listing)">
+          <div class="subscribed-banner">✓ Subscribed — application unlocked</div>
+          <div class="apply-step gate-step">
+            <p class="apply-kicker">Step <b>1</b> of 2 — verify your email to apply</p>
+            <p>Enter your email and we'll send a one-click confirmation link. Confirming unlocks the application form for every posting on this page.</p>
+            <form class="gate-email-form js-gate-form">
+              <div class="apply-unlock-row">
+                <input type="email" class="gate-email-input" name="email" placeholder="you@example.com" required>
+                <button type="submit" class="btn">Send verification link</button>
+              </div>
+              <p class="gate-status" aria-live="polite"></p>
+            </form>
+            <p class="gate-also"><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
+          </div>
+          <div class="apply-step apply-form-step">
+            <p class="apply-kicker">Step <b>2</b> of 2 — submit your application</p>
+            <form class="apply-form js-apply-form" enctype="multipart/form-data">
+              <input type="hidden" name="job" value="Senior Identity Architect — Cascade Federal Credit Union (sample listing)">
+              <input type="hidden" name="verifyToken" value="">
+              <div><label>Full name</label><input type="text" name="name" required></div>
+              <div><label>Email</label><input type="email" name="email" required></div>
+              <div><label>Phone (optional)</label><input type="tel" name="phone"></div>
+              <div><label>LinkedIn (optional)</label><input type="url" name="linkedin" placeholder="https://linkedin.com/in/…"></div>
+              <div class="full"><label>Résumé (PDF or Word)</label><input type="file" name="resume" accept=".pdf,.doc,.docx" required></div>
+              <div class="full"><label>Anything else? (optional)</label><textarea name="note" placeholder="A line on why this role fits, or a question for the hiring team."></textarea></div>
+              <div class="apply-success"><span>✓</span><span>Thanks — your application was sent. We'll be in touch.</span></div>
+              <div class="apply-error">Something went wrong sending that. Please try again, or email your résumé directly.</div>
+              <div class="apply-submit-row">
+                <button type="submit" class="btn">Submit application</button>
+                <span class="apply-note">Stored securely and shared only with the hiring contact.</span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div></div>
+    </details>
+
+    <!-- Job 3 -->
+    <details class="job-card">
+      <summary>
+        <div class="job-head-main">
+          <div class="job-badges"><span class="job-badge sample">Sample listing</span><span class="job-badge">Contract</span></div>
+          <div class="job-title">PAM Analyst (CyberArk)</div>
+          <div class="job-sub"><b>Briarwood Energy Partners</b> · Remote · Mid-level · 6-month contract · Posted Sep 2026</div>
+        </div>
+        <span class="job-chevron">+</span>
+      </summary>
+      <div class="job-body"><div class="job-body-inner">
+        <h4>About the role</h4>
+        <p>Help onboard the remaining privileged accounts in a CyberArk rollout that's about 60% complete, and tighten session-recording coverage ahead of an external audit.</p>
+        <h4>What you'll do</h4>
+        <ul>
+          <li>Onboard service and privileged accounts into CyberArk Vault</li>
+          <li>Tune PSM session-recording policies and review access requests</li>
+          <li>Document discovered privileged accounts missed by the original rollout</li>
+        </ul>
+        <h4>What we're looking for</h4>
+        <ul>
+          <li>Hands-on CyberArk administration (Vault, CPM, PSM)</li>
+          <li>Comfortable working independently on a fixed-scope contract</li>
+        </ul>
+
+        <div class="apply-gate" data-job="PAM Analyst (CyberArk) — Briarwood Energy Partners (sample listing)">
+          <div class="subscribed-banner">✓ Subscribed — application unlocked</div>
+          <div class="apply-step gate-step">
+            <p class="apply-kicker">Step <b>1</b> of 2 — verify your email to apply</p>
+            <p>Enter your email and we'll send a one-click confirmation link. Confirming unlocks the application form for every posting on this page.</p>
+            <form class="gate-email-form js-gate-form">
+              <div class="apply-unlock-row">
+                <input type="email" class="gate-email-input" name="email" placeholder="you@example.com" required>
+                <button type="submit" class="btn">Send verification link</button>
+              </div>
+              <p class="gate-status" aria-live="polite"></p>
+            </form>
+            <p class="gate-also"><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
+          </div>
+          <div class="apply-step apply-form-step">
+            <p class="apply-kicker">Step <b>2</b> of 2 — submit your application</p>
+            <form class="apply-form js-apply-form" enctype="multipart/form-data">
+              <input type="hidden" name="job" value="PAM Analyst (CyberArk) — Briarwood Energy Partners (sample listing)">
+              <input type="hidden" name="verifyToken" value="">
+              <div><label>Full name</label><input type="text" name="name" required></div>
+              <div><label>Email</label><input type="email" name="email" required></div>
+              <div><label>Phone (optional)</label><input type="tel" name="phone"></div>
+              <div><label>LinkedIn (optional)</label><input type="url" name="linkedin" placeholder="https://linkedin.com/in/…"></div>
+              <div class="full"><label>Résumé (PDF or Word)</label><input type="file" name="resume" accept=".pdf,.doc,.docx" required></div>
+              <div class="full"><label>Anything else? (optional)</label><textarea name="note" placeholder="A line on why this role fits, or a question for the hiring team."></textarea></div>
+              <div class="apply-success"><span>✓</span><span>Thanks — your application was sent. We'll be in touch.</span></div>
+              <div class="apply-error">Something went wrong sending that. Please try again, or email your résumé directly.</div>
+              <div class="apply-submit-row">
+                <button type="submit" class="btn">Submit application</button>
+                <span class="apply-note">Stored securely and shared only with the hiring contact.</span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div></div>
+    </details>
+
+    <!-- Job 4 -->
+    <details class="job-card">
+      <summary>
+        <div class="job-head-main">
+          <div class="job-badges"><span class="job-badge sample">Sample listing</span><span class="job-badge">Full-time</span></div>
+          <div class="job-title">IGA Consultant (SailPoint / Saviynt)</div>
+          <div class="job-sub"><b>Lindqvist Advisory</b> · Remote (travel ~20%) · Senior · Posted Sep 2026</div>
+        </div>
+        <span class="job-chevron">+</span>
+      </summary>
+      <div class="job-body"><div class="job-body-inner">
+        <h4>About the role</h4>
+        <p>Join a boutique IAM consultancy delivering identity governance implementations for mid-market clients — mostly SailPoint IdentityNow, some Saviynt.</p>
+        <h4>What you'll do</h4>
+        <ul>
+          <li>Lead client-facing IGA implementations from discovery through go-live</li>
+          <li>Design role-based access control models and certification campaigns</li>
+          <li>Mentor junior consultants on two concurrent engagements</li>
+        </ul>
+        <h4>What we're looking for</h4>
+        <ul>
+          <li>4+ years implementing SailPoint or Saviynt in a consulting or enterprise setting</li>
+          <li>Comfortable leading client workshops and writing architecture docs</li>
+        </ul>
+
+        <div class="apply-gate" data-job="IGA Consultant (SailPoint / Saviynt) — Lindqvist Advisory (sample listing)">
+          <div class="subscribed-banner">✓ Subscribed — application unlocked</div>
+          <div class="apply-step gate-step">
+            <p class="apply-kicker">Step <b>1</b> of 2 — verify your email to apply</p>
+            <p>Enter your email and we'll send a one-click confirmation link. Confirming unlocks the application form for every posting on this page.</p>
+            <form class="gate-email-form js-gate-form">
+              <div class="apply-unlock-row">
+                <input type="email" class="gate-email-input" name="email" placeholder="you@example.com" required>
+                <button type="submit" class="btn">Send verification link</button>
+              </div>
+              <p class="gate-status" aria-live="polite"></p>
+            </form>
+            <p class="gate-also"><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
+          </div>
+          <div class="apply-step apply-form-step">
+            <p class="apply-kicker">Step <b>2</b> of 2 — submit your application</p>
+            <form class="apply-form js-apply-form" enctype="multipart/form-data">
+              <input type="hidden" name="job" value="IGA Consultant (SailPoint / Saviynt) — Lindqvist Advisory (sample listing)">
+              <input type="hidden" name="verifyToken" value="">
+              <div><label>Full name</label><input type="text" name="name" required></div>
+              <div><label>Email</label><input type="email" name="email" required></div>
+              <div><label>Phone (optional)</label><input type="tel" name="phone"></div>
+              <div><label>LinkedIn (optional)</label><input type="url" name="linkedin" placeholder="https://linkedin.com/in/…"></div>
+              <div class="full"><label>Résumé (PDF or Word)</label><input type="file" name="resume" accept=".pdf,.doc,.docx" required></div>
+              <div class="full"><label>Anything else? (optional)</label><textarea name="note" placeholder="A line on why this role fits, or a question for the hiring team."></textarea></div>
+              <div class="apply-success"><span>✓</span><span>Thanks — your application was sent. We'll be in touch.</span></div>
+              <div class="apply-error">Something went wrong sending that. Please try again, or email your résumé directly.</div>
+              <div class="apply-submit-row">
+                <button type="submit" class="btn">Submit application</button>
+                <span class="apply-note">Stored securely and shared only with the hiring contact.</span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div></div>
+    </details>
+
+  </div>
+</section>
+
+<div class="employers-note">
+  <p>Hiring for an IAM role? Reply to any Identity Frontline newsletter issue to list it here — free while the board is new.</p>
+</div>
+
+<!-- Footer -->
+<footer>
+  <span class="footer-logo">Identity<em>Frontline</em></span>
+  <span class="footer-copy">© 2026 Identity Frontline · All rights reserved</span>
+</footer>
+
+<script>
+/* Hamburger */
+const navToggle = document.getElementById('nav-toggle');
+const mobileNav = document.getElementById('mobile-nav');
+navToggle.addEventListener('click', () => {
+  const open = mobileNav.classList.toggle('open');
+  navToggle.classList.toggle('open', open);
+  navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+});
+document.addEventListener('click', e => {
+  if (!navToggle.contains(e.target) && !mobileNav.contains(e.target)) {
+    mobileNav.classList.remove('open');
+    navToggle.classList.remove('open');
+  }
+});
+function closeMobileNav() {
+  mobileNav.classList.remove('open');
+  navToggle.classList.remove('open');
+}
+
+/* Subscribe gate, backed by the jobs API: a verified email unlocks every posting
+   on the page. The token is signed server-side (see backend/jobs-api) — reading its
+   expiry here is just a UX shortcut to avoid an extra round trip; the server still
+   re-checks the signature and expiry on every /api/apply call. */
+const API_BASE = 'https://identityfrontline-api.azurewebsites.net';
+const TOKEN_KEY = 'iffl_verify_token';
+const gates = document.querySelectorAll('.apply-gate');
+
+function decodeTokenExp(token) {
+  try {
+    const body = token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
+    const json = JSON.parse(atob(body + '==='.slice((body.length + 3) % 4)));
+    return typeof json.exp === 'number' ? json.exp : 0;
+  } catch { return 0; }
+}
+
+function unlockAll() {
+  gates.forEach(g => {
+    g.classList.add('unlocked');
+    const input = g.querySelector('input[name="verifyToken"]');
+    if (input) input.value = localStorage.getItem(TOKEN_KEY) || '';
+  });
+}
+
+function storeToken(token) {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch { /* storage disabled */ }
+}
+
+(function initGate() {
+  const params = new URLSearchParams(window.location.search);
+  const verified = params.get('verified');
+  const verifyFail = params.get('verify');
+
+  if (verified) {
+    storeToken(verified);
+    params.delete('verified');
+    history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params : '') + window.location.hash);
+  } else if (verifyFail) {
+    params.delete('verify');
+    history.replaceState(null, '', window.location.pathname + (params.toString() ? '?' + params : '') + window.location.hash);
+  }
+
+  let token = '';
+  try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch { /* private browsing */ }
+  if (token && decodeTokenExp(token) > Date.now()) {
+    unlockAll();
+  } else if (token) {
+    try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+  }
+
+  if (verifyFail) {
+    document.querySelectorAll('.gate-status').forEach(el => {
+      el.textContent = verifyFail === 'expired'
+        ? 'That verification link expired. Enter your email again below.'
+        : 'Something went wrong verifying that link. Please try again.';
+      el.classList.add('err');
+    });
+  }
+})();
+
+document.querySelectorAll('.js-gate-form').forEach(form => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = form.querySelector('.gate-email-input').value.trim();
+    const status = form.querySelector('.gate-status');
+    const btn = form.querySelector('button[type="submit"]');
+    status.className = 'gate-status';
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        status.textContent = 'Check your inbox — click the link to unlock applying.';
+        status.classList.add('ok');
+        form.querySelector('.gate-email-input').value = '';
+      } else {
+        status.textContent = data.error || 'Something went wrong. Please try again.';
+        status.classList.add('err');
+      }
+    } catch (err) {
+      status.textContent = 'Could not reach the server. Please try again shortly.';
+      status.classList.add('err');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+
+document.querySelectorAll('.js-apply-form').forEach(form => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const success = form.querySelector('.apply-success');
+    const error = form.querySelector('.apply-error');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    error.style.display = 'none';
+    submitBtn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/apply`, {
+        method: 'POST',
+        body: new FormData(form)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        form.querySelectorAll('input, textarea, button').forEach(el => el.style.display = 'none');
+        success.style.display = 'flex';
+      } else {
+        error.textContent = data.error || 'Something went wrong sending that. Please try again, or email your résumé directly.';
+        error.style.display = 'block';
+        submitBtn.disabled = false;
+      }
+    } catch (err) {
+      error.textContent = 'Could not reach the server. Please try again shortly.';
+      error.style.display = 'block';
+      submitBtn.disabled = false;
+    }
+  });
+});
+</script>
+</body>
+</html>
