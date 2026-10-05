@@ -23,13 +23,13 @@ const run = async (fixture, opts) => {
 };
 
 // ---- scopes -----------------------------------------------------------------------------
-ok('engine requires exactly 6 delegated scopes', REQUIRED_SCOPES.length === 6, REQUIRED_SCOPES.join(', '));
+ok('engine requires exactly 7 delegated scopes', REQUIRED_SCOPES.length === 7, REQUIRED_SCOPES.join(', '));
 ok('no write scope is ever requested', !REQUIRED_SCOPES.some(s => /Write/i.test(s)), REQUIRED_SCOPES.join(', '));
 
 // ---- hardened tenant --------------------------------------------------------------------
 const good = await run(HARDENED);
 const gFail = good.results.filter(r => r.status === 'Fail');
-ok('hardened tenant: every identity check evaluated', good.results.length === 37, `${good.results.length}`);
+ok('hardened tenant: every identity check evaluated', good.results.length === 62, `${good.results.length}`);
 ok('hardened tenant: no sources unavailable', good.unavailable.length === 0,
   good.unavailable.map(u => `${u.source}: ${u.reason}`).join('; '));
 ok('hardened tenant: no failures', gFail.length === 0, gFail.map(r => `${r.id} (${r.detail})`).join(' | '));
@@ -56,14 +56,15 @@ ok('default tenant: 7 synced admins is flagged, not 3',
 
 // ---- degradation ------------------------------------------------------------------------
 const denied = await run(HARDENED, { deny: ['/reports/authenticationMethods'] });
-const mfaChecks = denied.results.filter(r => ['ENTRA-MFA-001', 'ENTRA-MFA-002'].includes(r.id));
+// ENTRA-ADMIN-004 also needs registrationDetails, alongside the original two MFA checks.
+const mfaChecks = denied.results.filter(r => ['ENTRA-MFA-001', 'ENTRA-MFA-002', 'ENTRA-ADMIN-004'].includes(r.id));
 ok('missing permission degrades to Unknown, never Fail',
   mfaChecks.every(r => r.status === 'Unknown'), mfaChecks.map(r => `${r.id}=${r.status}`).join(', '));
 ok('the denial reason reaches the result',
   mfaChecks.every(r => /privileges|denied/i.test(r.detail)), mfaChecks.map(r => r.detail).join(' | '));
 ok('unavailable source is reported', denied.unavailable.some(u => u.source === 'registrationDetails'));
 ok('Unknown is excluded from the pass rate', denied.summary.passRate === 100, String(denied.summary.passRate));
-ok('other checks still ran', denied.summary.pass === good.summary.pass - 2,
+ok('other checks still ran', denied.summary.pass === good.summary.pass - 3,
   `${denied.summary.pass} vs ${good.summary.pass}`);
 
 // ---- security defaults path -------------------------------------------------------------
@@ -127,24 +128,26 @@ const { AREAS } = await import('../../assets/app/checks.js');
 const ALL = AREAS.map(a => a.id);
 
 ok('seven areas defined', ALL.join() === 'identity,collaboration,intune,privileged,signals,dns,exchange', ALL.join());
-ok('identity alone needs six scopes', scopesFor(['identity']).length === 6);
+ok('identity alone needs seven scopes', scopesFor(['identity']).length === 7);
 ok('every area together still needs only sixteen scopes', ALL_SCOPES.length === 16, ALL_SCOPES.join(', '));
 ok('DNS reuses the domain permission and adds none', scopesFor(['dns']).join() === 'Domain.Read.All');
 ok('Exchange asks for no Graph permission at all', scopesFor(['exchange']).length === 0);
 ok('signals adds exactly the two Defender read scopes', scopesFor(['identity', 'signals']).filter(s => !scopesFor(['identity']).includes(s)).join() === 'SecurityAlert.Read.All,SecurityEvents.Read.All');
-ok('privileged access adds exactly Application.Read.All and AccessReview.Read.All',
-  scopesFor(['identity', 'privileged']).filter(s => !scopesFor(['identity']).includes(s)).join() === 'AccessReview.Read.All,Application.Read.All');
-ok('scopes grow only with the areas selected', scopesFor(['identity', 'collaboration']).length === 9 && scopesFor(['identity', 'collaboration']).includes('OrgSettings-Forms.Read.All'));
+// Application.Read.All moved into identity's own base set with ENTRA-CONSENT-004, so privileged
+// now only adds AccessReview.Read.All on top of it.
+ok('privileged access adds exactly AccessReview.Read.All',
+  scopesFor(['identity', 'privileged']).filter(s => !scopesFor(['identity']).includes(s)).join() === 'AccessReview.Read.All');
+ok('scopes grow only with the areas selected', scopesFor(['identity', 'collaboration']).length === 10 && scopesFor(['identity', 'collaboration']).includes('OrgSettings-Forms.Read.All'));
 ok('no scope is requested that no check uses', !ALL_SCOPES.includes('TeamSettings.Read.All'));
 ok('no area requests a write scope', !ALL_SCOPES.some(s => /\.(Read)?Write|FullControl/i.test(s)));
 ok('empty area selection falls back to identity', checksFor([]).length === checksFor(['identity']).length);
-ok('140 checks across all areas', checksFor(ALL).length === 140, String(checksFor(ALL).length));
-ok('default run is identity only', good.results.length === 37 && good.results.every(r => r.area === 'identity'));
+ok('169 checks across all areas', checksFor(ALL).length === 169, String(checksFor(ALL).length));
+ok('default run is identity only', good.results.length === 62 && good.results.every(r => r.area === 'identity'));
 
 globalThis.fetch = mockFetch(HARDENED);
 globalThis.fetch = mockFetch(HARDENED, { dns: DNS_HARDENED });
 const goodAll = await runAssessment({ token: 'fake', catalog, tenant: { name: 'test' }, areas: ALL, imported: { exchangeEvidence: EVIDENCE_HARDENED } });
-ok('hardened tenant, all areas: 140 evaluated', goodAll.results.length === 140);
+ok('hardened tenant, all areas: 169 evaluated', goodAll.results.length === 169);
 ok('hardened tenant, all areas: nothing unavailable', goodAll.unavailable.length === 0, goodAll.unavailable.map(u => `${u.source}: ${u.reason}`).join('; '));
 ok('hardened tenant, all areas: no failures or warnings',
   goodAll.summary.fail === 0 && goodAll.summary.warning === 0,
@@ -312,7 +315,7 @@ const empty = await run({
   '/identity/conditionalAccess/policies': { value: [] },
   '/directoryRoles': { value: [] }
 });
-ok('empty payloads never throw', empty.results.length === 37);
+ok('empty payloads never throw', empty.results.length === 62);
 ok('empty payloads produce no crash-Unknowns with stack traces',
   !empty.results.some(r => /could not be evaluated \(/.test(r.detail || '')),
   empty.results.filter(r => /could not be evaluated \(/.test(r.detail || '')).map(r => `${r.id}: ${r.detail}`).join(' | '));

@@ -82,7 +82,7 @@ const active = () => +$('.panel.active').dataset.panel;
 const visible = (id) => !$(`#${id}`).hidden;
 
 // Injected auth: first sign-in is short one scope, consent then grants it.
-let granted = ['Policy.Read.All', 'Directory.Read.All', 'RoleManagement.Read.Directory', 'User.Read.All', 'Domain.Read.All'];
+let granted = ['Policy.Read.All', 'Directory.Read.All', 'RoleManagement.Read.Directory', 'User.Read.All', 'Domain.Read.All', 'Application.Read.All'];
 let consentCalls = 0;
 const authMock = {
   signIn: async () => ({ username: 'admin@contoso.com', tenantId: 'tid-1' }),
@@ -120,7 +120,7 @@ ok('two frameworks selected for the run', main.getState().frameworks.size === 2)
 // ---- step 2: scope ----------------------------------------------------------------------
 $('#next').click();
 ok('step 2 active', active() === 2);
-ok('seven areas rendered with check counts', $$('#scopeAreas .choice').length === 7 && /37 checks/.test($('#scopeAreas').textContent));
+ok('seven areas rendered with check counts', $$('#scopeAreas .choice').length === 7 && /62 checks/.test($('#scopeAreas').textContent));
 ok('the DNS area discloses that lookups leave for a public resolver', /public resolver/.test($('#scopeAreas').textContent));
 ok('the Exchange area explains why it needs a file', /Export-ExchangeEvidence\.ps1/.test($('#scopeAreas').textContent));
 ok('the evidence picker is hidden until Exchange is selected', $('#evidenceRow').hidden);
@@ -138,8 +138,8 @@ ok('identity re-added', main.getState().areas.size === 3);
 $('#next').click();
 ok('step 3 active', active() === 3);
 const permRows = $$('#permissions tr');
-ok('permissions follow the area selection: 11 for identity + collaboration + signals', permRows.length === 11, `got ${permRows.length}`);
-ok('every permission is read-only', $$('#permissions .read-only').length === 11);
+ok('permissions follow the area selection: 12 for identity + collaboration + signals', permRows.length === 12, `got ${permRows.length}`);
+ok('every permission is read-only', $$('#permissions .read-only').length === 12);
 ok('Secure Score scope has a stated reason', /Secure Score/.test($('#permissions').textContent));
 ok('SharePoint scope has a stated reason', $('#permissions').textContent.includes('SharePointTenantSettings.Read.All') && /sharing/i.test($('#permissions').textContent));
 ok('AuditLog.Read.All has a stated reason', $('#permissions').textContent.includes('MFA registration'));
@@ -253,7 +253,7 @@ ok('HTML report lists out-of-scope findings separately', /Other findings — not
 ok('page states the scope', $('#scopeNote').textContent.includes(labels[0]) && /Across all checks/.test($('#scopeNote').textContent));
 ok('page findings title names the scope', $('#findingsTitle').textContent.includes(labels[0]));
 ok('page shows out-of-scope findings in their own section', visible('otherWrap') && $$('#otherRows tr').length > 0);
-ok('in-scope plus other rows equal all checks for three areas (56)', $$('#resultRows tr').length + $$('#otherRows tr').length === 56, String($$('#resultRows tr').length + $$('#otherRows tr').length));
+ok('in-scope plus other rows equal all checks for three areas (81)', $$('#resultRows tr').length + $$('#otherRows tr').length === 81, String($$('#resultRows tr').length + $$('#otherRows tr').length));
 ok('results include SharePoint and Teams checks', /SPO-SHARING-001/.test($('#resultRows').textContent + $('#otherRows').textContent) && /TEAMS-APPS-001/.test($('#resultRows').textContent + $('#otherRows').textContent));
 ok('run metadata names the areas', /Collaboration/.test($('#runMeta').textContent));
 ok('remember-this-run is on by default', $('#rememberRun').checked);

@@ -44,6 +44,26 @@ export const CA = {
     displayName: 'Pilot policy', state: 'enabledForReportingButNotEnforced',
     conditions: { users: { includeUsers: ['All'] }, applications: { includeApplications: ['All'] } },
     grantControls: { builtInControls: ['mfa'] }
+  },
+  compliantDeviceAll: {
+    displayName: 'Require compliant device', state: 'enabled',
+    conditions: { users: { includeUsers: ['All'] }, applications: { includeApplications: ['All'] }, locations: { excludeLocations: ['AllTrusted'] } },
+    grantControls: { builtInControls: ['compliantDevice'] }
+  },
+  compliantDeviceSecurityInfo: {
+    displayName: 'Require compliant device to register security info', state: 'enabled',
+    conditions: { users: { includeUsers: ['All'] }, applications: { includeUserActions: ['urn:user:registersecurityinfo'] } },
+    grantControls: { builtInControls: ['compliantDevice'] }
+  },
+  intuneEnrollFreq: {
+    displayName: 'Intune enrolment sign-in frequency', state: 'enabled',
+    conditions: { users: { includeUsers: ['All'] }, applications: { includeApplications: ['d4ebce55-015a-49b5-a083-c84d1797ae8c'] } },
+    sessionControls: { signInFrequency: { isEnabled: true, frequencyInterval: 'everyTime' } }
+  },
+  phishResistantAll: {
+    displayName: 'Phishing-resistant MFA for admins', state: 'enabled',
+    conditions: { users: { includeUsers: ['All'] }, applications: { includeApplications: ['All'] } },
+    grantControls: { authenticationStrength: { displayName: 'Phishing-resistant MFA' } }
   }
 };
 
@@ -55,7 +75,10 @@ export const HARDENED = {
   '/policies/authorizationPolicy': {
     guestUserRoleId: '2af84b1e-32c8-42b7-82bc-daa82404023b',
     allowInvitesFrom: 'adminsAndGuestInviters',
-    defaultUserRolePermissions: { permissionGrantPoliciesAssigned: [], allowedToCreateApps: false }
+    defaultUserRolePermissions: {
+      permissionGrantPoliciesAssigned: [], allowedToCreateApps: false,
+      allowedToReadBitlockerKeysForOwnedDevice: false, allowedToCreateTenants: false
+    }
   },
   '/policies/adminConsentRequestPolicy': { isEnabled: true, notifyReviewers: true, reviewers: [{ query: 'x' }] },
   '/policies/authenticationMethodsPolicy': {
@@ -75,7 +98,10 @@ export const HARDENED = {
       })
     ]
   },
-  '/identity/conditionalAccess/policies': { value: [CA.legacyBlock, CA.mfaAll, CA.deviceCode, CA.signInRisk, CA.userRisk, CA.adminMfa] },
+  '/identity/conditionalAccess/policies': { value: [
+    CA.legacyBlock, CA.mfaAll, CA.deviceCode, CA.signInRisk, CA.userRisk, CA.adminMfa,
+    CA.compliantDeviceAll, CA.compliantDeviceSecurityInfo, CA.intuneEnrollFreq, CA.phishResistantAll
+  ] },
   '/identity/conditionalAccess/namedLocations': { value: [{ '@odata.type': '#microsoft.graph.countryNamedLocation', displayName: 'UK', isTrusted: false }] },
   '/domains': { value: [{ id: 'contoso.com', isVerified: true, passwordValidityPeriodInDays: 2147483647 }] },
   '/directoryRoles': { value: [{ id: 'role1', roleTemplateId: '62e90394-69f5-4237-9190-012177145e10' }] },
@@ -89,10 +115,24 @@ export const HARDENED = {
   '/users/$count': '0',
   '/reports/authenticationMethods/userRegistrationDetails': {
     value: [
-      { userType: 'member', isMfaCapable: true, isMfaRegistered: true },
-      { userType: 'member', isMfaCapable: true, isMfaRegistered: true }
+      { userType: 'member', userPrincipalName: 'alice@contoso.com', isMfaCapable: true, isMfaRegistered: true, methodsRegistered: ['fido2'] },
+      { userType: 'member', userPrincipalName: 'breakglass1@contoso.com', isMfaCapable: true, isMfaRegistered: true, methodsRegistered: ['windowsHelloForBusiness'] },
+      { userType: 'member', userPrincipalName: 'breakglass2@contoso.com', isMfaCapable: true, isMfaRegistered: true, methodsRegistered: ['fido2'] }
     ]
-  }
+  },
+  '/policies/deviceRegistrationPolicy': {
+    azureADJoin: {
+      allowedToJoin: { '@odata.type': '#microsoft.graph.enumeratedDeviceRegistrationMembership' },
+      localAdmins: {
+        enableGlobalAdmins: false,
+        registeringUsers: { '@odata.type': '#microsoft.graph.enumeratedDeviceRegistrationMembership' }
+      }
+    },
+    localAdminPassword: { isEnabled: true },
+    userDeviceQuota: 10
+  },
+  '/directory/onPremisesDirectorySynchronization': { features: { passwordHashSyncEnabled: true } },
+  '/groups': { value: [] }
 };
 
 export const DEFAULTS = {
@@ -101,7 +141,10 @@ export const DEFAULTS = {
   '/policies/authorizationPolicy': {
     guestUserRoleId: '10dae51f-b6af-4016-8d66-8c2a99b929b3',
     allowInvitesFrom: 'everyone',
-    defaultUserRolePermissions: { permissionGrantPoliciesAssigned: ['ManagePermissionGrantsForSelf.microsoft-user-default-legacy'], allowedToCreateApps: true }
+    defaultUserRolePermissions: {
+      permissionGrantPoliciesAssigned: ['ManagePermissionGrantsForSelf.microsoft-user-default-legacy'], allowedToCreateApps: true,
+      allowedToReadBitlockerKeysForOwnedDevice: true, allowedToCreateTenants: true
+    }
   },
   '/policies/adminConsentRequestPolicy': { isEnabled: false, notifyReviewers: false, reviewers: [] },
   '/policies/authenticationMethodsPolicy': {
@@ -130,7 +173,20 @@ export const DEFAULTS = {
       { userType: 'member', isMfaCapable: true, isMfaRegistered: true },
       { userType: 'member', isMfaCapable: false, isMfaRegistered: false }
     ]
-  }
+  },
+  '/policies/deviceRegistrationPolicy': {
+    azureADJoin: {
+      allowedToJoin: { '@odata.type': '#microsoft.graph.allDeviceRegistrationMembership' },
+      localAdmins: {
+        enableGlobalAdmins: true,
+        registeringUsers: { '@odata.type': '#microsoft.graph.allDeviceRegistrationMembership' }
+      }
+    },
+    localAdminPassword: { isEnabled: false },
+    userDeviceQuota: 50
+  },
+  '/directory/onPremisesDirectorySynchronization': { features: { passwordHashSyncEnabled: false } },
+  '/groups': { value: [] }
 };
 
 export function mockFetch(fixture, { deny = [], dns = null, dnsFail = false } = {}) {

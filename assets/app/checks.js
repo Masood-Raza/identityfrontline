@@ -376,6 +376,27 @@ export const SOURCES = {
     collection: true,
     label: 'PIM policy: Privileged Role Administrator'
   },
+  deviceRegistrationPolicy: {
+    url: '/policies/deviceRegistrationPolicy',
+    scopes: ['Policy.Read.All'],
+    label: 'Device registration policy'
+  },
+  onPremDirSync: {
+    // Beta only. Absent on cloud-only tenants and on some hybrid tenants depending on how
+    // Entra Connect was provisioned; checks that need it degrade to Unknown rather than Fail.
+    url: 'https://graph.microsoft.com/beta/directory/onPremisesDirectorySynchronization',
+    scopes: ['Directory.Read.All'],
+    optional: true,
+    label: 'On-premises directory synchronization features'
+  },
+  allGroupIds: {
+    // IDs only: just enough to tell whether a group a Conditional Access policy references
+    // still exists, without pulling full group detail.
+    url: '/groups?$select=id&$top=999',
+    scopes: ['Directory.Read.All'],
+    collection: true,
+    label: 'Group directory (IDs only)'
+  },
   // ---- Microsoft security signals ----
   secureScores: {
     url: '/security/secureScores?$top=5',
@@ -449,6 +470,19 @@ const appliesToAllApps = (p) =>
   (p.conditions?.applications?.includeApplications || []).includes('All');
 
 const pct = (n, total) => total ? Math.round((n / total) * 100) : 0;
+
+// ---- Zero Trust pillar extensions: shared helpers ----
+// Role template IDs are stable across every tenant (same constant Microsoft uses for Global
+// Administrator above). Privileged Role Administrator can grant any other role, so it is
+// Tier-0 alongside Global Administrator.
+const TIER0_ROLE_IDS = new Set([ROLE_GLOBAL_ADMIN, 'e8611ab8-c189-46e8-94e1-60213ab1f814']);
+const grantsAny = (p, controls) => controls.some(c => grants(p, c));
+// A policy's device-compliance grant, however it is spelled across API versions.
+const requiresCompliantDevice = (p) => grantsAny(p, ['compliantdevice', 'domainjoineddevice']);
+const authStrengthIsPhishingResistant = (p) =>
+  /phish/i.test(p.grantControls?.authenticationStrength?.displayName || '');
+// A GUID/pseudo-value the condition actually constrains on, i.e. not the no-op 'All'.
+const specific = (ids) => (ids || []).filter(x => x && x !== 'All');
 
 // ---------------------------------------------------------------------------------------
 // Checks
@@ -2208,6 +2242,396 @@ export const CHECKS = [
         ? pass(`External forwarding is off and outbound recipient limits are set (${limits[0]}/hour external, ${limits[2]}/day).`)
         : warn('External forwarding is off, but outbound recipient limits are not all set.');
     })
+  },
+
+  // ---- Zero Trust pillar extensions: Conditional Access gap analysis -------------------
+  // All read from caPolicies/namedLocations, already fetched for the identity area: no new
+  // permission scope beyond what the area already requests.
+  {
+    id: 'CA-DEVICE-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const hit = enabledPolicies(d).find(p => targetsAllUsers(p) && appliesToAllApps(p) && requiresCompliantDevice(p));
+      return hit
+        ? pass(`A managed device is required for sign-in by "${hit.displayName}".`)
+        : fail('No enabled policy requires a compliant or hybrid-joined device for sign-in. Unmanaged devices can authenticate freely.');
+    }
+  },
+  {
+    id: 'CA-DEVICE-002',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const hit = enabledPolicies(d).find(p =>
+        (p.conditions?.applications?.includeUserActions || []).includes('urn:user:registersecurityinfo') &&
+        requiresCompliantDevice(p));
+      return hit
+        ? pass(`A managed device is required to register security information by "${hit.displayName}".`)
+        : fail('No enabled policy requires a managed device to register security information (MFA/SSPR methods) — the step attackers target first during account takeover.');
+    }
+  },
+  {
+    id: 'CA-FALLBACK-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const empty = enabledPolicies(d).filter(p => {
+        const u = p.conditions?.users || {};
+        return !(u.includeUsers || []).length && !(u.includeGroups || []).length && !(u.includeRoles || []).length;
+      });
+      return empty.length === 0
+        ? pass('Every enabled policy has a valid include target.')
+        : fail(`${empty.length} enabled ${empty.length === 1 ? 'policy has' : 'policies have'} no valid include target and silently ${empty.length === 1 ? 'applies' : 'apply'} to nobody: ${empty.map(p => p.displayName).slice(0, 3).join(', ')}.`);
+    }
+  },
+  {
+    id: 'CA-INTUNE-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const INTUNE_ENROLLMENT_APP = 'd4ebce55-015a-49b5-a083-c84d1797ae8c';
+      const hit = enabledPolicies(d).find(p =>
+        (p.conditions?.applications?.includeApplications || []).includes(INTUNE_ENROLLMENT_APP) &&
+        p.sessionControls?.signInFrequency?.isEnabled &&
+        (p.sessionControls.signInFrequency.frequencyInterval === 'everyTime' || p.sessionControls.signInFrequency.value === 0));
+      return hit
+        ? pass(`Sign-in frequency for Intune enrolment is "Every time" via "${hit.displayName}".`)
+        : fail('No enabled policy sets sign-in frequency to "Every time" for Intune enrolment, so a stale session can enrol a device without re-authenticating.');
+    }
+  },
+  {
+    id: 'CA-NAMEDLOC-002',
+    area: 'identity',
+    needs: ['caPolicies', 'namedLocations'],
+    evaluate: (d) => {
+      const known = new Set((d.namedLocations || []).map(l => l.id));
+      const PSEUDO = new Set(['All', 'AllTrusted']);
+      const bad = new Set();
+      for (const p of (d.caPolicies || [])) {
+        for (const id of [...(p.conditions?.locations?.includeLocations || []), ...(p.conditions?.locations?.excludeLocations || [])]) {
+          if (!PSEUDO.has(id) && !known.has(id)) bad.add(id);
+        }
+      }
+      return bad.size === 0
+        ? pass('Every named location referenced by a Conditional Access policy still exists.')
+        : fail(`${bad.size} Conditional Access ${bad.size === 1 ? 'policy references' : 'policies reference'} a named location that no longer exists, silently narrowing or widening coverage.`);
+    }
+  },
+  {
+    id: 'CA-PHISHRES-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const hit = enabledPolicies(d).find(p =>
+        ((p.conditions?.users?.includeRoles || []).length > 0 || targetsAllUsers(p)) &&
+        authStrengthIsPhishingResistant(p));
+      return hit
+        ? pass(`Phishing-resistant authentication strength is required for administrators by "${hit.displayName}".`)
+        : fail('No enabled policy requires a phishing-resistant authentication strength (FIDO2, certificate-based, Windows Hello for Business) for administrative roles.');
+    }
+  },
+  {
+    id: 'CA-REMOTEDEVICE-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const hit = enabledPolicies(d).find(p =>
+        targetsAllUsers(p) && requiresCompliantDevice(p) &&
+        (p.conditions?.locations?.excludeLocations || []).includes('AllTrusted'));
+      return hit
+        ? pass(`Device compliance is required for access from outside trusted locations by "${hit.displayName}".`)
+        : fail('No enabled policy scopes a device-compliance requirement to access from outside trusted (corporate) locations, so remote access from unmanaged devices is not specifically blocked.');
+    }
+  },
+  {
+    id: 'CA-RISKPOLICY-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const combined = enabledPolicies(d).filter(p =>
+        (p.conditions?.signInRiskLevels || []).length > 0 && (p.conditions?.userRiskLevels || []).length > 0);
+      return combined.length === 0
+        ? pass('No enabled policy combines sign-in risk and user risk conditions in a single policy.')
+        : warn(`${combined.length} enabled ${combined.length === 1 ? 'policy combines' : 'policies combine'} sign-in risk and user risk in one policy (${combined.map(p => p.displayName).slice(0, 3).join(', ')}), which can mask which risk type actually triggered enforcement. Microsoft recommends separate policies per risk type.`);
+    }
+  },
+  {
+    id: 'CA-ROLECOVERAGE-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const covered = new Set();
+      for (const p of enabledPolicies(d)) {
+        if (!grantsAny(p, ['mfa', 'block', 'compliantdevice', 'domainjoineddevice']) && !authStrengthIsPhishingResistant(p)) continue;
+        if (targetsAllUsers(p)) TIER0_ROLE_IDS.forEach(r => covered.add(r));
+        else (p.conditions?.users?.includeRoles || []).forEach(r => covered.add(r));
+      }
+      const missing = [...TIER0_ROLE_IDS].filter(r => !covered.has(r));
+      return missing.length === 0
+        ? pass('Conditional Access covers every Tier-0 directory role (Global Administrator, Privileged Role Administrator).')
+        : fail(`${missing.length} active Tier-0 ${missing.length === 1 ? 'role is' : 'roles are'} not targeted by any enabled policy that grants MFA, a device requirement, or an authentication strength.`);
+    }
+  },
+  {
+    id: 'CA-SESSION-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const risky = enabledPolicies(d).filter(p =>
+        p.sessionControls?.persistentBrowser?.isEnabled &&
+        p.sessionControls.persistentBrowser.mode === 'always' &&
+        !requiresCompliantDevice(p));
+      return risky.length === 0
+        ? pass('No enabled policy allows a persistent browser session without also requiring a compliant device.')
+        : fail(`${risky.length} enabled ${risky.length === 1 ? 'policy allows' : 'policies allow'} a persistent browser session without requiring a compliant device (${risky.map(p => p.displayName).slice(0, 3).join(', ')}), so a stolen session cookie on an unmanaged machine stays valid.`);
+    }
+  },
+  {
+    id: 'CA-SIGNIN-FREQ-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const hit = enabledPolicies(d).find(p =>
+        ((p.conditions?.users?.includeRoles || []).length > 0 || targetsAllUsers(p)) &&
+        p.sessionControls?.signInFrequency?.isEnabled &&
+        p.sessionControls?.persistentBrowser?.mode !== 'always');
+      return hit
+        ? pass(`Administrative sessions re-authenticate on a schedule and do not persist via "${hit.displayName}".`)
+        : fail('No enabled policy enforces sign-in frequency with a non-persistent browser session for administrative roles.');
+    }
+  },
+  {
+    id: 'CA-SIGNINRISK-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const hit = enabledPolicies(d).find(p => (p.conditions?.signInRiskLevels || []).length > 0 && grantsAny(p, ['mfa', 'block']));
+      return hit
+        ? pass(`Sign-in risk is evaluated and acted on by "${hit.displayName}".`)
+        : fail('No enabled policy responds to sign-in risk. Requires Entra ID P2.');
+    }
+  },
+  {
+    id: 'CA-STALEREF-001',
+    area: 'identity',
+    needs: ['caPolicies', 'allGroupIds'],
+    evaluate: (d) => {
+      const known = new Set((d.allGroupIds || []).map(g => g.id));
+      const bad = new Set();
+      for (const p of (d.caPolicies || [])) {
+        for (const id of [...(p.conditions?.users?.includeGroups || []), ...(p.conditions?.users?.excludeGroups || [])]) {
+          if (!known.has(id)) bad.add(id);
+        }
+      }
+      return bad.size === 0
+        ? pass('Every group referenced by a Conditional Access policy still exists.')
+        : fail(`${bad.size} Conditional Access ${bad.size === 1 ? 'policy references' : 'policies reference'} a group that no longer exists, silently narrowing or widening coverage.`);
+    }
+  },
+  {
+    id: 'ENTRA-SESSIONAUTH-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const hit = enabledPolicies(d).find(p =>
+        (p.conditions?.clientAppTypes || []).some(c => ['exchangeactivesync', 'other'].includes(c.toLowerCase())) &&
+        grants(p, 'block'));
+      return hit
+        ? pass(`Legacy authentication protocols are blocked by "${hit.displayName}", protecting session authenticity.`)
+        : fail('No enabled policy blocks legacy authentication protocols. Legacy clients can establish sessions without modern authentication.');
+    }
+  },
+  {
+    id: 'ENTRA-CA-001',
+    area: 'identity',
+    needs: ['caPolicies'],
+    evaluate: (d) => {
+      const hit = enabledPolicies(d).find(p =>
+        (p.conditions?.clientAppTypes || []).some(c => ['exchangeactivesync', 'other'].includes(c.toLowerCase())) &&
+        grants(p, 'block'));
+      return hit
+        ? pass(`Conditional Access blocks legacy authentication via "${hit.displayName}".`)
+        : fail('No Conditional Access policy blocks legacy authentication protocols.');
+    }
+  },
+
+  // ---- Zero Trust pillar extensions: device join & tenant hygiene ----------------------
+  {
+    id: 'ENTRA-ADMIN-004',
+    area: 'identity',
+    needs: ['globalAdmins', 'registrationDetails'],
+    evaluate: (d) => {
+      const PHISHING_RESISTANT = new Set(['fido2SecurityKey', 'fido2', 'windowsHelloForBusiness', 'x509CertificateMultiFactor', 'x509Certificate']);
+      const reg = d.registrationDetails;
+      if (!reg) return unknown('MFA registration report was not returned. Requires Entra ID P1 or P2.');
+      const byUpn = new Map(reg.map(r => [String(r.userPrincipalName || '').toLowerCase(), r]));
+      const admins = d.globalAdmins || [];
+      if (!admins.length) return unknown('No Global Administrators were returned.');
+      const weak = admins.filter(a => {
+        const methods = byUpn.get(String(a.userPrincipalName || '').toLowerCase())?.methodsRegistered || [];
+        return !methods.some(m => PHISHING_RESISTANT.has(m));
+      });
+      return weak.length === 0
+        ? pass(`All ${admins.length} Global Administrators have a phishing-resistant method registered.`)
+        : fail(`${weak.length} of ${admins.length} Global Administrators have no phishing-resistant method (FIDO2, Windows Hello for Business, certificate-based) registered: ${weak.map(a => a.userPrincipalName || a.displayName).slice(0, 5).join(', ')}.`);
+    }
+  },
+  {
+    id: 'ENTRA-CONSENT-004',
+    area: 'identity',
+    needs: ['oauth2Grants', 'servicePrincipals', 'organization', 'appTiers'],
+    evaluate: (d) => {
+      const tenantWide = (d.oauth2Grants || []).filter(g => g.consentType === 'AllPrincipals');
+      if (!tenantWide.length) return pass('No tenant-wide (admin) consent grants exist.');
+      const spById = new Map((d.servicePrincipals || []).map(sp => [sp.id, sp]));
+      const thirdParty = tenantWide.filter(g => {
+        const sp = spById.get(g.clientId);
+        return sp && sp.accountEnabled !== false && !isFirstParty(d, sp);
+      });
+      return thirdParty.length === 0
+        ? pass(`${tenantWide.length} tenant-wide consent ${tenantWide.length === 1 ? 'grant is' : 'grants are'} present, all to Microsoft first-party applications.`)
+        : fail(`${thirdParty.length} tenant-wide admin consent ${thirdParty.length === 1 ? 'grant' : 'grants'} to third-party ${thirdParty.length === 1 ? 'application' : 'applications'}: ${thirdParty.map(g => spById.get(g.clientId)?.displayName || g.clientId).slice(0, 5).join(', ')}.`);
+    }
+  },
+  {
+    id: 'ENTRA-DEVICE-001',
+    area: 'identity',
+    needs: ['deviceRegistrationPolicy'],
+    evaluate: (d) => {
+      const t = d.deviceRegistrationPolicy?.azureADJoin?.allowedToJoin?.['@odata.type'] || '';
+      if (!t) return unknown('Device registration policy did not return an Entra join scope.');
+      return t.toLowerCase().includes('alldeviceregistrationmembership')
+        ? fail('Any user can join a device to Entra ID. Restrict this to approved users or groups.')
+        : pass('Joining devices to Entra ID is restricted to specific users or groups.');
+    }
+  },
+  {
+    id: 'ENTRA-DEVICE-002',
+    area: 'identity',
+    needs: ['deviceRegistrationPolicy'],
+    evaluate: (d) => {
+      const q = d.deviceRegistrationPolicy?.userDeviceQuota;
+      if (q === undefined || q === null) return unknown('Device registration policy did not return a device quota.');
+      if (q === 0) return pass('The per-user device quota is 0: users cannot register devices at all.');
+      return q <= 20
+        ? pass(`The per-user device quota is ${q}.`)
+        : warn(`The per-user device quota is ${q}; 20 or fewer is a common baseline so one compromised identity cannot register an unbounded number of devices.`);
+    }
+  },
+  {
+    id: 'ENTRA-DEVICE-003',
+    area: 'identity',
+    needs: ['deviceRegistrationPolicy'],
+    evaluate: (d) => {
+      const v = d.deviceRegistrationPolicy?.azureADJoin?.localAdmins?.enableGlobalAdmins;
+      if (v === undefined || v === null) return unknown('Device registration policy did not return the local administrator setting.');
+      return v
+        ? fail('Global Administrators are added as local administrators on every Entra-joined device, widening the blast radius if one device is compromised.')
+        : pass('Global Administrators are not automatically added as local administrators on Entra-joined devices.');
+    }
+  },
+  {
+    id: 'ENTRA-DEVICE-004',
+    area: 'identity',
+    needs: ['deviceRegistrationPolicy'],
+    evaluate: (d) => {
+      const t = d.deviceRegistrationPolicy?.azureADJoin?.localAdmins?.registeringUsers?.['@odata.type'] || '';
+      if (!t) return unknown('Device registration policy did not return the local administrator registering-users scope.');
+      return t.toLowerCase().includes('alldeviceregistrationmembership')
+        ? fail('Every user who joins a device becomes its local administrator. Limit this to approved users or groups.')
+        : pass('Local administrator assignment during Entra join is limited to specific users or groups.');
+    }
+  },
+  {
+    id: 'ENTRA-DEVICE-005',
+    area: 'identity',
+    needs: ['deviceRegistrationPolicy'],
+    evaluate: (d) => boolFlag(d.deviceRegistrationPolicy?.localAdminPassword, 'isEnabled', true,
+      'Local Administrator Password Solution (LAPS) is enabled.',
+      'Local Administrator Password Solution (LAPS) is not enabled, so local administrator passwords are not automatically rotated and escrowed.')
+  },
+  {
+    id: 'ENTRA-DEVICE-006',
+    area: 'identity',
+    needs: ['authorizationPolicy'],
+    evaluate: (d) => boolFlag(d.authorizationPolicy?.defaultUserRolePermissions, 'allowedToReadBitlockerKeysForOwnedDevice', false,
+      'Users cannot self-service read their own BitLocker recovery keys.',
+      'Users can self-service read their own BitLocker recovery keys; a compromised user session can retrieve a device\'s recovery key.')
+  },
+  {
+    id: 'ENTRA-HYBRID-001',
+    area: 'identity',
+    needs: ['globalAdmins', '?onPremDirSync'],
+    evaluate: (d) => {
+      const hybrid = (d.globalAdmins || []).some(a => a.onPremisesSyncEnabled);
+      if (!hybrid) return na('No on-premises directory synchronization was detected on this tenant.');
+      const v = d.onPremDirSync?.features?.passwordHashSyncEnabled;
+      if (v === undefined || v === null) return unknown('On-premises directory synchronization features were not returned.');
+      return v
+        ? pass('Password hash sync is enabled for this hybrid deployment.')
+        : fail('This tenant is hybrid-synced but password hash sync is not enabled. Without it, on-premises password changes and leaked-credential detection are not reflected in Entra ID.');
+    }
+  },
+  {
+    id: 'ENTRA-TENANT-001',
+    area: 'identity',
+    needs: ['authorizationPolicy'],
+    evaluate: (d) => boolFlag(d.authorizationPolicy?.defaultUserRolePermissions, 'allowedToCreateTenants', false,
+      'Non-admin users cannot create new tenants.',
+      'Non-admin users can create new tenants, which can bypass governance and create ungoverned, unmonitored environments.')
+  },
+
+  // ---- Zero Trust pillar extensions: privileged-role hygiene ----------------------------
+  {
+    id: 'ENTRA-ADMINROLE-SEPARATION-001',
+    area: 'privileged',
+    needs: ['globalAdmins'],
+    evaluate: (d) => {
+      const admins = d.globalAdmins || [];
+      if (!admins.length) return unknown('No Global Administrators were returned.');
+      const synced = admins.filter(a => a.onPremisesSyncEnabled);
+      return synced.length === 0
+        ? pass(`All ${admins.length} Global Administrators are cloud-native accounts, not synced from an on-premises daily-use identity.`)
+        : warn(`${synced.length} of ${admins.length} Global Administrators are synced from on-premises Active Directory (${synced.map(a => a.userPrincipalName || a.displayName).slice(0, 5).join(', ')}) — a proxy signal the admin role may sit on a daily-use account rather than a dedicated one. Verify directly with the account owner.`);
+    }
+  },
+  {
+    id: 'ENTRA-SOD-001',
+    area: 'privileged',
+    needs: ['roleAssignments'],
+    evaluate: (d) => {
+      const assignments = (d.roleAssignments || []).filter(a => TIER0_ROLE_IDS.has(a.roleDefinitionId));
+      const byPrincipal = new Map();
+      for (const a of assignments) byPrincipal.set(a.principalId, (byPrincipal.get(a.principalId) || 0) + 1);
+      const dual = [...byPrincipal.entries()].filter(([, n]) => n > 1);
+      return dual.length === 0
+        ? pass('No single principal holds more than one Tier-0 directory role.')
+        : fail(`${dual.length} ${dual.length === 1 ? 'principal holds' : 'principals hold'} more than one Tier-0 role (e.g. both Global Administrator and Privileged Role Administrator), concentrating privilege that separation of duties would otherwise split across people.`);
+    }
+  },
+  {
+    id: 'ENTRA-PRIVREMOTE-001',
+    area: 'privileged',
+    needs: ['globalAdmins', 'gaEligible'],
+    evaluate: (d) => {
+      const eligible = new Set((d.gaEligible || []).map(e => e.principalId));
+      const permanent = (d.globalAdmins || []).filter(m => !eligible.has(m.id));
+      return permanent.length === 0
+        ? pass('Global Administrator access is PIM-activated rather than standing, so remote administrative sessions require activation first.')
+        : fail(`${permanent.length} Global ${permanent.length === 1 ? 'Administrator holds' : 'Administrators hold'} standing (non-PIM) access, so privileged commands do not require activation for remote use.`);
+    }
+  },
+  {
+    id: 'ENTRA-HYBRID-002',
+    area: 'privileged',
+    needs: ['globalAdmins'],
+    evaluate: (d) => {
+      const synced = (d.globalAdmins || []).filter(a => a.onPremisesSyncEnabled);
+      return synced.length === 0
+        ? pass('No on-premises synced accounts hold the Global Administrator (Tier-0) role.')
+        : fail(`${synced.length} on-premises synced ${synced.length === 1 ? 'account holds' : 'accounts hold'} the Global Administrator role: ${synced.map(a => a.userPrincipalName || a.displayName).slice(0, 5).join(', ')}. A compromise on-premises can reach cloud Tier-0 privilege. Covers Global Administrator only — review other privileged roles directly.`);
+    }
   }
 ];
 

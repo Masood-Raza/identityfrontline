@@ -63,7 +63,10 @@ ok('every Graph source declares scopes; local and imported data need none',
 ok('the Exchange evidence source asks for no Graph permission at all', SOURCES.exchangeEvidence.imported === true && SOURCES.exchangeEvidence.scopes.length === 0);
 ok('every source has a user-facing label', Object.values(SOURCES).every(s => s.label));
 ok('scopes are all read-only', REQUIRED_SCOPES.every(s => !/\.(Read)?Write|FullControl|AccessAsUser/i.test(s)), REQUIRED_SCOPES.join(', '));
-ok('identity scope set is the expected six', REQUIRED_SCOPES.length === 6, REQUIRED_SCOPES.join(', '));
+// Application.Read.All joined the identity set with ENTRA-CONSENT-004 (tenant-wide admin
+// consent grants to third-party apps), which needs servicePrincipals to tell a Microsoft
+// first-party grant from a third-party one.
+ok('identity scope set is the expected seven', REQUIRED_SCOPES.length === 7, REQUIRED_SCOPES.join(', '));
 ok('every check belongs to a declared area', CHECKS.every(c => ['identity', 'collaboration', 'intune', 'privileged', 'signals', 'dns', 'exchange'].includes(c.area)));
 const tiers = JSON.parse(readFileSync(join(root, 'assets/catalog/app-tiers.json'), 'utf8'));
 ok('app tier data shipped with tier 0, tier 1 and first-party lists',
