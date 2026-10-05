@@ -96,6 +96,16 @@ async function boot() {
 }
 
 async function bootUi() {
+  // A page can deep-link into the wizard with specific areas preselected, e.g.
+  // assessments.html?areas=identity,privileged from the Zero Trust landing page.
+  try {
+    const requested = new URLSearchParams(window.location.search).get('areas');
+    if (requested) {
+      const valid = new Set(AREAS.map(a => a.id));
+      const picked = requested.split(',').map(s => s.trim()).filter(id => valid.has(id));
+      if (picked.length) state.areas = new Set(picked);
+    }
+  } catch { /* malformed query string: keep the default */ }
 
   if (!isConfigured()) {
     show('setupNotice');
