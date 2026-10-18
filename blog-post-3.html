@@ -5,9 +5,92 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Configure SSO with an External App in Your Homelab — Identity Frontline</title>
 <meta name="description" content="Step-by-step guide to configuring SAML-based Single Sign-On between Entra ID and AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.">
+<link rel="canonical" href="https://identityfrontline.com/blog-post-3.html">
+<meta name="theme-color" content="#060b1c">
+<link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Identity Frontline" href="https://identityfrontline.com/feed.xml">
+<!-- Open Graph / social share tags -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Identity Frontline">
 <meta property="og:title" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
 <meta property="og:description" content="Your homelab users can now sign into AWS with their Entra ID credentials. SAML SSO, SCIM provisioning, user assignment — all free.">
-<meta property="og:type" content="article">
+<meta property="og:url" content="https://identityfrontline.com/blog-post-3.html">
+<meta property="og:image" content="https://identityfrontline.com/assets/og/og-blog-post-3.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
+<meta property="article:published_time" content="2026-07-01">
+<meta property="article:modified_time" content="2026-10-18">
+<meta property="article:section" content="Hands-On Lab">
+<meta name="author" content="Syed Masood Raza Kazmi">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
+<meta name="twitter:description" content="Your homelab users can now sign into AWS with their Entra ID credentials. SAML SSO, SCIM provisioning, user assignment — all free.">
+<meta name="twitter:image" content="https://identityfrontline.com/assets/og/og-blog-post-3.png">
+<meta name="twitter:image:alt" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BlogPosting",
+   "@id": "https://identityfrontline.com/blog-post-3.html#article",
+   "mainEntityOfPage": "https://identityfrontline.com/blog-post-3.html",
+   "url": "https://identityfrontline.com/blog-post-3.html",
+   "headline": "Configure SSO with an External App: Your Homelab, Now Enterprise-Grade",
+   "description": "Step-by-step guide to configuring SAML-based Single Sign-On between Entra ID and AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.",
+   "image": [
+    "https://identityfrontline.com/assets/og/og-blog-post-3.png"
+   ],
+   "datePublished": "2026-07-01",
+   "dateModified": "2026-10-18",
+   "articleSection": "Hands-On Lab",
+   "inLanguage": "en",
+   "author": {
+    "@id": "https://identityfrontline.com/about.html#author"
+   },
+   "publisher": {
+    "@id": "https://identityfrontline.com/#organization"
+   },
+   "isPartOf": {
+    "@id": "https://identityfrontline.com/#website"
+   }
+  },
+  {
+   "@type": "Person",
+   "@id": "https://identityfrontline.com/about.html#author",
+   "name": "Syed Masood Raza Kazmi",
+   "jobTitle": "IAM Architect",
+   "url": "https://identityfrontline.com/about.html",
+   "sameAs": [
+    "https://www.linkedin.com/in/masood-raza-89488632/"
+   ]
+  },
+  {
+   "@type": "Organization",
+   "@id": "https://identityfrontline.com/#organization",
+   "name": "Identity Frontline",
+   "url": "https://identityfrontline.com/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://identityfrontline.com/assets/icons/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "sameAs": [
+    "https://www.linkedin.com/company/121464335/",
+    "https://identityfrontline.substack.com/"
+   ],
+   "founder": {
+    "@id": "https://identityfrontline.com/about.html#author"
+   }
+  }
+ ]
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -153,10 +236,10 @@ body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
 <body>
 <nav class="nav-bar">
   <a href="index.html" class="logo"><svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display:inline-block;margin-right:8px;vertical-align:middle"><path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#0e1730" stroke="#35d7ff" stroke-width="1.5"/><path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(140,108,255,.6)" stroke-width="1"/><rect x="22.5" y="17" width="7" height="26" rx="1" fill="#35d7ff"/><rect x="17" y="17" width="18" height="4.5" rx="1" fill="#35d7ff"/><rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#35d7ff"/></svg>Identity<em>Frontline</em></a>
-  <ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a href="assessments.html">Assessments</a></li><li><a href="zero-trust.html">Zero Trust</a></li><li><a href="jobs.html">Jobs</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li><li><a href="about.html#subscribe">Subscribe</a></li></ul>
+  <ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a href="assessments.html">Assessments</a></li><li><a href="zero-trust.html">Zero Trust</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li><li><a href="about.html#subscribe">Subscribe</a></li></ul>
   <button class="nav-toggle" id="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
 </nav>
-<div class="mobile-nav" id="mobile-nav"><a href="index.html" onclick="closeMobileNav()">Blog</a><a href="assessments.html" onclick="closeMobileNav()">Assessments</a><a href="zero-trust.html" onclick="closeMobileNav()">Zero Trust</a><a href="jobs.html" onclick="closeMobileNav()">Jobs</a><a href="about.html#topics" onclick="closeMobileNav()">Topics</a><a href="about.html#about" onclick="closeMobileNav()">About</a><a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a></div>
+<div class="mobile-nav" id="mobile-nav"><a href="index.html" onclick="closeMobileNav()">Blog</a><a href="assessments.html" onclick="closeMobileNav()">Assessments</a><a href="zero-trust.html" onclick="closeMobileNav()">Zero Trust</a><a href="about.html#topics" onclick="closeMobileNav()">Topics</a><a href="about.html#about" onclick="closeMobileNav()">About</a><a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a></div>
 <div class="progress-bar" id="progress-bar"></div>
 
 <header class="post-hero">
@@ -395,7 +478,7 @@ lastName:                           user.surname</div>
 </article>
 
 <aside class="post-sidebar">
-<div class="sidebar-sub"><div class="sidebar-sub-title">Stay on the Frontline</div><p class="sidebar-sub-desc">Step-by-step IAM labs and career guides. One post per week.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="sidebar-sub-btn" style="display:block;text-align:center;text-decoration:none;color:#fff">Join the frontline &rarr;</a><p class="sidebar-sub-note">Subscribe on Substack. Free.</p></div>
+<div class="sidebar-sub"><div class="sidebar-sub-title">Stay on the Frontline</div><p class="sidebar-sub-desc">Step-by-step IAM labs and career guides. A new guide every month.</p><a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" class="sidebar-sub-btn" style="display:block;text-align:center;text-decoration:none;color:#fff">Join the frontline &rarr;</a><p class="sidebar-sub-note">Subscribe on Substack. Free.</p></div>
 
 <div class="sidebar-widget"><div class="sidebar-widget-title">In this guide</div><div class="sidebar-widget-body"><ul class="toc-list">
 <li><a href="#concepts" class="toc-link">SAML vs OIDC</a></li>
@@ -427,9 +510,9 @@ lastName:                           user.surname</div>
 </aside>
 </div>
 
-<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>The lab series continues.</h2><p>Each guide adds a new enterprise IAM skill to your homelab &mdash; and your resume. Subscribe for the next one.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="footer-sub-btn" style="display:inline-block;text-decoration:none;color:#fff">Join the frontline &rarr;</a></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>AWS Free Tier &mdash; <a href="https://aws.amazon.com/free" target="_blank">aws.amazon.com/free</a></li><li>Entra ID Enterprise Apps &mdash; <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>SAML 2.0 Spec &mdash; <a href="https://docs.oasis-open.org/security/saml/v2.0/" target="_blank">oasis-open.org</a></li><li>AWS IAM Identity Center &mdash; <a href="https://docs.aws.amazon.com/singlesignon/" target="_blank">docs.aws.amazon.com</a></li></ul></div></div></section>
+<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>The lab series continues.</h2><p>Each guide adds a new enterprise IAM skill to your homelab &mdash; and your resume. Subscribe for the next one.</p><iframe src="https://identityfrontline.substack.com/embed" title="Subscribe to Identity Frontline on Substack" width="100%" height="320" loading="lazy" style="display:block;max-width:480px;width:100%;border:1px solid rgba(255,255,255,.12);border-radius:4px;background:#fff" frameborder="0" scrolling="no"></iframe><p style="font-size:12px;color:rgba(255,255,255,.45);margin-top:10px">Form not loading? <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:#35d7ff">Subscribe on Substack &rarr;</a></p></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>AWS Free Tier &mdash; <a href="https://aws.amazon.com/free" target="_blank">aws.amazon.com/free</a></li><li>Entra ID Enterprise Apps &mdash; <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>SAML 2.0 Spec &mdash; <a href="https://docs.oasis-open.org/security/saml/v2.0/" target="_blank">oasis-open.org</a></li><li>AWS IAM Identity Center &mdash; <a href="https://docs.aws.amazon.com/singlesignon/" target="_blank">docs.aws.amazon.com</a></li></ul></div></div></section>
 
-<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span></footer>
+<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span><span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
 
 <script>
 window.addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress-bar').style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight))*100+'%'});
@@ -442,5 +525,7 @@ document.addEventListener('click',e=>{if(!nt.contains(e.target)&&!mn.contains(e.
 function closeMobileNav(){mn.classList.remove('open');nt.classList.remove('open')}
 function copyLink(){navigator.clipboard.writeText(window.location.href).then(()=>{const l=document.getElementById('copy-label');l.textContent='Copied!';setTimeout(()=>l.textContent='Copy link',2000)})}
 </script>
+<!-- Cloudflare Web Analytics: enable in the Cloudflare dashboard (Analytics & Logs > Web Analytics > Add a site).
+     Because this site is proxied by Cloudflare, the beacon is injected automatically; no snippet is needed here. -->
 </body>
 </html>
