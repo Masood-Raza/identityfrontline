@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Identity Frontline</title>
+  <link>https://identityfrontline.com/</link>
+  <description>Practical, field-tested writing on IAM, Zero Trust, and enterprise cybersecurity from a 24-year practitioner.</description>
+  <language>en</language>
+  <atom:link href="https://identityfrontline.com/feed.xml" rel="self" type="application/rss+xml"/>
+  <lastBuildDate>Sun, 18 Oct 2026 09:00:00 +0000</lastBuildDate>
+  <image><url>https://identityfrontline.com/assets/icons/icon-512.png</url><title>Identity Frontline</title><link>https://identityfrontline.com/</link></image>
+  <item>
+    <title>Automate the Leaver: Offboarding Without the Loose Ends</title>
+    <link>https://identityfrontline.com/blog-post-5.html</link>
+    <guid isPermaLink="true">https://identityfrontline.com/blog-post-5.html</guid>
+    <pubDate>Tue, 01 Sep 2026 00:00:00 +0000</pubDate>
+    <category>Automation</category>
+    <description>Build the n8n workflow that revokes Entra ID sign-in sessions, cascades deprovisioning to AWS via SCIM, converts the mailbox, and logs it all automatically the moment someone leaves.</description>
+  </item>
+  <item>
+    <title>Automate User Lifecycle: Build Your First n8n Workflow for IAM</title>
+    <link>https://identityfrontline.com/blog-post-4.html</link>
+    <guid isPermaLink="true">https://identityfrontline.com/blog-post-4.html</guid>
+    <pubDate>Sat, 01 Aug 2026 00:00:00 +0000</pubDate>
+    <category>Automation</category>
+    <description>Build your first n8n IAM workflow: create a user in Active Directory and the welcome email, Teams notification, manager approval and audit log happen automatically. Free homelab guide.</description>
+  </item>
+  <item>
+    <title>Configure SSO with an External App: Your Homelab, Now Enterprise-Grade</title>
+    <link>https://identityfrontline.com/blog-post-3.html</link>
+    <guid isPermaLink="true">https://identityfrontline.com/blog-post-3.html</guid>
+    <pubDate>Wed, 01 Jul 2026 00:00:00 +0000</pubDate>
+    <category>Hands-On Lab</category>
+    <description>Step-by-step guide to configuring SAML-based Single Sign-On between Entra ID and AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.</description>
+  </item>
+  <item>
+    <title>Build Your IAM Homelab for Free: The Complete Guide</title>
+    <link>https://identityfrontline.com/blog-post-2.html</link>
+    <guid isPermaLink="true">https://identityfrontline.com/blog-post-2.html</guid>
+    <pubDate>Mon, 01 Jun 2026 00:00:00 +0000</pubDate>
+    <category>Hands-On Lab</category>
+    <description>Step-by-step guide to building a complete IAM homelab with Active Directory, Entra ID, Conditional Access, and hybrid identity — entirely for free.</description>
+  </item>
+  <item>
+    <title>No Job, No Experience, No Problem: How to Break Into IAM in 2026</title>
+    <link>https://identityfrontline.com/blog-post-1.html</link>
+    <guid isPermaLink="true">https://identityfrontline.com/blog-post-1.html</guid>
+    <pubDate>Fri, 01 May 2026 00:00:00 +0000</pubDate>
+    <category>Career Guide</category>
+    <description>A practical, zero-fluff guide for career changers, recent graduates, and IT generalists who want to build a real, high-paying career in Identity and Access Management.</description>
+  </item>
+</channel>
+</rss>

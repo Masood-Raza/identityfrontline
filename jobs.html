@@ -3,8 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IAM Job Board — Identity Frontline</title>
-<meta name="description" content="Open Identity and Access Management roles, curated for Identity Frontline subscribers. Subscribe once, apply to any posting.">
+<title>IAM Job Board (Coming Soon) — Identity Frontline</title>
+<meta name="description" content="The Identity Frontline IAM job board is coming soon. Subscribe to the newsletter to hear when it opens.">
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="https://identityfrontline.com/jobs.html">
+<meta name="theme-color" content="#060b1c">
+<link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Identity Frontline" href="https://identityfrontline.com/feed.xml">
+<!-- Open Graph / social share tags -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Identity Frontline">
+<meta property="og:title" content="IAM Job Board — coming soon">
+<meta property="og:description" content="The Identity Frontline IAM job board is coming soon. Subscribe to the newsletter to hear when it opens.">
+<meta property="og:url" content="https://identityfrontline.com/jobs.html">
+<meta property="og:image" content="https://identityfrontline.com/assets/og/og-default.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="IAM Job Board — coming soon">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="IAM Job Board — coming soon">
+<meta name="twitter:description" content="The Identity Frontline IAM job board is coming soon. Subscribe to the newsletter to hear when it opens.">
+<meta name="twitter:image" content="https://identityfrontline.com/assets/og/og-default.png">
+<meta name="twitter:image:alt" content="IAM Job Board — coming soon">
+
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -131,6 +154,8 @@ body {
 .jobs-intro strong { color: var(--ink); font-weight: 500; }
 
 .jobs-list { display: flex; flex-direction: column; gap: 16px; }
+.jobs-list[hidden] { display: none; }
+.jobs-intro a { color: var(--cyan, #22d3ee); }
 
 .job-card {
   border: 1px solid var(--rule);
@@ -327,7 +352,6 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
     <li><a href="index.html">Blog</a></li>
     <li><a href="assessments.html">Assessments</a></li>
     <li><a href="zero-trust.html">Zero Trust</a></li>
-    <li><a href="jobs.html" class="active">Jobs</a></li>
     <li><a href="about.html#topics">Topics</a></li>
     <li><a href="about.html#about">About</a></li>
     <li><a href="about.html#subscribe">Subscribe</a></li>
@@ -340,7 +364,6 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
   <a href="index.html" onclick="closeMobileNav()">Blog</a>
   <a href="assessments.html" onclick="closeMobileNav()">Assessments</a>
   <a href="zero-trust.html" onclick="closeMobileNav()">Zero Trust</a>
-  <a href="jobs.html" onclick="closeMobileNav()">Jobs</a>
   <a href="about.html#topics" onclick="closeMobileNav()">Topics</a>
   <a href="about.html#about" onclick="closeMobileNav()">About</a>
   <a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a>
@@ -349,18 +372,20 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
 <!-- Hero -->
 <header class="hero">
   <p class="hero-tag">IAM job board</p>
-  <h1>Open roles.<br><em>Vetted for IAM.</em></h1>
-  <p>Identity and Access Management roles worth your time — engineer, architect, analyst, consultant. No recruiter spam, no account to create.</p>
-  <span class="hero-note">🔒 Subscribe once below to unlock applying to any posting on this page</span>
+  <h1>Coming soon.<br><em>Vetted for IAM.</em></h1>
+  <p>A curated board of Identity and Access Management roles worth your time — engineer, architect, analyst, consultant. It opens once the first real roles are listed.</p>
 </header>
 
 <!-- Jobs -->
 <section class="jobs-section">
-  <p class="jobs-label">Open positions</p>
-  <h2 class="jobs-title">Current postings</h2>
-  <p class="jobs-intro">Click a role to read the full description. <strong>Subscribing unlocks the application form for every posting</strong> — do it once, apply to as many roles as you like.</p>
+  <p class="jobs-label">Status</p>
+  <h2 class="jobs-title">The board is coming soon</h2>
+  <p class="jobs-intro">There are no open postings yet. <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener">Subscribe to the newsletter</a> and you will hear as soon as the first roles go live.</p>
 
-  <div class="jobs-list">
+  <!-- Job board hidden for now (sample listings only). The listing markup, the email-verification
+       gate and the backend/jobs-api code are intentionally kept so the board can be re-enabled
+       by removing the hidden attribute below and restoring the nav links. -->
+  <div class="jobs-list" hidden>
 
     <!-- Job 1 -->
     <details class="job-card">
@@ -406,7 +431,7 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
               </div>
               <p class="gate-status" aria-live="polite"></p>
             </form>
-            <p class="gate-also"><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
+            <p class="gate-also"><a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
           </div>
 
           <div class="apply-step apply-form-step">
@@ -470,7 +495,7 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
               </div>
               <p class="gate-status" aria-live="polite"></p>
             </form>
-            <p class="gate-also"><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
+            <p class="gate-also"><a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
           </div>
           <div class="apply-step apply-form-step">
             <p class="apply-kicker">Step <b>2</b> of 2 — submit your application</p>
@@ -532,7 +557,7 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
               </div>
               <p class="gate-status" aria-live="polite"></p>
             </form>
-            <p class="gate-also"><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
+            <p class="gate-also"><a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
           </div>
           <div class="apply-step apply-form-step">
             <p class="apply-kicker">Step <b>2</b> of 2 — submit your application</p>
@@ -594,7 +619,7 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
               </div>
               <p class="gate-status" aria-live="polite"></p>
             </form>
-            <p class="gate-also"><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
+            <p class="gate-also"><a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener">Also subscribe to the newsletter on Substack →</a></p>
           </div>
           <div class="apply-step apply-form-step">
             <p class="apply-kicker">Step <b>2</b> of 2 — submit your application</p>
@@ -623,14 +648,14 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
 </section>
 
 <div class="employers-note">
-  <p>Hiring for an IAM role? Reply to any Identity Frontline newsletter issue to list it here — free while the board is new.</p>
+  <p>Hiring for an IAM role? Reply to any Identity Frontline newsletter issue, or message the <a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener">Identity Frontline LinkedIn page</a>, to have it listed when the board opens — free while the board is new.</p>
 </div>
 
 <!-- Footer -->
 <footer>
   <span class="footer-logo">Identity<em>Frontline</em></span>
   <span class="footer-copy">© 2026 Identity Frontline · All rights reserved</span>
-</footer>
+<span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
 
 <script>
 /* Hamburger */
@@ -774,5 +799,7 @@ document.querySelectorAll('.js-apply-form').forEach(form => {
   });
 });
 </script>
+<!-- Cloudflare Web Analytics: enable in the Cloudflare dashboard (Analytics & Logs > Web Analytics > Add a site).
+     Because this site is proxied by Cloudflare, the beacon is injected automatically; no snippet is needed here. -->
 </body>
 </html>

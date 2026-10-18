@@ -5,6 +5,92 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Build Your IAM Homelab for Free: The Complete Guide — Identity Frontline</title>
 <meta name="description" content="Step-by-step guide to building a complete IAM homelab with Active Directory, Entra ID, Conditional Access, and hybrid identity — entirely for free.">
+<link rel="canonical" href="https://identityfrontline.com/blog-post-2.html">
+<meta name="theme-color" content="#060b1c">
+<link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Identity Frontline" href="https://identityfrontline.com/feed.xml">
+<!-- Open Graph / social share tags -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Identity Frontline">
+<meta property="og:title" content="Build Your IAM Homelab for Free: The Complete Guide">
+<meta property="og:description" content="Deploy Active Directory, connect it to Entra ID, and configure Conditional Access and MFA — all on a free Azure account. Step-by-step, with PowerShell scripts.">
+<meta property="og:url" content="https://identityfrontline.com/blog-post-2.html">
+<meta property="og:image" content="https://identityfrontline.com/assets/og/og-blog-post-2.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Build Your IAM Homelab for Free: The Complete Guide">
+<meta property="article:published_time" content="2026-06-01">
+<meta property="article:modified_time" content="2026-10-18">
+<meta property="article:section" content="Hands-On Lab">
+<meta name="author" content="Syed Masood Raza Kazmi">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Build Your IAM Homelab for Free: The Complete Guide">
+<meta name="twitter:description" content="Deploy Active Directory, connect it to Entra ID, and configure Conditional Access and MFA — all on a free Azure account. Step-by-step, with PowerShell scripts.">
+<meta name="twitter:image" content="https://identityfrontline.com/assets/og/og-blog-post-2.png">
+<meta name="twitter:image:alt" content="Build Your IAM Homelab for Free: The Complete Guide">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BlogPosting",
+   "@id": "https://identityfrontline.com/blog-post-2.html#article",
+   "mainEntityOfPage": "https://identityfrontline.com/blog-post-2.html",
+   "url": "https://identityfrontline.com/blog-post-2.html",
+   "headline": "Build Your IAM Homelab for Free: The Complete Guide",
+   "description": "Step-by-step guide to building a complete IAM homelab with Active Directory, Entra ID, Conditional Access, and hybrid identity — entirely for free.",
+   "image": [
+    "https://identityfrontline.com/assets/og/og-blog-post-2.png"
+   ],
+   "datePublished": "2026-06-01",
+   "dateModified": "2026-10-18",
+   "articleSection": "Hands-On Lab",
+   "inLanguage": "en",
+   "author": {
+    "@id": "https://identityfrontline.com/about.html#author"
+   },
+   "publisher": {
+    "@id": "https://identityfrontline.com/#organization"
+   },
+   "isPartOf": {
+    "@id": "https://identityfrontline.com/#website"
+   }
+  },
+  {
+   "@type": "Person",
+   "@id": "https://identityfrontline.com/about.html#author",
+   "name": "Syed Masood Raza Kazmi",
+   "jobTitle": "IAM Architect",
+   "url": "https://identityfrontline.com/about.html",
+   "sameAs": [
+    "https://www.linkedin.com/in/masood-raza-89488632/"
+   ]
+  },
+  {
+   "@type": "Organization",
+   "@id": "https://identityfrontline.com/#organization",
+   "name": "Identity Frontline",
+   "url": "https://identityfrontline.com/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://identityfrontline.com/assets/icons/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "sameAs": [
+    "https://www.linkedin.com/company/121464335/",
+    "https://identityfrontline.substack.com/"
+   ],
+   "founder": {
+    "@id": "https://identityfrontline.com/about.html#author"
+   }
+  }
+ ]
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -138,10 +224,10 @@ body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
 <body>
 <nav class="nav-bar">
   <a href="index.html" class="logo"><svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display:inline-block;margin-right:8px;vertical-align:middle"><path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#0e1730" stroke="#35d7ff" stroke-width="1.5"/><path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(140,108,255,.6)" stroke-width="1"/><rect x="22.5" y="17" width="7" height="26" rx="1" fill="#35d7ff"/><rect x="17" y="17" width="18" height="4.5" rx="1" fill="#35d7ff"/><rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#35d7ff"/></svg>Identity<em>Frontline</em></a>
-  <ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a href="assessments.html">Assessments</a></li><li><a href="zero-trust.html">Zero Trust</a></li><li><a href="jobs.html">Jobs</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li><li><a href="about.html#subscribe">Subscribe</a></li></ul>
+  <ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a href="assessments.html">Assessments</a></li><li><a href="zero-trust.html">Zero Trust</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li><li><a href="about.html#subscribe">Subscribe</a></li></ul>
   <button class="nav-toggle" id="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
 </nav>
-<div class="mobile-nav" id="mobile-nav"><a href="index.html" onclick="closeMobileNav()">Blog</a><a href="assessments.html" onclick="closeMobileNav()">Assessments</a><a href="zero-trust.html" onclick="closeMobileNav()">Zero Trust</a><a href="jobs.html" onclick="closeMobileNav()">Jobs</a><a href="about.html#topics" onclick="closeMobileNav()">Topics</a><a href="about.html#about" onclick="closeMobileNav()">About</a><a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a></div>
+<div class="mobile-nav" id="mobile-nav"><a href="index.html" onclick="closeMobileNav()">Blog</a><a href="assessments.html" onclick="closeMobileNav()">Assessments</a><a href="zero-trust.html" onclick="closeMobileNav()">Zero Trust</a><a href="about.html#topics" onclick="closeMobileNav()">Topics</a><a href="about.html#about" onclick="closeMobileNav()">About</a><a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a></div>
 <div class="progress-bar" id="progress-bar"></div>
 
 <header class="post-hero">
@@ -171,7 +257,7 @@ body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
 <li>A portfolio-ready project you can reference in interviews</li>
 </ul>
 
-<div class="callout"><div class="callout-label">What you need before starting</div><p>A computer with internet access. No prior lab experience needed. Set aside 3–4 hours for the initial build. Total cost: /bin/sh.</p></div>
+<div class="callout"><div class="callout-label">What you need before starting</div><p>A computer with internet access. No prior lab experience needed. Set aside 3–4 hours for the initial build. Total cost: $0.</p></div>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Architecture</span><div class="section-divider-line"></div></div>
 <h2 id="architecture">What You Are Building</h2>
@@ -180,18 +266,18 @@ body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
 
 <div class="arch-box"><div class="arch-label">Your homelab architecture</div><div class="arch-flow"><div class="arch-node"><div class="arch-node-title">Windows Server 2022</div><div class="arch-node-desc">Active Directory DS<br>DNS Server<br>Domain Controller</div></div><span class="arch-arrow">→</span><div class="arch-node"><div class="arch-node-title">Entra Connect</div><div class="arch-node-desc">Syncs users &amp; groups<br>Password hash sync<br>Hybrid identity bridge</div></div><span class="arch-arrow">→</span><div class="arch-node"><div class="arch-node-title">Microsoft Entra ID</div><div class="arch-node-desc">Cloud identity<br>Conditional Access<br>MFA · SSPR · SSO</div></div></div></div>
 
-<p>Active Directory is the source of truth. Entra Connect synchronises identities to the cloud. Entra ID applies security policies. This is hybrid identity — what 90% of enterprises run.</p>
+<p>Active Directory is the source of truth. Entra Connect synchronises identities to the cloud. Entra ID applies security policies. This is hybrid identity — the model most enterprises with on-premises Active Directory run today.</p>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 1</span><div class="section-divider-line"></div></div>
 <h2 id="phase-1">Create Your Free Azure Account</h2>
 
 <ol>
 <li><strong>Go to azure.microsoft.com/free</strong> and click "Start free." Sign in with your Microsoft account or create one.</li>
-<li><strong>Complete identity verification.</strong> You need a phone number and a card for verification only — you will not be charged. Microsoft gives you 00 in free credits.</li>
+<li><strong>Complete identity verification.</strong> You need a phone number and a card for verification only — you will not be charged. Microsoft gives you $200 in free credits, usable during your first 30 days.</li>
 <li><strong>Access the Azure Portal</strong> at portal.azure.com. You now have a working Azure subscription.</li>
 </ol>
 
-<div class="callout callout-amber"><div class="callout-label">Credit card note</div><p>Azure requires a card for verification but will not charge you unless you explicitly upgrade. The 00 free credit covers this entire lab easily — a Windows Server VM costs roughly /bin/sh.05/hour.</p></div>
+<div class="callout callout-amber"><div class="callout-label">Credit card note</div><p>Azure requires a card for verification but will not charge you unless you explicitly upgrade. The $200 free credit covers this entire lab easily — the Standard_B2s Windows Server VM used here costs about $0.05/hour (pay-as-you-go, East US; prices vary by region). Stop the VM when you are not using it.</p></div>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 2</span><div class="section-divider-line"></div></div>
 <h2 id="phase-2">Deploy a Windows Server VM</h2>
@@ -258,41 +344,66 @@ NetBIOS name:         IAMLAB</div>
 └── OU=Disabled Accounts</div>
 
 <h3>Create Test Users via PowerShell</h3>
-<div class="code-block"># Create 10 test users
- = "OU=Users,OU=Corporate,DC=iamlab,DC=local"
- = ConvertTo-SecureString "P@ssw0rd2026!" -AsPlainText -Force
+<div class="code-block"><!--email_off--># Create 10 test users in the Corporate\Users OU
+# Run in an elevated PowerShell session on DC01. The ActiveDirectory
+# module is installed automatically with the AD DS role.
+Import-Module ActiveDirectory
 
- = @(
-  @{First="Sarah";Last="Chen";Title="IAM Analyst"},
-  @{First="James";Last="Wilson";Title="Security Engineer"},
-  @{First="Priya";Last="Sharma";Title="Cloud Admin"},
-  @{First="Michael";Last="Johnson";Title="IT Manager"},
-  @{First="Fatima";Last="Ali";Title="Helpdesk Analyst"},
-  @{First="David";Last="Lee";Title="Network Engineer"},
-  @{First="Emma";Last="Martinez";Title="Compliance Officer"},
-  @{First="Ahmed";Last="Hassan";Title="DevOps Engineer"},
-  @{First="Lisa";Last="Thompson";Title="SOC Analyst"},
-  @{First="Raj";Last="Patel";Title="IAM Architect"}
+$ouPath   = "OU=Users,OU=Corporate,DC=iamlab,DC=local"
+
+# Lab-only password. Never use a shared password like this outside a lab.
+$password = ConvertTo-SecureString "P@ssw0rd2026!" -AsPlainText -Force
+
+$users = @(
+  @{ First = "Sarah";   Last = "Chen";     Title = "IAM Analyst" },
+  @{ First = "James";   Last = "Wilson";   Title = "Security Engineer" },
+  @{ First = "Priya";   Last = "Sharma";   Title = "Cloud Admin" },
+  @{ First = "Michael"; Last = "Johnson";  Title = "IT Manager" },
+  @{ First = "Fatima";  Last = "Ali";      Title = "Helpdesk Analyst" },
+  @{ First = "David";   Last = "Lee";      Title = "Network Engineer" },
+  @{ First = "Emma";    Last = "Martinez"; Title = "Compliance Officer" },
+  @{ First = "Ahmed";   Last = "Hassan";   Title = "DevOps Engineer" },
+  @{ First = "Lisa";    Last = "Thompson"; Title = "SOC Analyst" },
+  @{ First = "Raj";     Last = "Patel";    Title = "IAM Architect" }
 )
 
-foreach ( in ) {
-   = (.First[0] + .Last).ToLower()
-  New-ADUser -Name " "     -GivenName .First -Surname .Last     -SamAccountName      -UserPrincipalName "@iamlab.local"     -Title .Title -Path      -AccountPassword  -Enabled 
-  Write-Host "Created: " -ForegroundColor Green
-}</div>
+foreach ($u in $users) {
+  # Username = first initial + last name, e.g. Sarah Chen -> schen
+  $sam = ($u.First.Substring(0, 1) + $u.Last).ToLower()
+
+  # Splatting keeps the parameters readable (no backtick line continuations)
+  $params = @{
+    Name                  = "$($u.First) $($u.Last)"
+    DisplayName           = "$($u.First) $($u.Last)"
+    GivenName             = $u.First
+    Surname               = $u.Last
+    SamAccountName        = $sam
+    UserPrincipalName     = "$sam@iamlab.local"
+    Title                 = $u.Title
+    Path                  = $ouPath
+    AccountPassword       = $password
+    ChangePasswordAtLogon = $false
+    Enabled               = $true
+  }
+
+  New-ADUser @params
+  Write-Host "Created: $sam" -ForegroundColor Green
+}<!--/email_off--></div>
 
 <h3>Create Security Groups</h3>
-<div class="code-block"># Create security groups
- = "OU=Groups,OU=Corporate,DC=iamlab,DC=local"
-@("SG-IAM-Admins","SG-Cloud-Admins","SG-Helpdesk",
-  "SG-VPN-Users","SG-MFA-Enforced") | ForEach {
-  New-ADGroup -Name  -GroupScope Global     -GroupCategory Security -Path 
-  Write-Host "Created: " -ForegroundColor Cyan
+<div class="code-block"># Create security groups in the Corporate\Groups OU
+$groupOU = "OU=Groups,OU=Corporate,DC=iamlab,DC=local"
+$groups  = "SG-IAM-Admins", "SG-Cloud-Admins", "SG-Helpdesk",
+           "SG-VPN-Users", "SG-MFA-Enforced"
+
+foreach ($g in $groups) {
+  New-ADGroup -Name $g -GroupScope Global -GroupCategory Security -Path $groupOU
+  Write-Host "Created: $g" -ForegroundColor Cyan
 }
 
-# Add members
-Add-ADGroupMember "SG-IAM-Admins" -Members "rpatel","schen"
-Add-ADGroupMember "SG-Cloud-Admins" -Members "psharma","dlee"</div>
+# Add members (usernames come from the user script above)
+Add-ADGroupMember -Identity "SG-IAM-Admins"   -Members "rpatel", "schen"
+Add-ADGroupMember -Identity "SG-Cloud-Admins" -Members "psharma", "dlee"</div>
 
 <h3>Create a Group Policy Object</h3>
 <ol>
@@ -371,7 +482,7 @@ Add-ADGroupMember "SG-Cloud-Admins" -Members "psharma","dlee"</div>
 <h2 id="checklist">Your Complete Lab Checklist</h2>
 
 <ul class="checklist">
-<li>Created Azure free account with 00 credits</li>
+<li>Created Azure free account with $200 credits</li>
 <li>Deployed Windows Server 2022 VM (DC01)</li>
 <li>Set static private IP on the VM</li>
 <li>Installed Active Directory Domain Services</li>
@@ -414,7 +525,7 @@ Add-ADGroupMember "SG-Cloud-Admins" -Members "psharma","dlee"</div>
 </article>
 
 <aside class="post-sidebar">
-<div class="sidebar-sub"><div class="sidebar-sub-title">Stay on the Frontline</div><p class="sidebar-sub-desc">Step-by-step IAM guides, lab projects, and career advice weekly.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="sidebar-sub-btn" style="display:block;text-align:center;text-decoration:none;color:#fff">Join the frontline →</a><p class="sidebar-sub-note">Subscribe on Substack. Free.</p></div>
+<div class="sidebar-sub"><div class="sidebar-sub-title">Stay on the Frontline</div><p class="sidebar-sub-desc">Step-by-step IAM guides, lab projects, and career advice. A new guide every month.</p><a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" class="sidebar-sub-btn" style="display:block;text-align:center;text-decoration:none;color:#fff">Join the frontline →</a><p class="sidebar-sub-note">Subscribe on Substack. Free.</p></div>
 
 <div class="sidebar-widget"><div class="sidebar-widget-title">In this guide</div><div class="sidebar-widget-body"><ul class="toc-list">
 <li><a href="#architecture" class="toc-link">Architecture overview</a></li>
@@ -440,9 +551,9 @@ Add-ADGroupMember "SG-Cloud-Admins" -Members "psharma","dlee"</div>
 </aside>
 </div>
 
-<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>Next guide drops next week.</h2><p>Step-by-step IAM labs, cert guides, and career strategies from a practitioner. No spam.</p><a href="https://substack.com/@identityfrontline" target="_blank" rel="noopener" class="footer-sub-btn" style="display:inline-block;text-decoration:none;color:#fff">Join the frontline →</a></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>Azure Free Account — <a href="https://azure.microsoft.com/free" target="_blank">azure.microsoft.com/free</a></li><li>Entra Connect — <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>Windows Server Eval — <a href="https://microsoft.com/evalcenter" target="_blank">microsoft.com/evalcenter</a></li><li>draw.io — <a href="https://app.diagrams.net" target="_blank">app.diagrams.net</a></li><li>n8n.io — <a href="https://n8n.io" target="_blank">n8n.io</a></li></ul></div></div></section>
+<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>A new guide every month.</h2><p>Step-by-step IAM labs, cert guides, and career strategies from a practitioner. No spam.</p><iframe src="https://identityfrontline.substack.com/embed" title="Subscribe to Identity Frontline on Substack" width="100%" height="320" loading="lazy" style="display:block;max-width:480px;width:100%;border:1px solid rgba(255,255,255,.12);border-radius:4px;background:#fff" frameborder="0" scrolling="no"></iframe><p style="font-size:12px;color:rgba(255,255,255,.45);margin-top:10px">Form not loading? <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:#35d7ff">Subscribe on Substack &rarr;</a></p></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>Azure Free Account — <a href="https://azure.microsoft.com/free" target="_blank">azure.microsoft.com/free</a></li><li>Entra Connect — <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>Windows Server Eval — <a href="https://microsoft.com/evalcenter" target="_blank">microsoft.com/evalcenter</a></li><li>draw.io — <a href="https://app.diagrams.net" target="_blank">app.diagrams.net</a></li><li>n8n.io — <a href="https://n8n.io" target="_blank">n8n.io</a></li></ul></div></div></section>
 
-<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">© 2026 Identity Frontline · identityfrontline.com</span></footer>
+<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">© 2026 Identity Frontline · identityfrontline.com</span><span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
 
 <script>
 window.addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress-bar').style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight))*100+'%'});
@@ -455,5 +566,7 @@ document.addEventListener('click',e=>{if(!nt.contains(e.target)&&!mn.contains(e.
 function closeMobileNav(){mn.classList.remove('open');nt.classList.remove('open')}
 function copyLink(){navigator.clipboard.writeText(window.location.href).then(()=>{const l=document.getElementById('copy-label');l.textContent='Copied!';setTimeout(()=>l.textContent='Copy link',2000)})}
 </script>
+<!-- Cloudflare Web Analytics: enable in the Cloudflare dashboard (Analytics & Logs > Web Analytics > Add a site).
+     Because this site is proxied by Cloudflare, the beacon is injected automatically; no snippet is needed here. -->
 </body>
 </html>

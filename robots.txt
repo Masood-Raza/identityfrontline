@@ -1,0 +1,5 @@
+# Identity Frontline
+User-agent: *
+Allow: /
+
+Sitemap: https://identityfrontline.com/sitemap.xml
