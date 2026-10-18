@@ -220,6 +220,17 @@ body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
 .callout-orange .callout-label { color: #ff9a66; }
 .callout-orange p { color: #f3d9cc !important; }
 </style>
+<style id="if-sub-css">
+.if-sub-form{display:flex;gap:10px;max-width:480px;width:100%;margin-top:18px;flex-wrap:wrap}
+.if-sub-form input[type=email]{flex:1 1 220px;min-width:0;padding:14px 16px;font:400 15px 'DM Sans',sans-serif;color:#fff;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.18);border-radius:4px;outline:none;transition:border-color .2s,box-shadow .2s}
+.if-sub-form input[type=email]::placeholder{color:rgba(255,255,255,.4)}
+.if-sub-form input[type=email]:focus{border-color:#35d7ff;box-shadow:0 0 0 3px rgba(53,215,255,.18)}
+.if-sub-form button{flex:0 0 auto;padding:14px 22px;font:500 12px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#05101f;background:#35d7ff;border:0;border-radius:4px;cursor:pointer;transition:background .2s,transform .2s}
+.if-sub-form button:hover{background:#7ce6ff;transform:translateY(-1px)}
+.if-sub-form button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,255,255,.5);margin:10px 0 0}
+@media(max-width:480px){.if-sub-form{flex-direction:column}.if-sub-form input[type=email],.if-sub-form button{flex:none;width:100%}}
+</style>
 </head>
 <body>
 <nav class="nav-bar">
@@ -551,7 +562,7 @@ Add-ADGroupMember -Identity "SG-Cloud-Admins" -Members "psharma", "dlee"</div>
 </aside>
 </div>
 
-<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>A new guide every month.</h2><p>Step-by-step IAM labs, cert guides, and career strategies from a practitioner. No spam.</p><iframe src="https://identityfrontline.substack.com/embed" title="Subscribe to Identity Frontline on Substack" width="100%" height="320" loading="lazy" style="display:block;max-width:480px;width:100%;border:1px solid rgba(255,255,255,.12);border-radius:4px;background:#fff" frameborder="0" scrolling="no"></iframe><p style="font-size:12px;color:rgba(255,255,255,.45);margin-top:10px">Form not loading? <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:#35d7ff">Subscribe on Substack &rarr;</a></p></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>Azure Free Account — <a href="https://azure.microsoft.com/free" target="_blank">azure.microsoft.com/free</a></li><li>Entra Connect — <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>Windows Server Eval — <a href="https://microsoft.com/evalcenter" target="_blank">microsoft.com/evalcenter</a></li><li>draw.io — <a href="https://app.diagrams.net" target="_blank">app.diagrams.net</a></li><li>n8n.io — <a href="https://n8n.io" target="_blank">n8n.io</a></li></ul></div></div></section>
+<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>A new guide every month.</h2><p>Step-by-step IAM labs, cert guides, and career strategies from a practitioner. No spam.</p><form class="if-sub-form" action="https://identityfrontline.substack.com/subscribe" method="get" target="_blank"><input type="email" name="email" required placeholder="you@example.com" aria-label="Email address" autocomplete="email"><button type="submit">Subscribe</button></form><p class="if-sub-note">Opens Substack in a new tab to confirm. No spam. Unsubscribe any time.</p></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>Azure Free Account — <a href="https://azure.microsoft.com/free" target="_blank">azure.microsoft.com/free</a></li><li>Entra Connect — <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>Windows Server Eval — <a href="https://microsoft.com/evalcenter" target="_blank">microsoft.com/evalcenter</a></li><li>draw.io — <a href="https://app.diagrams.net" target="_blank">app.diagrams.net</a></li><li>n8n.io — <a href="https://n8n.io" target="_blank">n8n.io</a></li></ul></div></div></section>
 
 <footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">© 2026 Identity Frontline · identityfrontline.com</span><span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
 

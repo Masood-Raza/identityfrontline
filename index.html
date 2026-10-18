@@ -307,6 +307,17 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
 .post-card:hover { background: rgba(53,215,255,.06); }
 .hero h1 em { background: linear-gradient(90deg, #35d7ff, #8c6cff, #e95cd7); -webkit-background-clip: text; background-clip: text; color: transparent; }
 </style>
+<style id="if-sub-css">
+.if-sub-form{display:flex;gap:10px;max-width:480px;width:100%;margin-top:18px;flex-wrap:wrap}
+.if-sub-form input[type=email]{flex:1 1 220px;min-width:0;padding:14px 16px;font:400 15px 'DM Sans',sans-serif;color:#fff;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.18);border-radius:4px;outline:none;transition:border-color .2s,box-shadow .2s}
+.if-sub-form input[type=email]::placeholder{color:rgba(255,255,255,.4)}
+.if-sub-form input[type=email]:focus{border-color:#35d7ff;box-shadow:0 0 0 3px rgba(53,215,255,.18)}
+.if-sub-form button{flex:0 0 auto;padding:14px 22px;font:500 12px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#05101f;background:#35d7ff;border:0;border-radius:4px;cursor:pointer;transition:background .2s,transform .2s}
+.if-sub-form button:hover{background:#7ce6ff;transform:translateY(-1px)}
+.if-sub-form button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,255,255,.5);margin:10px 0 0}
+@media(max-width:480px){.if-sub-form{flex-direction:column}.if-sub-form input[type=email],.if-sub-form button{flex:none;width:100%}}
+</style>
 </head>
 <body>
 
@@ -424,8 +435,7 @@ body { background: radial-gradient(circle at 82% 12%, #122550 0, var(--paper) 36
     <p class="posts-label">Newsletter</p>
     <h2 class="posts-title" style="margin-bottom:12px">Get the next guide in your inbox</h2>
     <p class="post-excerpt" style="max-width:560px">About one email a month: a new hands-on IAM lab, automation workflow or career guide from a 24-year practitioner. No spam. Unsubscribe any time.</p>
-    <iframe src="https://identityfrontline.substack.com/embed" title="Subscribe to Identity Frontline on Substack" width="100%" height="320" loading="lazy" style="display:block;max-width:480px;width:100%;border:1px solid rgba(255,255,255,.12);border-radius:4px;background:#fff" frameborder="0" scrolling="no"></iframe>
-    <p style="font-size:13px;color:var(--muted);margin-top:12px">Form not loading? <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:var(--teal)">Subscribe on Substack &rarr;</a></p>
+    <form class="if-sub-form" action="https://identityfrontline.substack.com/subscribe" method="get" target="_blank"><input type="email" name="email" required placeholder="you@example.com" aria-label="Email address" autocomplete="email"><button type="submit">Subscribe</button></form><p class="if-sub-note">Opens Substack in a new tab to confirm. No spam. Unsubscribe any time.</p>
   </div>
 </section>
 
