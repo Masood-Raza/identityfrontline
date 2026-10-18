@@ -14,7 +14,7 @@
     <guid isPermaLink="true">https://identityfrontline.com/blog-post-5.html</guid>
     <pubDate>Tue, 01 Sep 2026 00:00:00 +0000</pubDate>
     <category>Automation</category>
-    <description>Build the n8n workflow that revokes Entra ID sign-in sessions, cascades deprovisioning to AWS via SCIM, converts the mailbox, and logs it all automatically the moment someone leaves.</description>
+    <description>Build the n8n workflow that revokes Entra ID sign-in sessions, cascades deprovisioning to AWS via SCIM, redirects the mailbox, and logs it all, starting within a minute of the AD disable.</description>
   </item>
   <item>
     <title>Automate User Lifecycle: Build Your First n8n Workflow for IAM</title>

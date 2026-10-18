@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Automate the Leaver: Offboarding Without the Loose Ends — Identity Frontline</title>
-<meta name="description" content="Build the n8n workflow that revokes Entra ID sign-in sessions, cascades deprovisioning to AWS via SCIM, converts the mailbox, and logs it all automatically the moment someone leaves.">
+<meta name="description" content="Build the n8n workflow that revokes Entra ID sign-in sessions, cascades deprovisioning to AWS via SCIM, redirects the mailbox, and logs it all, starting within a minute of the AD disable.">
 <link rel="canonical" href="https://identityfrontline.com/blog-post-5.html">
 <meta name="theme-color" content="#060b1c">
 <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
@@ -40,7 +40,7 @@
    "mainEntityOfPage": "https://identityfrontline.com/blog-post-5.html",
    "url": "https://identityfrontline.com/blog-post-5.html",
    "headline": "Automate the Leaver: Offboarding Without the Loose Ends",
-   "description": "Build the n8n workflow that revokes Entra ID sign-in sessions, cascades deprovisioning to AWS via SCIM, converts the mailbox, and logs it all automatically the moment someone leaves.",
+   "description": "Build the n8n workflow that revokes Entra ID sign-in sessions, cascades deprovisioning to AWS via SCIM, redirects the mailbox, and logs it all, starting within a minute of the AD disable.",
    "image": [
     "https://identityfrontline.com/assets/og/og-blog-post-5.png"
    ],
@@ -287,7 +287,7 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
 <header class="post-hero">
   <div class="post-meta-row"><span class="post-cat" style="color:#9B59B6;background:rgba(155,89,182,.12)">Automation</span><span class="post-date">September 2026</span><span class="post-read">20 min read</span></div>
   <h1>Automate the Leaver<br><em>Offboarding Without the Loose Ends</em></h1>
-  <p class="post-subtitle">Disabling the account in Active Directory feels like offboarding. It is not. The SSO session can still be alive, the SCIM-synced AWS access can still be active, and the mailbox just goes silent. Build the n8n workflow that closes every one of those gaps automatically &mdash; the moment someone leaves.</p>
+  <p class="post-subtitle">Disabling the account in Active Directory feels like offboarding. It is not. The SSO session can still be alive, the SCIM-synced AWS access can still be active, and the mailbox just goes silent. Build the n8n workflow that closes those gaps automatically, starting within a minute of the disable.</p>
   <div class="author-row"><div class="author-avatar">MR</div><div class="author-info"><span class="author-name">Syed Masood Raza</span><span class="author-title">IAM Architect &middot; AI + Security Automation &middot; Fortune 500 SME</span></div></div>
 </header>
 
@@ -303,25 +303,26 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
 <p><strong>By the end of this guide, you will have:</strong></p>
 
 <ul>
-<li>A workflow that triggers the moment a user is disabled in Active Directory</li>
+<li>A workflow that starts within about a minute of a user being disabled in Active Directory</li>
 <li>Automatic revocation of every active Entra ID sign-in session &mdash; not just the account disable</li>
-<li>Automatic group removal that cascades through SCIM to pull the user's AWS IAM Identity Center access too</li>
-<li>A mailbox that gets an auto-reply and a forwarding rule instead of going silent</li>
+<li>Automatic group removal (in AD for synced groups, in Entra ID for cloud-only groups) that cascades through SCIM to pull the user's AWS IAM Identity Center access on the next provisioning cycle</li>
+<li>A step to end the user's active AWS sessions, not just their future sign-ins</li>
+<li>A mailbox that gets an auto-reply and, where your policy allows it, a forwarding rule instead of going silent</li>
 <li>Manager notification and a compliance-ready audit log entry</li>
 <li>The second half of a Joiner-Mover-Leaver portfolio story &mdash; most candidates only ever show the first half</li>
 </ul>
 
-<div class="callout"><div class="callout-label">Prerequisites</div><p>You need the n8n instance and the "IAM &ndash; New User Onboarding" workflow from <a href="blog-post-4.html" style="color:var(--teal-dark)">Post 4</a>, and the Entra ID &harr; AWS IAM Identity Center SSO from <a href="blog-post-3.html" style="color:var(--teal-dark)">Post 3</a>. This guide assumes both are running.</p></div>
+<div class="callout"><div class="callout-label">Prerequisites</div><p>You need the n8n instance and the "IAM &ndash; New User Onboarding" workflow from <a href="blog-post-4.html" style="color:var(--teal-dark)">Post 4</a>, and the Entra ID &harr; AWS IAM Identity Center SSO from <a href="blog-post-3.html" style="color:var(--teal-dark)">Post 3</a>. This guide assumes both are running. The mailbox steps also need the test user to have a licensed Exchange Online mailbox.</p></div>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Why This Matters</span><div class="section-divider-line"></div></div>
 <h2 id="why-leavers">The Leaver Nobody Finishes</h2>
 
-<p>Joiner automation gets built first because it is urgent and visible &mdash; a new hire blocked on day one generates a ticket within the hour. Mover automation gets built second because it is annoying enough to justify the effort. Leaver automation gets built last, if at all, because a disabled account is quiet. Nobody files a ticket complaining that their offboarding was incomplete. The exposure just sits there until an audit, a access review, or an incident finds it.</p>
+<p>Joiner automation gets built first because it is urgent and visible &mdash; a new hire blocked on day one generates a ticket within the hour. Mover automation gets built second because it is annoying enough to justify the effort. Leaver automation gets built last, if at all, because a disabled account is quiet. Nobody files a ticket complaining that their offboarding was incomplete. The exposure just sits there until an audit, an access review, or an incident finds it.</p>
 
 <div class="workflow-box"><div class="workflow-label">The Leaver Stage, Expanded</div><div class="workflow-steps">
 <div class="workflow-step"><div class="workflow-step-title">Disable</div><div class="workflow-step-desc">AD account<br>set to disabled</div></div>
 <span class="workflow-arrow">&rarr;</span>
-<div class="workflow-step workflow-step-orange"><div class="workflow-step-title">Revoke</div><div class="workflow-step-desc">Entra ID sessions<br>killed instantly</div></div>
+<div class="workflow-step workflow-step-orange"><div class="workflow-step-title">Revoke</div><div class="workflow-step-desc">Entra ID sessions<br>revoked</div></div>
 <span class="workflow-arrow">&rarr;</span>
 <div class="workflow-step workflow-step-purple"><div class="workflow-step-title">Deprovision</div><div class="workflow-step-desc">Groups removed<br>SCIM cascade to AWS</div></div>
 <span class="workflow-arrow">&rarr;</span>
@@ -330,7 +331,7 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
 <div class="workflow-step workflow-step-amber"><div class="workflow-step-title">Log</div><div class="workflow-step-desc">Manager notified<br>audit entry written</div></div>
 </div></div>
 
-<p>Five steps. In a manual process, each one is a separate ticket, owned by a different team, with no guarantee any of them happen the same day &mdash; or at all. Automated, they happen in sequence, every time, in under a minute.</p>
+<p>Five steps. In a manual process, each one is a separate ticket, owned by a different team, with no guarantee any of them happen the same day &mdash; or at all. Automated, they happen in sequence, every time, starting within a minute of the disable.</p>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">The Gap</span><div class="section-divider-line"></div></div>
 <h2 id="what-breaks">What "Disable the Account" Misses</h2>
@@ -338,13 +339,13 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
 <p>This is the part that surprises people who are new to federated identity: disabling a user in Active Directory does not end their active sessions anywhere else.</p>
 
 <ul>
-<li><strong>Federated SSO sessions survive the disable.</strong> The SAML/SCIM setup from Post 3 means a user authenticates to AWS IAM Identity Center through Entra ID. If they already have a valid session or refresh token, disabling the AD account does not revoke it &mdash; it just blocks the <em>next</em> fresh sign-in. The existing session keeps working until it naturally expires.</li>
+<li><strong>Federated SSO sessions survive the disable.</strong> The SAML/SCIM setup from Post 3 means a user signs in to AWS IAM Identity Center through Entra ID. Entra ID only learns about the AD disable at the next Entra Connect sync (every 30 minutes by default), and even then it does not end sessions that already exist. AWS keeps its own session too. Existing sessions keep working until they expire.</li>
 <li><strong>Group membership is usually forgotten.</strong> The SCIM provisioning from Post 3 deprovisions AWS access when the user is removed from the synced group &mdash; but only if someone remembers to remove them. Disabling the account does not touch group membership at all.</li>
 <li><strong>The mailbox just stops.</strong> No auto-reply, no forwarding, nothing to tell senders the person is gone. Important email either bounces or disappears into a mailbox nobody is reading.</li>
 <li><strong>There is no consistent record.</strong> When an audit asks "prove this person's access was revoked within 24 hours of termination," a disabled AD account with no timestamped log of session revocation, group removal, and mailbox handling is not proof of anything.</li>
 </ul>
 
-<div class="callout-orange callout"><div class="callout-label">The gap that matters most</div><p>Entra ID sign-in sessions are not tied to the AD account's enabled state. They are ended explicitly, via the Microsoft Graph <code>revokeSignInSessions</code> endpoint, or implicitly, when a refresh token expires on its own schedule. If your offboarding process does not call that endpoint, a disabled user can keep using an active session against any federated app &mdash; including the AWS access from Post 3 &mdash; for as long as that token remains valid.</p></div>
+<div class="callout-orange callout"><div class="callout-label">The gap that matters most</div><p>Entra ID only learns about the AD disable at the next sync, and even then existing access tokens and app sessions are not ended. Sessions are ended explicitly, via the Microsoft Graph <code>revokeSignInSessions</code> endpoint, or implicitly, when tokens expire on their own schedule.</p><p>Revoking Entra sessions stops new sign-ins through Entra ID. It does not end sessions an app has already issued. AWS IAM Identity Center keeps its own session, and console or CLI role sessions run until the permission set's session duration expires (up to 12 hours). To cut AWS off fully, also end the user's active sessions in IAM Identity Center and keep permission-set session durations short.</p></div>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 1</span><div class="section-divider-line"></div></div>
 <h2 id="phase-1">Detect the Leaver Event</h2>
@@ -369,64 +370,92 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
 
 <div class="code-label">Monitor-DisabledUsers.ps1</div>
 <div class="code-block"># Monitor AD for newly-disabled users and trigger the Leaver workflow
-$webhookUrl = "YOUR_N8N_LEAVER_WEBHOOK_URL_HERE"
+# Run on DC01 (which also runs Entra Connect in this lab), elevated.
+Import-Module ActiveDirectory
+Import-Module ADSync
+
+$webhookUrl    = "YOUR_N8N_LEAVER_WEBHOOK_URL_HERE"
 $checkInterval = 60  # seconds
+$builtIns      = @("krbtgt", "Guest", "DefaultAccount", "WDAGUtilityAccount")
+
+# Record every account that is ALREADY disabled at startup,
+# so only new disables fire the webhook
 $knownDisabled = @{}
+Get-ADUser -Filter { Enabled -eq $false } | ForEach-Object {
+    $knownDisabled[$_.ObjectGUID.ToString()] = $true
+}
 
 Write-Host "Monitoring for newly-disabled AD users..." -ForegroundColor Cyan
 
 while ($true) {
     $disabledUsers = Get-ADUser -Filter {
         Enabled -eq $false
-    } -Properties ObjectGUID, Title, Department,
-                  EmailAddress, Manager, whenChanged
+    } -Properties Title, Department, Manager
 
     foreach ($user in $disabledUsers) {
         $key = $user.ObjectGUID.ToString()
-        if (-not $knownDisabled.ContainsKey($key)) {
-            $managerEmail = $null
-            if ($user.Manager) {
-                $managerEmail = (Get-ADUser $user.Manager `
-                    -Properties EmailAddress).EmailAddress
-            }
+        if ($knownDisabled.ContainsKey($key)) { continue }
+        $knownDisabled[$key] = $true
+        if ($builtIns -contains $user.SamAccountName) { continue }
 
-            $payload = @{
-                samAccountName = $user.SamAccountName
-                displayName    = $user.Name
-                email          = $user.UserPrincipalName
-                title          = $user.Title
-                department     = $user.Department
-                managerEmail   = $managerEmail
-                disabledAt     = $user.whenChanged.ToString("o")
-            } | ConvertTo-Json
-
-            Invoke-RestMethod -Uri $webhookUrl `
-                -Method POST `
-                -Body $payload `
-                -ContentType "application/json"
-
-            $knownDisabled[$key] = $true
-            Write-Host "Triggered offboarding for: $($user.Name)" `
-                -ForegroundColor Yellow
+        # 1. Remove AD group memberships. AD is the source of
+        #    authority for synced groups such as SG-Cloud-Admins.
+        #    Domain Users is the primary group and stays.
+        $groups = @(Get-ADPrincipalGroupMembership $user |
+            Where-Object Name -ne "Domain Users")
+        foreach ($g in $groups) {
+            Remove-ADGroupMember -Identity $g -Members $user `
+                -Confirm:$false
         }
+
+        # 2. Push the disable and the group changes to Entra ID
+        #    now, instead of waiting for the 30-minute schedule
+        Start-ADSyncSyncCycle -PolicyType Delta | Out-Null
+
+        $managerEmail = $null
+        if ($user.Manager) {
+            $managerEmail = (Get-ADUser $user.Manager `
+                -Properties EmailAddress).EmailAddress
+        }
+
+        $payload = @{
+            samAccountName  = $user.SamAccountName
+            displayName     = $user.Name
+            email           = $user.UserPrincipalName
+            title           = $user.Title
+            department      = $user.Department
+            managerEmail    = $managerEmail
+            adGroupsRemoved = @($groups | ForEach-Object Name)
+            detectedAt      = (Get-Date).ToString("o")
+        } | ConvertTo-Json
+
+        Invoke-RestMethod -Uri $webhookUrl `
+            -Method POST `
+            -Body $payload `
+            -ContentType "application/json"
+
+        Write-Host "Triggered offboarding for: $($user.Name)" `
+            -ForegroundColor Yellow
     }
 
     Start-Sleep -Seconds $checkInterval
 }</div>
 
-<div class="callout"><div class="callout-label">What this script does</div><p>Every 60 seconds, it checks for AD accounts with <code>Enabled -eq $false</code> and keeps an in-memory set of ones it has already reported, so each disable fires the webhook exactly once. It also looks up the user's manager so the notification step later has someone to notify.</p></div>
+<div class="callout"><div class="callout-label">What this script does</div><p>At startup it records every account that is already disabled, including built-ins such as <code>krbtgt</code> and <code>Guest</code>, so only new disables fire. Then, every 60 seconds, it checks for AD accounts with <code>Enabled -eq $false</code> and fires the webhook once per new disable while the script is running (an account disabled while the script is stopped is treated as already handled on the next start). For each leaver it removes the AD group memberships, because synced groups can only be changed in AD, and runs an Entra Connect delta sync (<code>Start-ADSyncSyncCycle -PolicyType Delta</code>) so the disable and the removals reach Entra ID in a minute or two rather than at the next scheduled sync. It also looks up the user's manager so the notification step later has someone to notify. The payload's <code>detectedAt</code> is when the script saw the disable; AD's <code>whenChanged</code> is the last change to the object, not necessarily the disable time.</p></div>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 2</span><div class="section-divider-line"></div></div>
 <h2 id="phase-2">Build the Offboarding Workflow in n8n</h2>
 
 <p>This is the workflow that does the actual work. Five nodes, each one closing a gap that manual offboarding leaves open.</p>
 
+<div class="callout"><div class="callout-label">Graph permissions for this workflow</div><p>Grant the app registration these application permissions (with admin consent): <code>User.RevokeSessions.All</code> (revoke sessions), <code>User.Read.All</code> (check that the disable has synced), <code>GroupMember.ReadWrite.All</code> (list and remove group memberships), and <code>MailboxSettings.ReadWrite</code> (auto-reply and inbox rule). The mailbox calls only work if the user has a licensed Exchange Online mailbox.</p></div>
+
 <div class="workflow-box"><div class="workflow-label">n8n Workflow &mdash; Leaver Offboarding</div><div class="workflow-steps">
 <div class="workflow-step"><div class="workflow-step-title">Webhook</div><div class="workflow-step-desc">Receives leaver<br>data from AD</div></div>
 <span class="workflow-arrow">&rarr;</span>
-<div class="workflow-step workflow-step-orange"><div class="workflow-step-title">Revoke Sessions</div><div class="workflow-step-desc">Graph API kills<br>all sign-ins</div></div>
+<div class="workflow-step workflow-step-orange"><div class="workflow-step-title">Revoke Sessions</div><div class="workflow-step-desc">After sync, Graph<br>revokes sign-ins</div></div>
 <span class="workflow-arrow">&rarr;</span>
-<div class="workflow-step workflow-step-purple"><div class="workflow-step-title">Remove Groups</div><div class="workflow-step-desc">Graph API, cascades<br>to AWS via SCIM</div></div>
+<div class="workflow-step workflow-step-purple"><div class="workflow-step-title">Remove Groups</div><div class="workflow-step-desc">AD + cloud groups,<br>SCIM to AWS</div></div>
 <span class="workflow-arrow">&rarr;</span>
 <div class="workflow-step"><div class="workflow-step-title">Redirect Mail</div><div class="workflow-step-desc">Auto-reply +<br>forwarding rule</div></div>
 <span class="workflow-arrow">&rarr;</span>
@@ -440,28 +469,43 @@ while ($true) {
 <table class="step-table">
 <thead><tr><th>Step</th><th>Action</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>Add an <strong>HTTP Request</strong> node after the Webhook (or the <strong>Microsoft Entra ID</strong> node if your n8n instance has it)</td></tr>
-<tr><td>2</td><td>Set up OAuth2 credentials for Microsoft Graph with the <code>User.RevokeSessions.All</code> application permission</td></tr>
-<tr><td>3</td><td><strong>Method:</strong> <code>POST</code></td></tr>
+<tr><td>1</td><td>Set up OAuth2 (client credentials) for Microsoft Graph with the permissions listed above</td></tr>
+<tr><td>2</td><td>Confirm the disable has reached Entra ID: an <strong>HTTP Request</strong> node with <code>GET https://graph.microsoft.com/v1.0/users/{{ $json.samAccountName }}@iamlab.onmicrosoft.com?$select=accountEnabled</code>, then an <strong>IF</strong> node. If <code>accountEnabled</code> is still <code>true</code>, go to a <strong>Wait</strong> node (60 seconds) and loop back. The delta sync from the script usually lands within a couple of minutes</td></tr>
+<tr><td>3</td><td>Once <code>accountEnabled</code> is <code>false</code>, add an <strong>HTTP Request</strong> node (or the <strong>Microsoft Entra ID</strong> node if your n8n instance has it). <strong>Method:</strong> <code>POST</code></td></tr>
 <tr><td>4</td><td><strong>URL:</strong> <code>https://graph.microsoft.com/v1.0/users/{{ $json.samAccountName }}@iamlab.onmicrosoft.com/revokeSignInSessions</code></td></tr>
 </tbody>
 </table>
 
-<div class="callout-orange callout"><div class="callout-label">Why this comes first</div><p>Revoking sign-in sessions invalidates every refresh token the user holds, immediately. Any app using one of those tokens &mdash; including the AWS IAM Identity Center session from Post 3 &mdash; is forced to re-authenticate, and the disabled AD account blocks that re-authentication. This is the step that actually turns "disabled" into "locked out," not just "unable to log in fresh."</p></div>
+<div class="callout-orange callout"><div class="callout-label">Why this comes first</div><p>Revoking sign-in sessions invalidates the user's refresh tokens and Entra browser session cookies (Microsoft notes this can take a few minutes). Apps that go back to Entra ID must sign the user in again, and that fails once the disabled state has synced from AD. Until the next Entra Connect sync, the cloud account is still enabled, which is why the script triggers a delta sync and this node waits for <code>accountEnabled</code> to be <code>false</code> before it revokes. Access tokens already issued can stay valid until they expire, and apps with their own sessions, such as AWS IAM Identity Center, need their own step (below).</p></div>
 
-<h3>Node 2: Remove All Group Memberships</h3>
+<h3>Node 2: Remove Group Memberships</h3>
+
+<p>Synced groups (created in AD and synced by Entra Connect, like <code>SG-Cloud-Admins</code> from Post 2) were already handled by the trigger script, because AD is their source of authority and Graph cannot change them. This node handles cloud-only groups.</p>
 
 <table class="step-table">
 <thead><tr><th>Step</th><th>Action</th></tr></thead>
 <tbody>
-<tr><td>1</td><td>Add an <strong>HTTP Request</strong> node: <code>GET /users/{id}/memberOf</code> to list current groups</td></tr>
-<tr><td>2</td><td>Add a <strong>Split Out</strong> node to iterate over the returned group list</td></tr>
-<tr><td>3</td><td>Add an <strong>HTTP Request</strong> node inside the loop: <code>DELETE /groups/{groupId}/members/{userId}/$ref</code></td></tr>
-<tr><td>4</td><td>Add a <strong>Set</strong> node to collect the removed group names for the audit log later</td></tr>
+<tr><td>1</td><td>Add an <strong>HTTP Request</strong> node to list groups: <code>GET /users/{id}/memberOf/microsoft.graph.group?$select=id,displayName,onPremisesSyncEnabled,groupTypes,mailEnabled</code> (the plain <code>/memberOf</code> also returns directory roles and administrative units)</td></tr>
+<tr><td>2</td><td>Add a <strong>Filter</strong> node that keeps cloud-only groups: <code>onPremisesSyncEnabled</code> not true, not dynamic (<code>groupTypes</code> without <code>DynamicMembership</code>) and not mail-enabled (those are managed in Exchange)</td></tr>
+<tr><td>3</td><td>Add a <strong>Split Out</strong> node, then an <strong>HTTP Request</strong> node inside the loop: <code>DELETE /groups/{groupId}/members/{userId}/$ref</code></td></tr>
+<tr><td>4</td><td>Add a <strong>Set</strong> node that combines <code>adGroupsRemoved</code> from the webhook with the cloud groups removed here into <code>removedGroups</code> for the audit log</td></tr>
 </tbody>
 </table>
 
-<div class="callout"><div class="callout-label">The part that closes the AWS gap</div><p>Because AWS IAM Identity Center is SCIM-provisioned from these same Entra ID groups (Post 3), removing the membership here fires the SCIM deprovisioning call to AWS automatically. There is no separate "remove from AWS" step to forget &mdash; it is a side effect of this node, which is exactly why federated group-based provisioning is worth setting up correctly the first time.</p></div>
+<div class="callout"><div class="callout-label">The part that closes the AWS gap</div><p>Because AWS IAM Identity Center is SCIM-provisioned from these same groups (Post 3), removing the membership takes the user out of provisioning scope, and on the next provisioning cycle (typically 20&ndash;40 minutes, or straight away with Provision on demand) Entra ID deprovisions them in AWS. Groups synced from AD must be changed in AD; the removal reaches Entra ID on the next Entra Connect sync, which the script has already triggered. There is no separate "remove from AWS" group change to forget, which is exactly why federated group-based provisioning is worth setting up correctly the first time.</p></div>
+
+<h3>Close the AWS Session Gap</h3>
+
+<p>Deprovisioning blocks new AWS sign-ins, but sessions AWS has already issued carry on. AWS IAM Identity Center ends existing application sessions within about 30 minutes; console and CLI role sessions run until the permission set's session duration expires. AWS offers ending active sessions as a console action, so make it a step in the manager or IAM-team notification:</p>
+
+<table class="step-table">
+<thead><tr><th>Step</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>In the <strong>IAM Identity Center</strong> console, open <strong>Users</strong>, choose the user and open the <strong>Active sessions</strong> tab</td></tr>
+<tr><td>2</td><td>Select the sessions, choose <strong>End sessions</strong> and type <code>confirm</code></td></tr>
+<tr><td>3</td><td>Keep permission-set session durations short (for example 1 hour, under <strong>Permission sets</strong> &rarr; <strong>Edit</strong>), because ending the portal session does not end IAM role sessions already started in the console or CLI</td></tr>
+</tbody>
+</table>
 
 <h3>Node 3: Redirect the Mailbox</h3>
 
@@ -471,7 +515,7 @@ while ($true) {
 <thead><tr><th>Step</th><th>Action</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Add an <strong>HTTP Request</strong> node: <code>PATCH /users/{id}/mailboxSettings</code> to set <code>automaticRepliesSetting</code> to enabled, with a message pointing senders to the manager</td></tr>
-<tr><td>2</td><td>Add a second <strong>HTTP Request</strong> node: <code>POST /users/{id}/mailFolders('inbox')/messageRules</code> creating a rule that forwards all mail to the manager's address</td></tr>
+<tr><td>2</td><td>Add a second <strong>HTTP Request</strong> node: <code>POST /users/{id}/mailFolders('inbox')/messageRules</code> creating a rule that forwards all mail to the manager's address, where your policy allows it (forwarding a leaver's mail can raise privacy and HR-policy questions, so check first)</td></tr>
 </tbody>
 </table>
 
@@ -495,7 +539,8 @@ while ($true) {
 <tbody>
 <tr><td>1</td><td>Add an <strong>Email Send</strong> or <strong>Microsoft Teams</strong> node</td></tr>
 <tr><td>2</td><td><strong>To:</strong> <code>{{ $json.managerEmail }}</code></td></tr>
-<tr><td>3</td><td><strong>Message:</strong> <code>{{ $json.displayName }}'s access has been revoked. Entra ID sessions ended, {{ $json.removedGroups.length }} group memberships removed, mailbox forwarding to you is active.</code></td></tr>
+<tr><td>3</td><td><strong>Message:</strong> <code>{{ $json.displayName }}'s access is being revoked. Entra ID sessions revoked, {{ $json.removedGroups.length }} group memberships removed (AWS access is removed on the next provisioning cycle), mailbox auto-reply is on.</code></td></tr>
+<tr><td>4</td><td>Send a second message to the IAM team with a link to the user in IAM Identity Center, so someone ends the user's active AWS sessions (above)</td></tr>
 </tbody>
 </table>
 
@@ -509,7 +554,7 @@ while ($true) {
 </tbody>
 </table>
 
-<div class="callout"><div class="callout-label">What you just built</div><p>A complete offboarding automation: AD disable detected &rarr; Entra ID sessions revoked &rarr; groups removed (cascading to AWS via SCIM) &rarr; mailbox redirected &rarr; manager notified &rarr; audit entry written. The exact audit evidence that "prove access was revoked within 24 hours" requires &mdash; generated automatically, every time.</p></div>
+<div class="callout"><div class="callout-label">What you just built</div><p>A complete offboarding automation: AD disable detected &rarr; AD group memberships removed and a delta sync triggered &rarr; Entra ID sessions revoked once the disable has synced &rarr; cloud-only groups removed (AWS deprovisioned via SCIM on the next provisioning cycle) &rarr; mailbox redirected &rarr; manager and IAM team notified &rarr; audit entry written. The exact audit evidence that "prove access was revoked within 24 hours" requires &mdash; generated automatically, every time.</p></div>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 3</span><div class="section-divider-line"></div></div>
 <h2 id="phase-3">Test End-to-End</h2>
@@ -531,15 +576,16 @@ while ($true) {
 <table class="step-table">
 <thead><tr><th>Step</th><th>Action</th></tr></thead>
 <tbody>
-<tr><td>4</td><td><strong>Verify:</strong> Entra ID sign-in logs show a <code>revokeSignInSessions</code> event for the user</td></tr>
-<tr><td>5</td><td><strong>Verify:</strong> AWS IAM Identity Center no longer lists the user as provisioned &mdash; confirming the SCIM cascade fired</td></tr>
-<tr><td>6</td><td><strong>Verify:</strong> an email to Alex Morgan's address gets an auto-reply and arrives in the manager's inbox instead</td></tr>
-<tr><td>7</td><td><strong>Verify:</strong> the manager received the offboarding notification</td></tr>
-<tr><td>8</td><td><strong>Verify:</strong> the audit log has a new <code>USER_OFFBOARDED</code> row with the removed groups listed</td></tr>
+<tr><td>4</td><td><strong>Verify:</strong> after the delta sync, the user shows as disabled in Entra ID, and the Entra ID <strong>audit logs</strong> show the user's sign-in sessions being revoked</td></tr>
+<tr><td>5</td><td><strong>Verify:</strong> after the next provisioning cycle (or straight away with <strong>Provision on demand</strong> in the AWS app's Provisioning page), AWS IAM Identity Center shows the user removed or disabled, depending on your provisioning settings &mdash; confirming the SCIM cascade fired</td></tr>
+<tr><td>6</td><td><strong>Verify:</strong> in IAM Identity Center, end the user's active sessions and check the <strong>Active sessions</strong> tab shows none</td></tr>
+<tr><td>7</td><td><strong>Verify:</strong> an email to Alex Morgan's address gets an auto-reply and, if you enabled forwarding, arrives in the manager's inbox</td></tr>
+<tr><td>8</td><td><strong>Verify:</strong> the manager and the IAM team received their notifications</td></tr>
+<tr><td>9</td><td><strong>Verify:</strong> the audit log has a new <code>USER_OFFBOARDED</code> row with the removed groups listed</td></tr>
 </tbody>
 </table>
 
-<p><strong>That is a closed loop.</strong> One account disabled. Five automated actions, across two identity providers. Nothing left half-finished for someone to find in next quarter's access review.</p>
+<p><strong>That is a closed loop.</strong> One account disabled. Five automated actions, across Entra ID and AWS. Nothing left half-finished for someone to find in next quarter's access review.</p>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 4</span><div class="section-divider-line"></div></div>
 <h2 id="phase-4">Add an AI Offboarding Summary</h2>
@@ -572,7 +618,7 @@ non-admin role).</div>
 
 <p>Append the AI's output as a column in the audit log row. Now every offboarding event carries a human-readable summary and a flag for anything that looks wrong &mdash; access that should have been caught at a Mover event but never was, and is only visible now that the person is leaving.</p>
 
-<div class="callout-amber callout"><div class="callout-label">Why this matters for your career</div><p>Most IAM automation portfolios stop at onboarding, because onboarding is the half that gets demanded. An offboarding workflow that revokes federated sessions, cascades through SCIM, and produces audit-ready evidence is the half that actually prevents breaches &mdash; and it is the half most environments, including real enterprise ones, still do by hand or incompletely. Showing this finished is what tells a hiring manager you understand where IAM programs actually fail.</p></div>
+<div class="callout-amber callout"><div class="callout-label">Why this matters for your career</div><p>Most IAM automation portfolios stop at onboarding, because onboarding is the half that gets demanded. An offboarding workflow that revokes Entra ID sessions, deprovisions AWS through SCIM, closes the AWS session gap, and produces audit-ready evidence is the half that actually prevents breaches &mdash; and it is the half most environments, including real enterprise ones, still do by hand or incompletely. Showing this finished is what tells a hiring manager you understand where IAM programs actually fail.</p></div>
 
 <div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Document It</span><div class="section-divider-line"></div></div>
 <h2 id="portfolio">Document for Your Portfolio</h2>
@@ -580,8 +626,8 @@ non-admin role).</div>
 <ul>
 <li><strong>Export both workflows</strong> &mdash; the Joiner workflow from Post 4 and the Leaver workflow from this post. Together they tell a complete story, not just half of one.</li>
 <li><strong>Screenshot the session-revocation call succeeding</strong> &mdash; this is the detail that shows you understand federated identity, not just AD administration.</li>
-<li><strong>Record a before/after of the AWS console</strong> &mdash; the user provisioned, then gone, with no manual AWS-side step in between.</li>
-<li><strong>Write the business case</strong> &mdash; "This workflow revokes federated access within 60 seconds of an AD disable, versus a manual process that averaged several days across the SCIM-connected applications in scope."</li>
+<li><strong>Record a before/after of the AWS console</strong> &mdash; the user provisioned, then deprovisioned after the provisioning cycle (or Provision on demand), with no manual group change on the AWS side.</li>
+<li><strong>Write the business case</strong> &mdash; "This workflow starts revocation within 60 seconds of an AD disable and records each step, versus a manual process that averaged several days across the SCIM-connected applications in scope." Use your own numbers here: only quote "several days" if you can back it up.</li>
 </ul>
 
 <div class="pull-quote">&ldquo;I built an automated leaver workflow that revokes Entra ID sessions, cascades deprovisioning through SCIM to connected apps, and produces audit-ready evidence &mdash; not just an AD account toggled to disabled.&rdquo; That is the sentence that separates a Joiner-only portfolio from a complete one.</div>
@@ -593,13 +639,14 @@ non-admin role).</div>
 <li>Created the "IAM - Leaver Offboarding" workflow in n8n</li>
 <li>Added Webhook trigger node</li>
 <li>Created Monitor-DisabledUsers.ps1 and confirmed it fires once per disable</li>
-<li>Added the Graph API session-revocation node</li>
-<li>Added the group-removal loop and confirmed the SCIM cascade to AWS</li>
+<li>Granted the Graph permissions and added the sync check and session-revocation nodes</li>
+<li>Added the cloud-only group-removal loop and confirmed the SCIM cascade to AWS</li>
+<li>Ended the test user's active sessions in IAM Identity Center and shortened permission-set session durations</li>
 <li>Added the mailbox auto-reply and forwarding-rule nodes</li>
 <li>Connected the manager notification node</li>
 <li>Pointed the audit log at the same sheet used in Post 4</li>
 <li>Tested end-to-end by disabling the Post 4 test user</li>
-<li>Verified: sessions revoked, AWS access gone, mail redirected, manager notified, log written</li>
+<li>Verified: account disabled in Entra ID, sessions revoked, AWS user deprovisioned and sessions ended, mail redirected, notifications sent, log written</li>
 <li>Added the AI offboarding summary node</li>
 <li>Exported both workflow JSONs to GitHub</li>
 <li>Captured screenshots and the before/after AWS console recording</li>
