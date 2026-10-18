@@ -243,6 +243,23 @@ body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
 p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,255,255,.5);margin:10px 0 0}
 @media(max-width:480px){.if-sub-form{flex-direction:column}.if-sub-form input[type=email],.if-sub-form button{flex:none;width:100%}}
 </style>
+<style id="if-mobile-fix">
+/* Mobile overflow fix. On narrow screens the flex list items turned each inline child
+   (strong, a, code, em) into a separate column, which pushed long items off-screen.
+   Below 900px, list items flow as normal text with the marker positioned absolutely. */
+@media(max-width:900px){
+.post-body ul li,.post-body ol li{display:block;position:relative;min-width:0;overflow-wrap:anywhere}
+.post-body ul li{padding-left:18px}
+.post-body ul li::before{position:absolute;left:0;top:0;margin-top:10px}
+.post-body ol li{padding-left:40px}
+.post-body ol li::before{position:absolute;left:0;top:1px}
+.post-body table{max-width:100%}
+.post-body td{overflow-wrap:anywhere}
+.post-body td:first-child{overflow-wrap:normal}
+.post-body img{max-width:100%;height:auto}
+.post-body pre,.post-body .code-block{max-width:100%;overflow-x:auto}
+}
+</style>
 </head>
 <body>
 <nav class="nav-bar">
