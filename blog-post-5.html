@@ -22,9 +22,10 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Automate the Leaver: Offboarding Without the Loose Ends">
 <meta property="article:published_time" content="2026-09-01">
-<meta property="article:modified_time" content="2026-10-18">
+<meta property="article:modified_time" content="2026-10-21">
 <meta property="article:section" content="Automation">
-<meta name="author" content="Syed Masood Raza Kazmi">
+<meta name="author" content="Masood Raza">
+<link rel="author" href="/about/masood-raza/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Automate the Leaver: Offboarding Without the Loose Ends">
 <meta name="twitter:description" content="Disabling the AD account isn&#x27;t offboarding. Revoke the sessions, cascade the SCIM deprovisioning, convert the mailbox — automatically, in the same homelab.">
@@ -45,11 +46,14 @@
     "https://identityfrontline.com/assets/og/og-blog-post-5.png"
    ],
    "datePublished": "2026-09-01",
-   "dateModified": "2026-10-18",
+   "dateModified": "2026-10-21",
    "articleSection": "Automation",
    "inLanguage": "en",
    "author": {
-    "@id": "https://identityfrontline.com/about.html#author"
+    "@type": "Person",
+    "@id": "https://identityfrontline.com/about/masood-raza/#person",
+    "name": "Masood Raza",
+    "url": "https://identityfrontline.com/about/masood-raza/"
    },
    "publisher": {
     "@id": "https://identityfrontline.com/#organization"
@@ -60,12 +64,26 @@
   },
   {
    "@type": "Person",
-   "@id": "https://identityfrontline.com/about.html#author",
-   "name": "Syed Masood Raza Kazmi",
+   "@id": "https://identityfrontline.com/about/masood-raza/#person",
+   "name": "Masood Raza",
+   "alternateName": "Syed Masood Raza Kazmi",
    "jobTitle": "IAM Architect",
-   "url": "https://identityfrontline.com/about.html",
+   "url": "https://identityfrontline.com/about/masood-raza/",
+   "image": "https://identityfrontline.com/assets/og/og-author.png",
    "sameAs": [
-    "https://www.linkedin.com/in/masood-raza-89488632/"
+    "https://www.linkedin.com/in/masoodrazaa",
+    "https://x.com/masoodrazaaa",
+    "https://github.com/Masood-Raza"
+   ],
+   "knowsAbout": [
+    "Microsoft Entra ID",
+    "Identity and access management",
+    "Conditional Access",
+    "Hybrid identity",
+    "Single sign-on",
+    "SCIM provisioning",
+    "Microsoft Graph",
+    "Zero Trust"
    ]
   },
   {
@@ -84,7 +102,7 @@
     "https://identityfrontline.substack.com/"
    ],
    "founder": {
-    "@id": "https://identityfrontline.com/about.html#author"
+    "@id": "https://identityfrontline.com/about/masood-raza/#person"
    }
   }
  ]
@@ -274,6 +292,17 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
 .post-body pre,.post-body .code-block{max-width:100%;overflow-x:auto}
 }
 </style>
+<style>
+/* MVP alignment: byline link + Microsoft Learn box */
+a.author-name{color:#fff;text-decoration:none}a.author-name:hover{color:#35d7ff;text-decoration:underline}
+.author-more{display:inline-block;margin-top:10px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#35d7ff;text-decoration:none}
+.learn-box{border:1px solid rgba(53,215,255,.35);background:rgba(53,215,255,.06);border-radius:6px;padding:20px 24px;margin:40px 0 28px;max-width:100%}
+.learn-box-label{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#35d7ff;margin-bottom:10px;font-weight:500}
+.post-body .learn-box ul{margin:0 0 8px;padding-left:20px}
+.post-body .learn-box li{font-size:15px;line-height:1.55;margin-bottom:8px;overflow-wrap:anywhere}
+.post-body .learn-box a{color:#35d7ff}
+.post-body .learn-box p.learn-box-note{font-size:12px;margin:8px 0 0;opacity:.7}
+</style>
 </head>
 <body>
 <nav class="nav-bar">
@@ -288,7 +317,7 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
   <div class="post-meta-row"><span class="post-cat" style="color:#9B59B6;background:rgba(155,89,182,.12)">Automation</span><span class="post-date">September 2026</span><span class="post-read">20 min read</span></div>
   <h1>Automate the Leaver<br><em>Offboarding Without the Loose Ends</em></h1>
   <p class="post-subtitle">Disabling the account in Active Directory feels like offboarding. It is not. The SSO session can still be alive, the SCIM-synced AWS access can still be active, and the mailbox just goes silent. Build the n8n workflow that closes those gaps automatically, starting within a minute of the disable.</p>
-  <div class="author-row"><div class="author-avatar">MR</div><div class="author-info"><span class="author-name">Syed Masood Raza</span><span class="author-title">IAM Architect &middot; AI + Security Automation &middot; Fortune 500 SME</span></div></div>
+  <div class="author-row"><div class="author-avatar">MR</div><div class="author-info"><a class="author-name" href="/about/masood-raza/" rel="author">By Masood Raza</a><span class="author-title">IAM Architect &middot; AI + Security Automation &middot; Fortune 500 SME</span></div></div>
 </header>
 
 <div class="post-layout">
@@ -664,7 +693,7 @@ non-admin role).</div>
 <p>Five posts in. Your homelab now covers Active Directory, hybrid identity, Conditional Access, SAML SSO, SCIM provisioning, and a complete Joiner-Leaver automation loop with an AI layer on both ends. That is not a lab project anymore. That is a working IAM program, built for free, that most mid-size organisations do not have.</p>
 
 <p><strong>Keep automating. The loose ends are where the breaches happen.</strong></p>
-
+<aside class="learn-box" aria-label="Further reading on Microsoft Learn"><div class="learn-box-label">Learn more on Microsoft Learn</div><ul><li><a href="https://learn.microsoft.com/en-us/graph/api/user-revokesigninsessions" target="_blank" rel="noopener">Microsoft Graph: user: revokeSignInSessions</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/users/users-revoke-access" target="_blank" rel="noopener">Revoke user access in Microsoft Entra ID</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/how-to-connect-sync-feature-scheduler" target="_blank" rel="noopener">Microsoft Entra Connect Sync: Scheduler</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/app-provisioning/provision-on-demand" target="_blank" rel="noopener">Provision on demand with Microsoft Entra ID</a></li></ul><p class="learn-box-note">Official Microsoft documentation for the features used in this guide.</p></aside>
 <p>&mdash; <strong>Masood</strong></p>
 <p style="font-size:13px;color:var(--muted)">IAM Architect &middot; AI + Security Automation &middot; identityfrontline.com</p>
 
@@ -694,20 +723,20 @@ non-admin role).</div>
 <a href="blog-post-4.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Automate User Lifecycle (the Joiner)</a>
 <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Automation &middot; 22 min</span>
 <hr style="border:none;border-top:1px solid var(--rule);margin:10px 0">
-<a href="blog-post-3.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Configure SSO with an External App</a>
+<a href="blog-post-3.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Entra ID SSO and SCIM to AWS</a>
 <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Hands-On Lab &middot; 20 min</span>
 <hr style="border:none;border-top:1px solid var(--rule);margin:10px 0">
 <a href="blog-post-2.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Build Your IAM Homelab for Free</a>
 <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Hands-On Lab &middot; 25 min</span>
 </div></div>
 
-<div class="sidebar-widget"><div class="sidebar-widget-title">About the author</div><div style="padding:16px"><div class="author-avatar" style="width:52px;height:52px;font-size:20px;margin-bottom:12px">MR</div><div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px">Syed Masood Raza</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">IAM Architect &middot; AI + Automation</div><p style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6">24+ years in IAM. Builds n8n automation workflows with AI agents for Fortune 500 companies. 500+ automations deployed.</p></div></div>
+<div class="sidebar-widget"><div class="sidebar-widget-title">About the author</div><div style="padding:16px"><div class="author-avatar" style="width:52px;height:52px;font-size:20px;margin-bottom:12px">MR</div><div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px">Syed Masood Raza</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">IAM Architect &middot; AI + Automation</div><p style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6">24+ years in IAM. Builds n8n automation workflows with AI agents for Fortune 500 companies. 500+ automations deployed.</p><a class="author-more" href="/about/masood-raza/">Full bio &amp; links &rarr;</a></div></div>
 </aside>
 </div>
 
 <section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>Finish what you started.</h2><p>Onboarding without offboarding is half a program. Subscribe for the Mover workflow and what comes after it.</p><form class="if-sub-form" action="https://identityfrontline.substack.com/subscribe" method="get" target="_blank"><input type="email" name="email" required placeholder="you@example.com" aria-label="Email address" autocomplete="email"><button type="submit">Subscribe</button></form><p class="if-sub-note">Opens Substack in a new tab to confirm. No spam. Unsubscribe any time.</p></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>n8n &mdash; <a href="https://n8n.io" target="_blank">n8n.io</a> (free workflow automation)</li><li>Microsoft Graph &mdash; <a href="https://learn.microsoft.com/graph/api/user-revokesigninsessions" target="_blank">revokeSignInSessions reference</a></li><li>Microsoft Graph API &mdash; <a href="https://learn.microsoft.com/graph" target="_blank">learn.microsoft.com/graph</a></li><li>n8n Documentation &mdash; <a href="https://docs.n8n.io" target="_blank">docs.n8n.io</a></li></ul></div></div></section>
 
-<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span><span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
+<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span><span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="/about/masood-raza/" style="color:inherit;opacity:.7">Author</a> · <a href="/speaking.html" style="color:inherit;opacity:.7">Speaking</a> · <a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
 
 <script>
 window.addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress-bar').style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight))*100+'%'});

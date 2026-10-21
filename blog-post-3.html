@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Configure SSO with an External App in Your Homelab — Identity Frontline</title>
-<meta name="description" content="Step-by-step guide to configuring SAML-based Single Sign-On between Entra ID and AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.">
+<title>Entra ID SSO and SCIM Provisioning to AWS IAM Identity Center — Identity Frontline</title>
+<meta name="description" content="Step-by-step guide to configuring SAML single sign-on from Microsoft Entra ID to AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.">
 <link rel="canonical" href="https://identityfrontline.com/blog-post-3.html">
 <meta name="theme-color" content="#060b1c">
 <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
@@ -14,22 +14,23 @@
 <!-- Open Graph / social share tags -->
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Identity Frontline">
-<meta property="og:title" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
+<meta property="og:title" content="Entra ID SSO and SCIM Provisioning to AWS IAM Identity Center">
 <meta property="og:description" content="Your homelab users can now sign into AWS with their Entra ID credentials. SAML SSO, SCIM provisioning, user assignment — all free.">
 <meta property="og:url" content="https://identityfrontline.com/blog-post-3.html">
 <meta property="og:image" content="https://identityfrontline.com/assets/og/og-blog-post-3.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
+<meta property="og:image:alt" content="Entra ID SSO and SCIM Provisioning to AWS IAM Identity Center">
 <meta property="article:published_time" content="2026-07-01">
-<meta property="article:modified_time" content="2026-10-18">
+<meta property="article:modified_time" content="2026-10-21">
 <meta property="article:section" content="Hands-On Lab">
-<meta name="author" content="Syed Masood Raza Kazmi">
+<meta name="author" content="Masood Raza">
+<link rel="author" href="/about/masood-raza/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
+<meta name="twitter:title" content="Entra ID SSO and SCIM Provisioning to AWS IAM Identity Center">
 <meta name="twitter:description" content="Your homelab users can now sign into AWS with their Entra ID credentials. SAML SSO, SCIM provisioning, user assignment — all free.">
 <meta name="twitter:image" content="https://identityfrontline.com/assets/og/og-blog-post-3.png">
-<meta name="twitter:image:alt" content="Configure SSO with an External App: Your Homelab, Now Enterprise-Grade">
+<meta name="twitter:image:alt" content="Entra ID SSO and SCIM Provisioning to AWS IAM Identity Center">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
@@ -39,17 +40,20 @@
    "@id": "https://identityfrontline.com/blog-post-3.html#article",
    "mainEntityOfPage": "https://identityfrontline.com/blog-post-3.html",
    "url": "https://identityfrontline.com/blog-post-3.html",
-   "headline": "Configure SSO with an External App: Your Homelab, Now Enterprise-Grade",
-   "description": "Step-by-step guide to configuring SAML-based Single Sign-On between Entra ID and AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.",
+   "headline": "Entra ID SSO and SCIM Provisioning to AWS IAM Identity Center",
+   "description": "Step-by-step guide to configuring SAML single sign-on from Microsoft Entra ID to AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.",
    "image": [
     "https://identityfrontline.com/assets/og/og-blog-post-3.png"
    ],
    "datePublished": "2026-07-01",
-   "dateModified": "2026-10-18",
+   "dateModified": "2026-10-21",
    "articleSection": "Hands-On Lab",
    "inLanguage": "en",
    "author": {
-    "@id": "https://identityfrontline.com/about.html#author"
+    "@type": "Person",
+    "@id": "https://identityfrontline.com/about/masood-raza/#person",
+    "name": "Masood Raza",
+    "url": "https://identityfrontline.com/about/masood-raza/"
    },
    "publisher": {
     "@id": "https://identityfrontline.com/#organization"
@@ -60,12 +64,26 @@
   },
   {
    "@type": "Person",
-   "@id": "https://identityfrontline.com/about.html#author",
-   "name": "Syed Masood Raza Kazmi",
+   "@id": "https://identityfrontline.com/about/masood-raza/#person",
+   "name": "Masood Raza",
+   "alternateName": "Syed Masood Raza Kazmi",
    "jobTitle": "IAM Architect",
-   "url": "https://identityfrontline.com/about.html",
+   "url": "https://identityfrontline.com/about/masood-raza/",
+   "image": "https://identityfrontline.com/assets/og/og-author.png",
    "sameAs": [
-    "https://www.linkedin.com/in/masood-raza-89488632/"
+    "https://www.linkedin.com/in/masoodrazaa",
+    "https://x.com/masoodrazaaa",
+    "https://github.com/Masood-Raza"
+   ],
+   "knowsAbout": [
+    "Microsoft Entra ID",
+    "Identity and access management",
+    "Conditional Access",
+    "Hybrid identity",
+    "Single sign-on",
+    "SCIM provisioning",
+    "Microsoft Graph",
+    "Zero Trust"
    ]
   },
   {
@@ -84,7 +102,7 @@
     "https://identityfrontline.substack.com/"
    ],
    "founder": {
-    "@id": "https://identityfrontline.com/about.html#author"
+    "@id": "https://identityfrontline.com/about/masood-raza/#person"
    }
   }
  ]
@@ -260,6 +278,17 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
 .post-body pre,.post-body .code-block{max-width:100%;overflow-x:auto}
 }
 </style>
+<style>
+/* MVP alignment: byline link + Microsoft Learn box */
+a.author-name{color:#fff;text-decoration:none}a.author-name:hover{color:#35d7ff;text-decoration:underline}
+.author-more{display:inline-block;margin-top:10px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#35d7ff;text-decoration:none}
+.learn-box{border:1px solid rgba(53,215,255,.35);background:rgba(53,215,255,.06);border-radius:6px;padding:20px 24px;margin:40px 0 28px;max-width:100%}
+.learn-box-label{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#35d7ff;margin-bottom:10px;font-weight:500}
+.post-body .learn-box ul{margin:0 0 8px;padding-left:20px}
+.post-body .learn-box li{font-size:15px;line-height:1.55;margin-bottom:8px;overflow-wrap:anywhere}
+.post-body .learn-box a{color:#35d7ff}
+.post-body .learn-box p.learn-box-note{font-size:12px;margin:8px 0 0;opacity:.7}
+</style>
 </head>
 <body>
 <nav class="nav-bar">
@@ -272,9 +301,9 @@ p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,
 
 <header class="post-hero">
   <div class="post-meta-row"><span class="post-cat">Hands-On Lab</span><span class="post-date">July 2026</span><span class="post-read">20 min read</span></div>
-  <h1>Configure SSO with an External App<br><em>in Your Free Homelab</em></h1>
+  <h1>Entra ID SSO and SCIM Provisioning<br><em>to AWS IAM Identity Center</em></h1>
   <p class="post-subtitle">Your homelab users can now sign into AWS with their Entra ID credentials. SAML-based Single Sign-On, user assignment, and SCIM provisioning &mdash; all configured step-by-step. Total cost: still $0.</p>
-  <div class="author-row"><div class="author-avatar">MR</div><div class="author-info"><span class="author-name">Syed Masood Raza</span><span class="author-title">IAM Architect &middot; 24+ years &middot; Fortune 500 SME</span></div></div>
+  <div class="author-row"><div class="author-avatar">MR</div><div class="author-info"><a class="author-name" href="/about/masood-raza/" rel="author">By Masood Raza</a><span class="author-title">IAM Architect &middot; 24+ years &middot; Fortune 500 SME</span></div></div>
 </header>
 
 <div class="post-layout">
@@ -499,7 +528,7 @@ lastName:                           user.surname</div>
 <p>Three posts in, your homelab now covers Active Directory, hybrid identity, Conditional Access, MFA, SSPR, SAML SSO, and SCIM provisioning. That is not a hobby project. That is a production-ready skill set.</p>
 
 <p><strong>Keep building. The market rewards builders.</strong></p>
-
+<aside class="learn-box" aria-label="Further reading on Microsoft Learn"><div class="learn-box-label">Learn more on Microsoft Learn</div><ul><li><a href="https://learn.microsoft.com/en-us/entra/identity/saas-apps/aws-single-sign-on-tutorial" target="_blank" rel="noopener">Tutorial: Microsoft Entra SSO integration with AWS IAM Identity Center</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/saas-apps/aws-single-sign-on-provisioning-tutorial" target="_blank" rel="noopener">Tutorial: Configure AWS IAM Identity Center for automatic user provisioning</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/app-provisioning/user-provisioning" target="_blank" rel="noopener">What is app provisioning in Microsoft Entra ID?</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/app-provisioning/provision-on-demand" target="_blank" rel="noopener">Provision on demand with Microsoft Entra ID</a></li></ul><p class="learn-box-note">Official Microsoft documentation for the features used in this guide.</p></aside>
 <p>&mdash; <strong>Masood</strong></p>
 <p style="font-size:13px;color:var(--muted)">IAM Architect &middot; 24+ years &middot; identityfrontline.com</p>
 
@@ -534,13 +563,13 @@ lastName:                           user.surname</div>
 <span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Career Guide &middot; 18 min</span>
 </div></div>
 
-<div class="sidebar-widget"><div class="sidebar-widget-title">About the author</div><div style="padding:16px"><div class="author-avatar" style="width:52px;height:52px;font-size:20px;margin-bottom:12px">MR</div><div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px">Syed Masood Raza</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">IAM Architect &middot; Cybersecurity SME</div><p style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6">24+ years building hybrid identity for Fortune 500 companies. Configured SSO for 700+ enterprise applications using SAML, OAuth, and OIDC.</p></div></div>
+<div class="sidebar-widget"><div class="sidebar-widget-title">About the author</div><div style="padding:16px"><div class="author-avatar" style="width:52px;height:52px;font-size:20px;margin-bottom:12px">MR</div><div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px">Syed Masood Raza</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">IAM Architect &middot; Cybersecurity SME</div><p style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6">24+ years building hybrid identity for Fortune 500 companies. Configured SSO for 700+ enterprise applications using SAML, OAuth, and OIDC.</p><a class="author-more" href="/about/masood-raza/">Full bio &amp; links &rarr;</a></div></div>
 </aside>
 </div>
 
 <section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>The lab series continues.</h2><p>Each guide adds a new enterprise IAM skill to your homelab &mdash; and your resume. Subscribe for the next one.</p><form class="if-sub-form" action="https://identityfrontline.substack.com/subscribe" method="get" target="_blank"><input type="email" name="email" required placeholder="you@example.com" aria-label="Email address" autocomplete="email"><button type="submit">Subscribe</button></form><p class="if-sub-note">Opens Substack in a new tab to confirm. No spam. Unsubscribe any time.</p></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>AWS Free Tier &mdash; <a href="https://aws.amazon.com/free" target="_blank">aws.amazon.com/free</a></li><li>Entra ID Enterprise Apps &mdash; <a href="https://learn.microsoft.com" target="_blank">learn.microsoft.com</a></li><li>SAML 2.0 Spec &mdash; <a href="https://docs.oasis-open.org/security/saml/v2.0/" target="_blank">oasis-open.org</a></li><li>AWS IAM Identity Center &mdash; <a href="https://docs.aws.amazon.com/singlesignon/" target="_blank">docs.aws.amazon.com</a></li></ul></div></div></section>
 
-<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span><span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
+<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span><span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="/about/masood-raza/" style="color:inherit;opacity:.7">Author</a> · <a href="/speaking.html" style="color:inherit;opacity:.7">Speaking</a> · <a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
 
 <script>
 window.addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress-bar').style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight))*100+'%'});
