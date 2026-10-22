@@ -25,12 +25,12 @@
     <description>Build your first n8n IAM workflow: create a user in Active Directory and the welcome email, Teams notification, manager approval and audit log happen automatically. Free homelab guide.</description>
   </item>
   <item>
-    <title>Configure SSO with an External App: Your Homelab, Now Enterprise-Grade</title>
+    <title>Entra ID SSO and SCIM Provisioning to AWS IAM Identity Center</title>
     <link>https://identityfrontline.com/blog-post-3.html</link>
     <guid isPermaLink="true">https://identityfrontline.com/blog-post-3.html</guid>
     <pubDate>Wed, 01 Jul 2026 00:00:00 +0000</pubDate>
     <category>Hands-On Lab</category>
-    <description>Step-by-step guide to configuring SAML-based Single Sign-On between Entra ID and AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.</description>
+    <description>Step-by-step guide to configuring SAML single sign-on from Microsoft Entra ID to AWS IAM Identity Center in your free homelab. Includes SCIM provisioning.</description>
   </item>
   <item>
     <title>Build Your IAM Homelab for Free: The Complete Guide</title>
