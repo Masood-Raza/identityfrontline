@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passkeys in Microsoft Entra ID: Phishing-Resistant MFA, End to End — Identity Frontline</title>
+<meta name="description" content="Roll out device-bound passkeys in Microsoft Authenticator and FIDO2 security keys, then enforce them with a Conditional Access authentication strength, admins first, report-only first. Free homelab guide.">
+<link rel="canonical" href="https://identityfrontline.com/blog-post-6.html">
+<meta name="theme-color" content="#060b1c">
+<link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="Identity Frontline" href="https://identityfrontline.com/feed.xml">
+<!-- Open Graph / social share tags -->
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Identity Frontline">
+<meta property="og:title" content="Passkeys in Microsoft Entra ID: Phishing-Resistant MFA, End to End">
+<meta property="og:description" content="Push approvals can be relayed by a phishing proxy. Passkeys can&#x27;t. Enable attested, device-bound passkeys and enforce them for admins with Conditional Access, in the same homelab.">
+<meta property="og:url" content="https://identityfrontline.com/blog-post-6.html">
+<meta property="og:image" content="https://identityfrontline.com/assets/og/og-blog-post-6.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Passkeys in Microsoft Entra ID: Phishing-Resistant MFA, End to End">
+<meta property="article:published_time" content="2026-10-28">
+<meta property="article:modified_time" content="2026-10-28">
+<meta property="article:section" content="Hands-On Lab">
+<meta name="author" content="Masood Raza">
+<link rel="author" href="/about/masood-raza/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Passkeys in Microsoft Entra ID: Phishing-Resistant MFA, End to End">
+<meta name="twitter:description" content="Push approvals can be relayed by a phishing proxy. Passkeys can&#x27;t. Enable attested, device-bound passkeys and enforce them for admins with Conditional Access, in the same homelab.">
+<meta name="twitter:image" content="https://identityfrontline.com/assets/og/og-blog-post-6.png">
+<meta name="twitter:image:alt" content="Passkeys in Microsoft Entra ID: Phishing-Resistant MFA, End to End">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "BlogPosting",
+   "@id": "https://identityfrontline.com/blog-post-6.html#article",
+   "mainEntityOfPage": "https://identityfrontline.com/blog-post-6.html",
+   "url": "https://identityfrontline.com/blog-post-6.html",
+   "headline": "Passkeys in Microsoft Entra ID: Phishing-Resistant MFA, End to End",
+   "description": "Roll out device-bound passkeys in Microsoft Authenticator and FIDO2 security keys, then enforce them with a Conditional Access authentication strength, admins first, report-only first. Free homelab guide.",
+   "image": [
+    "https://identityfrontline.com/assets/og/og-blog-post-6.png"
+   ],
+   "datePublished": "2026-10-28",
+   "dateModified": "2026-10-28",
+   "articleSection": "Hands-On Lab",
+   "inLanguage": "en",
+   "author": {
+    "@type": "Person",
+    "@id": "https://identityfrontline.com/about/masood-raza/#person",
+    "name": "Masood Raza",
+    "url": "https://identityfrontline.com/about/masood-raza/"
+   },
+   "publisher": {
+    "@id": "https://identityfrontline.com/#organization"
+   },
+   "isPartOf": {
+    "@id": "https://identityfrontline.com/#website"
+   }
+  },
+  {
+   "@type": "Person",
+   "@id": "https://identityfrontline.com/about/masood-raza/#person",
+   "name": "Masood Raza",
+   "alternateName": "Syed Masood Raza Kazmi",
+   "jobTitle": "IAM Architect",
+   "url": "https://identityfrontline.com/about/masood-raza/",
+   "image": "https://identityfrontline.com/assets/img/masood-raza-800.jpg?v=2",
+   "sameAs": [
+    "https://www.linkedin.com/in/masoodrazaa",
+    "https://x.com/masoodrazaaa",
+    "https://github.com/Masood-Raza",
+    "https://learn.microsoft.com/en-gb/users/masoodrazaa/"
+   ],
+   "knowsAbout": [
+    "Microsoft Entra ID",
+    "Identity and access management",
+    "Conditional Access",
+    "Hybrid identity",
+    "Single sign-on",
+    "SCIM provisioning",
+    "Microsoft Graph",
+    "Zero Trust"
+   ]
+  },
+  {
+   "@type": "Organization",
+   "@id": "https://identityfrontline.com/#organization",
+   "name": "Identity Frontline",
+   "url": "https://identityfrontline.com/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://identityfrontline.com/assets/icons/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "sameAs": [
+    "https://www.linkedin.com/company/121464335/",
+    "https://identityfrontline.substack.com/"
+   ],
+   "founder": {
+    "@id": "https://identityfrontline.com/about/masood-raza/#person"
+   }
+  }
+ ]
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0d1b2a;--paper:#f5f7fa;--teal:#8b0055;--teal-dark:#6a0042;--teal-pale:#f5d0e3;--rule:rgba(13,27,42,.1);--muted:#5a6a7d;--amber:#e8a020;--amber-pale:#fdf3dc;--orange:#e05d20;--orange-pale:#fde8dc}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:"DM Sans",sans-serif;font-weight:300;line-height:1.76;font-size:17px;overflow-x:hidden}
+.nav-bar{position:sticky;top:0;z-index:100;background:var(--ink);padding:0 52px;display:flex;align-items:center;justify-content:space-between;height:58px;border-bottom:1px solid rgba(255,255,255,.07)}
+.logo{font-family:"Bebas Neue",sans-serif;font-size:22px;letter-spacing:.08em;color:#fff;text-decoration:none;flex-shrink:0}
+.logo em{font-style:normal;color:var(--teal)}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.42);text-decoration:none;transition:color .18s}
+.nav-links a:hover{color:var(--teal)}
+.nav-toggle{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+.nav-toggle span{display:block;width:22px;height:1.5px;background:rgba(255,255,255,.6);transition:all .22s}
+.nav-toggle.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.nav-toggle.open span:nth-child(2){opacity:0}
+.nav-toggle.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+.mobile-nav{display:none;position:fixed;top:58px;left:0;right:0;background:var(--ink);border-bottom:1px solid rgba(255,255,255,.1);z-index:99;padding:24px 28px 28px;flex-direction:column}
+.mobile-nav.open{display:flex}
+.mobile-nav a{font-family:"JetBrains Mono",monospace;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6);text-decoration:none;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06);transition:color .18s}
+.mobile-nav a:last-child{border-bottom:none}
+.mobile-nav a:hover{color:var(--teal)}
+.progress-bar{position:fixed;top:58px;left:0;z-index:98;height:2px;background:var(--teal);width:0%;transition:width .1s linear}
+.post-hero{background:var(--ink);padding:72px 52px 64px;border-bottom:1.5px solid rgba(255,255,255,.06)}
+.post-meta-row{display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.post-cat{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);background:rgba(139,0,85,.12);padding:4px 12px;border-radius:2px}
+.post-date,.post-read{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3)}
+.post-date::before,.post-read::before{content:"\00B7";margin-right:16px;color:rgba(255,255,255,.15)}
+.post-hero h1{font-family:"Bebas Neue",sans-serif;font-size:clamp(44px,6vw,76px);line-height:.95;letter-spacing:.01em;color:#fff;margin-bottom:24px;max-width:820px}
+.post-hero h1 em{font-style:normal;color:var(--teal)}
+.post-subtitle{font-size:18px;font-weight:300;color:rgba(255,255,255,.55);line-height:1.65;max-width:680px;margin-bottom:40px}
+.author-row{display:flex;align-items:center;gap:14px;padding-top:32px;border-top:1px solid rgba(255,255,255,.07)}
+.author-avatar{width:44px;height:44px;border-radius:4px;background:rgba(139,0,85,.15);border:1px solid rgba(139,0,85,.3);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:16px;color:var(--teal);flex-shrink:0}
+.author-info{display:flex;flex-direction:column;gap:2px}
+.author-name{font-size:14px;font-weight:500;color:#fff}
+.author-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.post-layout{display:grid;grid-template-columns:1fr 280px;gap:0;max-width:1100px;margin:0 auto;padding:0 52px;align-items:start}
+.post-body{padding:64px 64px 64px 0;border-right:1px solid var(--rule);min-width:0}
+.post-body p{font-size:17px;font-weight:300;color:var(--muted);line-height:1.82;margin-bottom:20px}
+.post-body p strong{color:var(--ink);font-weight:500}
+.post-body p.lead{font-size:20px;font-weight:300;color:var(--ink);line-height:1.7;margin-bottom:28px}
+.post-body h2{font-family:"Bebas Neue",sans-serif;font-size:clamp(32px,4vw,46px);letter-spacing:.01em;line-height:1;color:var(--ink);margin:48px 0 18px}
+.post-body h3{font-size:18px;font-weight:500;color:var(--ink);margin:32px 0 14px;display:flex;align-items:center;gap:10px}
+.post-body h3::before{content:"";display:block;width:16px;height:2px;background:var(--teal);flex-shrink:0}
+.post-body ul,.post-body ol{margin:0 0 24px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.post-body ul li{display:flex;gap:12px;align-items:flex-start;font-size:16px;font-weight:300;color:var(--muted);line-height:1.7}
+.post-body ul li::before{content:"";display:block;width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:10px}
+.post-body ol{counter-reset:lc}
+.post-body ol li{counter-increment:lc;display:flex;gap:14px;align-items:flex-start;font-size:16px;font-weight:300;color:var(--muted);line-height:1.7}
+.post-body ol li::before{content:counter(lc);font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:500;color:var(--teal);background:rgba(139,0,85,.1);min-width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.post-body li strong{color:var(--ink);font-weight:500}
+.callout{border-left:3px solid var(--teal);background:var(--teal-pale);padding:20px 24px;margin:28px 0;border-radius:0 4px 4px 0}
+.callout-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal-dark);margin-bottom:8px;font-weight:500}
+.callout p{font-size:15px!important;color:#4a0028!important;margin-bottom:0!important;line-height:1.65!important}
+.callout-amber{border-left-color:var(--amber);background:var(--amber-pale)}
+.callout-amber .callout-label{color:#7a4400}
+.callout-amber p{color:#4a2d00!important}
+.callout-orange{border-left-color:var(--orange);background:var(--orange-pale)}
+.callout-orange .callout-label{color:#8a3a10}
+.callout-orange p{color:#4a2000!important}
+.section-divider{display:flex;align-items:center;gap:14px;margin:56px 0 8px}
+.section-divider-line{height:1px;background:var(--rule);flex:1}
+.section-divider-text{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);flex-shrink:0}
+.code-block{font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--ink);color:#e2e8f0;padding:20px 24px;border-radius:6px;margin:16px 0 24px;line-height:1.65;overflow-x:auto;white-space:pre}
+.code-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin-bottom:6px}
+.arch-box{background:var(--ink);border-radius:8px;padding:28px;margin:28px 0}
+.arch-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.arch-node{background:rgba(139,0,85,.1);border:1px solid rgba(139,0,85,.3);border-radius:6px;padding:14px 20px;text-align:center;min-width:140px}
+.arch-node-title{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;color:var(--teal);text-transform:uppercase;margin-bottom:4px}
+.arch-node-desc{font-size:11px;color:rgba(255,255,255,.5)}
+.arch-node-orange{background:rgba(224,93,32,.1);border-color:rgba(224,93,32,.3)}
+.arch-node-orange .arch-node-title{color:var(--orange)}
+.arch-arrow{color:var(--teal);font-size:20px;flex-shrink:0}
+.pull-quote{font-style:italic;font-size:22px;font-weight:300;color:var(--ink);line-height:1.45;border-left:3px solid var(--teal);padding-left:24px;margin:36px 0}
+.post-rule{border:none;border-top:1px solid var(--rule);margin:48px 0}
+.post-figure{margin:28px 0 32px}.post-figure a{display:block}.post-figure img{display:block;width:100%;height:auto;border:1px solid var(--rule);border-radius:6px;background:#fff}.post-figure figcaption{font-size:13px;font-weight:300;color:var(--muted);line-height:1.6;margin-top:10px}
+.post-rule-teal{border-top-color:var(--teal);border-top-width:2px}
+.step-table{width:100%;border-collapse:collapse;margin:20px 0 28px;font-size:15px}
+.step-table th{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:10px 16px;text-align:left;background:var(--ink);color:rgba(255,255,255,.7)}
+.step-table td{padding:14px 16px;border-bottom:1px solid var(--rule);vertical-align:top;font-weight:300;color:var(--muted);line-height:1.65}
+.step-table tr:nth-child(odd) td{background:rgba(139,0,85,.03)}
+.step-table td:first-child{font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:500;color:var(--teal);white-space:nowrap;width:40px;text-align:center}
+.step-table td strong{color:var(--ink);font-weight:500}
+.step-table code{font-family:"JetBrains Mono",monospace;font-size:13px;background:rgba(139,0,85,.08);padding:1px 6px;border-radius:3px;color:var(--ink)}
+.checklist{margin:20px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.checklist li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);line-height:1.6;padding:8px 12px;background:rgba(139,0,85,.04);border-radius:4px;border-left:2px solid var(--teal)}
+.checklist li::before{content:"☐";font-size:14px;color:var(--teal);flex-shrink:0;margin-top:1px}
+.post-sidebar{padding:64px 0 64px 48px}
+.sidebar-widget{border:.5px solid var(--rule);border-radius:4px;margin-bottom:24px;overflow:hidden}
+.sidebar-widget-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.5);background:var(--ink);padding:10px 16px}
+.sidebar-widget-body{padding:16px}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:0}
+.toc-list li{border-bottom:.5px solid var(--rule)}
+.toc-list li:last-child{border-bottom:none}
+.toc-list a{display:block;padding:9px 4px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--muted);text-decoration:none;transition:color .15s,padding-left .15s;line-height:1.45}
+.toc-list a:hover,.toc-list a.active{color:var(--teal);padding-left:8px}
+.sidebar-sub{background:var(--ink);border-radius:4px;padding:20px 18px;margin-bottom:24px}
+.sidebar-sub-title{font-family:"Bebas Neue",sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;margin-bottom:10px;line-height:1}
+.sidebar-sub-desc{font-size:12px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:16px}
+.sidebar-sub-btn{width:100%;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:2px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.sidebar-sub-btn:hover{background:var(--teal-dark)}
+.sidebar-sub-note{font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;text-align:center}
+.share-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:2px;text-decoration:none;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:.5px solid var(--rule);color:var(--muted);transition:all .18s;background:0 0;cursor:pointer;width:100%;text-align:left;margin-bottom:8px}
+.share-btn:hover{border-color:var(--teal);color:var(--teal);background:rgba(139,0,85,.05)}
+.share-btn svg{width:14px;height:14px;flex-shrink:0}
+.post-footer-section{background:var(--ink);padding:72px 52px;border-top:1px solid rgba(255,255,255,.06)}
+.post-footer-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;max-width:1100px;margin:0 auto}
+.post-footer-sub h2{font-family:"Bebas Neue",sans-serif;font-size:clamp(36px,4vw,52px);line-height:.95;color:#fff;margin-bottom:16px}
+.post-footer-sub p{font-size:15px;font-weight:300;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:24px}
+.footer-sub-btn{padding:14px 28px;background:var(--teal);color:#fff;border:none;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:background .2s}
+.footer-sub-btn:hover{background:var(--teal-dark)}
+.resource-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.resource-list li{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:rgba(255,255,255,.5)}
+.resource-list li::before{content:"→";color:var(--teal);flex-shrink:0}
+.resource-list a{color:rgba(255,255,255,.65);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.15);transition:color .15s}
+.resource-list a:hover{color:var(--teal);border-color:var(--teal)}
+footer{background:var(--ink);padding:24px 52px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.06)}
+.footer-logo{font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.08em;color:#fff}
+.footer-logo em{font-style:normal;color:var(--teal)}
+.footer-copy{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.08em;color:rgba(255,255,255,.2)}
+@media(max-width:900px){.nav-bar{padding:0 20px}.nav-links{display:none}.nav-toggle{display:flex}.post-hero{padding:48px 20px 44px}.post-layout{grid-template-columns:1fr;padding:0 20px}.post-body{padding:40px 0;border-right:none}.post-sidebar{padding:0 0 40px;border-top:1px solid var(--rule)}.post-footer-section{padding:52px 20px}.post-footer-grid{grid-template-columns:1fr;gap:40px}footer{flex-direction:column;gap:12px;text-align:center;padding:24px 20px}.arch-flow{flex-direction:column}.arch-arrow{transform:rotate(90deg)}}
+@media(max-width:480px){.post-hero h1{font-size:38px}.post-body h2{font-size:30px}.code-block{font-size:11px;padding:14px 16px}}
+
+.workflow-box{background:var(--ink);border-radius:8px;padding:28px;margin:28px 0}
+.workflow-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
+.workflow-steps{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.workflow-step{background:rgba(139,0,85,.1);border:1px solid rgba(139,0,85,.3);border-radius:6px;padding:10px 16px;text-align:center;min-width:110px}
+.workflow-step-title{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.08em;color:var(--teal);text-transform:uppercase;margin-bottom:3px}
+.workflow-step-desc{font-size:10px;color:rgba(255,255,255,.5)}
+.workflow-step-purple{background:rgba(155,89,182,.1);border-color:rgba(155,89,182,.3)}
+.workflow-step-purple .workflow-step-title{color:#9B59B6}
+.workflow-step-amber{background:rgba(232,160,32,.1);border-color:rgba(232,160,32,.3)}
+.workflow-step-amber .workflow-step-title{color:var(--amber)}
+.workflow-step-orange{background:rgba(224,93,32,.1);border-color:rgba(224,93,32,.3)}
+.workflow-step-orange .workflow-step-title{color:var(--orange)}
+.workflow-arrow{color:var(--teal);font-size:16px;flex-shrink:0}
+/* Dark identity-security theme */
+:root {
+  --ink: #f5f7ff; --paper: #060b1c; --teal: #35d7ff; --teal-dark: #1aaed9;
+  --teal-pale: rgba(53,215,255,.12); --rule: rgba(147,185,255,.18); --muted: #a9b5cd;
+  --surface: #0e1730; --amber: #f2b84b; --amber-pale: rgba(242,184,75,.12); --nav: #080d1f;
+}
+body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
+.nav-bar,.mobile-nav,.post-hero,.post-footer-section,footer,.sidebar-sub,.arch-box,.code-block,.workflow-box,.sidebar-widget-title,.step-table th{background:var(--nav)}
+.post-hero h1 em{background:linear-gradient(90deg,#35d7ff,#8c6cff,#e95cd7);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Callouts: the dark theme darkens their tint, so their text must be light too. */
+.callout-label { color: #35d7ff; }
+.callout p { color: #d6dff0 !important; }
+.callout-amber .callout-label { color: #f2b84b; }
+.callout-amber p { color: #efe1c3 !important; }
+.callout-orange { background: rgba(224,93,32,.14); }
+.callout-orange .callout-label { color: #ff9a66; }
+.callout-orange p { color: #f3d9cc !important; }
+</style>
+<style id="if-sub-css">
+.if-sub-form{display:flex;gap:10px;max-width:480px;width:100%;margin-top:18px;flex-wrap:wrap}
+.if-sub-form input[type=email]{flex:1 1 220px;min-width:0;padding:14px 16px;font:400 15px 'DM Sans',sans-serif;color:#fff;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.18);border-radius:4px;outline:none;transition:border-color .2s,box-shadow .2s}
+.if-sub-form input[type=email]::placeholder{color:rgba(255,255,255,.4)}
+.if-sub-form input[type=email]:focus{border-color:#35d7ff;box-shadow:0 0 0 3px rgba(53,215,255,.18)}
+.if-sub-form button{flex:0 0 auto;padding:14px 22px;font:500 12px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#05101f;background:#35d7ff;border:0;border-radius:4px;cursor:pointer;transition:background .2s,transform .2s}
+.if-sub-form button:hover{background:#7ce6ff;transform:translateY(-1px)}
+.if-sub-form button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+p.if-sub-note.if-sub-note{font:400 12px/1.5 'DM Sans',sans-serif;color:rgba(255,255,255,.5);margin:10px 0 0}
+@media(max-width:480px){.if-sub-form{flex-direction:column}.if-sub-form input[type=email],.if-sub-form button{flex:none;width:100%}}
+</style>
+<style id="if-mobile-fix">
+/* Mobile overflow fix. On narrow screens the flex list items turned each inline child
+   (strong, a, code, em) into a separate column, which pushed long items off-screen.
+   Below 900px, list items flow as normal text with the marker positioned absolutely. */
+@media(max-width:900px){
+.post-body ul li,.post-body ol li{display:block;position:relative;min-width:0;overflow-wrap:anywhere}
+.post-body ul li{padding-left:18px}
+.post-body ul li::before{position:absolute;left:0;top:0;margin-top:10px}
+.post-body ol li{padding-left:40px}
+.post-body ol li::before{position:absolute;left:0;top:1px}
+.post-body table{max-width:100%}
+.post-body td{overflow-wrap:anywhere}
+.post-body td:first-child{overflow-wrap:normal}
+.post-body img{max-width:100%;height:auto}
+.post-body pre,.post-body .code-block{max-width:100%;overflow-x:auto}
+}
+</style>
+<style>
+/* MVP alignment: byline link + Microsoft Learn box */
+a.author-name{color:#fff;text-decoration:none}a.author-name:hover{color:#35d7ff;text-decoration:underline}
+.author-more{display:inline-block;margin-top:10px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#35d7ff;text-decoration:none}
+.learn-box{border:1px solid rgba(53,215,255,.35);background:rgba(53,215,255,.06);border-radius:6px;padding:20px 24px;margin:40px 0 28px;max-width:100%}
+.learn-box-label{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#35d7ff;margin-bottom:10px;font-weight:500}
+.post-body .learn-box ul{margin:0 0 8px;padding-left:20px}
+.post-body .learn-box li{font-size:15px;line-height:1.55;margin-bottom:8px;overflow-wrap:anywhere}
+.post-body .learn-box a{color:#35d7ff}
+.post-body .learn-box p.learn-box-note{font-size:12px;margin:8px 0 0;opacity:.7}
+img.author-photo{object-fit:cover;padding:0;display:block;background:#0e1730}
+</style>
+<style>.step-table.wide-first td:first-child{font-family:inherit;font-size:15px;font-weight:400;color:var(--ink);white-space:normal;width:auto;text-align:left}.step-table.wide-first td:first-child code{font-size:13px}</style>
+</head>
+<body>
+<nav class="nav-bar">
+  <a href="index.html" class="logo"><svg viewBox="0 0 52 60" xmlns="http://www.w3.org/2000/svg" width="24" height="28" style="display:inline-block;margin-right:8px;vertical-align:middle"><path d="M26 2L4 11V30C4 42.5 13.5 54 26 58C38.5 54 48 42.5 48 30V11L26 2Z" fill="#0e1730" stroke="#35d7ff" stroke-width="1.5"/><path d="M26 6L8 14V30C8 40.5 15.8 51 26 54.5C36.2 51 44 40.5 44 30V14L26 6Z" fill="none" stroke="rgba(140,108,255,.6)" stroke-width="1"/><rect x="22.5" y="17" width="7" height="26" rx="1" fill="#35d7ff"/><rect x="17" y="17" width="18" height="4.5" rx="1" fill="#35d7ff"/><rect x="17" y="38.5" width="18" height="4.5" rx="1" fill="#35d7ff"/></svg>Identity<em>Frontline</em></a>
+  <ul class="nav-links"><li><a href="index.html">Blog</a></li><li><a href="assessments.html">Assessments</a></li><li><a href="zero-trust.html">Zero Trust</a></li><li><a href="about.html#topics">Topics</a></li><li><a href="about.html#about">About</a></li><li><a href="about.html#subscribe">Subscribe</a></li></ul>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
+</nav>
+<div class="mobile-nav" id="mobile-nav"><a href="index.html" onclick="closeMobileNav()">Blog</a><a href="assessments.html" onclick="closeMobileNav()">Assessments</a><a href="zero-trust.html" onclick="closeMobileNav()">Zero Trust</a><a href="about.html#topics" onclick="closeMobileNav()">Topics</a><a href="about.html#about" onclick="closeMobileNav()">About</a><a href="about.html#subscribe" onclick="closeMobileNav()">Subscribe</a></div>
+<div class="progress-bar" id="progress-bar"></div>
+
+<header class="post-hero">
+  <div class="post-meta-row"><span class="post-cat" style="color:#0d9488;background:rgba(13,148,136,.12)">Hands-On Lab</span><span class="post-date">October 2026</span><span class="post-read">20 min read</span></div>
+  <h1>Passkeys in Entra ID<br><em>Phishing-Resistant MFA, End to End</em></h1>
+  <p class="post-subtitle">Your homelab already has MFA, the kind a convincing fake sign-in page can still relay. Replace it with device-bound passkeys in Microsoft Authenticator (or a FIDO2 security key, if you have one), enforced by a Conditional Access authentication strength. Admins first, break-glass excluded, report-only before On.</p>
+  <div class="author-row"><img class="author-avatar author-photo" src="/assets/img/masood-raza-128.webp?v=2" width="44" height="44" alt="Masood Raza" decoding="async"><div class="author-info"><a class="author-name" href="/about/masood-raza/" rel="author">By Masood Raza</a><span class="author-title">IAM Architect &middot; 24+ years &middot; Identity security</span></div></div>
+</header>
+
+<div class="post-layout">
+<article class="post-body">
+
+<p class="lead"><a href="blog-post-2.html" style="color:var(--teal-dark)">Post 2</a> gave the homelab Conditional Access and MFA. That's the right first step, but it isn't the last one. A push approval or a one-time code proves that someone has the phone. It doesn't prove that the person is signing in to the real Microsoft sign-in page. Adversary-in-the-middle phishing kits rely on exactly that gap: the user types the code into a proxy, and the proxy passes it on.</p>
+
+<p>Passkeys close that gap by design. Microsoft describes them as using "origin-bound public-key cryptography": the credential is tied to the site it was created for, and every sign-in needs the user to be present and unlock it on their own device. A fake domain can't ask for a passkey that was never registered to it.</p>
+
+<p>This guide rolls passkeys out in the same tenant from Post 2 (<code>iamlab.onmicrosoft.com</code>). It follows the order you'd use in production: protect the way back in, enable the method, register the people who matter most, enforce it in report-only mode, and only then turn it on.</p>
+
+<p><strong>By the end of this guide, you will have:</strong></p>
+
+<ul><li>The Passkey (FIDO2) method enabled with a passkey profile that allows only attested, device-bound passkeys</li><li>A passkey in Microsoft Authenticator, registered and checked with Microsoft Graph PowerShell (plus the security key route, if you have a key)</li><li>Temporary Access Pass (TAP) set up for bootstrap and recovery</li><li>A custom authentication strength that accepts only your approved authenticators, next to the built-in Phishing-resistant MFA strength</li><li>A Conditional Access policy that requires phishing-resistant MFA for admin roles, tested in report-only mode before it was switched on</li><li>Two break-glass accounts that are excluded from enforcement and can still sign in if everything else breaks</li><li>A pilot policy for regular users that avoids the best-known passkey registration trap</li></ul>
+
+<div class="callout"><div class="callout-label">Prerequisites</div><p>The Post 2 homelab tenant, a Global Administrator account you use for the lab, and a phone on <strong>iOS 17+ or Android 14+</strong> with Microsoft Authenticator installed. A FIDO2 security key is optional. Microsoft recommends one for break-glass accounts in production, but every hands-on step in this lab works with Microsoft Authenticator alone. The Conditional Access phases need <strong>Microsoft Entra ID P1</strong> (a P2 trial also works). If the 30-day trial you started in Post 2 has expired, check <strong>Billing &gt; Licenses</strong> before Phase 4.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">What Needs a Licence</span><div class="section-divider-line"></div></div>
+
+<h2 id="licensing">Free vs P1: What You Can Do Without Paying</h2>
+
+<p>The passkey method itself costs nothing. Microsoft's documentation says passkeys (FIDO2) "are available in all Microsoft Entra ID editions, including Microsoft Entra ID Free. No extra licenses are required." <em>Enforcing</em> passkeys for specific users and apps is a Conditional Access feature, and that needs P1.</p>
+
+<table class="step-table wide-first"><thead><tr><th>Capability</th><th>Licence</th></tr></thead><tbody><tr><td>Passkey (FIDO2) method, passkey profiles, attestation, key restrictions</td><td>Free (no extra licence)</td></tr><tr><td>Users registering passkeys in Authenticator or on a security key</td><td>Free</td></tr><tr><td>Temporary Access Pass</td><td>Entra ID P1</td></tr><tr><td>Conditional Access, authentication strengths, report-only mode</td><td>Entra ID P1</td></tr><tr><td>Authentication methods activity report and the <code>userRegistrationDetails</code> API</td><td>Entra ID P1 or P2</td></tr></tbody></table>
+
+<p>On a Free tenant you can still do Phases 1&ndash;3 and register everyone. Users then add a passkey by first completing their existing MFA, because Entra ID asks for MFA within the last five minutes before a passkey can be registered. TAP and enforcement wait until you have P1.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 0</span><div class="section-divider-line"></div></div>
+
+<h2 id="break-glass">Protect the Way Back In First</h2>
+
+<p>Every phishing-resistant rollout that goes wrong goes wrong the same way: an admin enforces a policy they can't yet satisfy. So before you enable anything, make sure there's a way back in that this policy can't block.</p>
+
+<p>Microsoft's emergency access guidance says to keep <strong>two or more cloud-only accounts</strong> that use the <code>*.onmicrosoft.com</code> domain and hold Global Administrator. It recommends passkeys (FIDO2) as their authentication method, using a method that is different from the one your normal admin accounts use. Post 2 told you to exclude "your break-glass admin". This is where you make that real.</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>Create <code>bg-admin-01@iamlab.onmicrosoft.com</code> and <code>bg-admin-02@iamlab.onmicrosoft.com</code> as <strong>cloud-only</strong> users with long, random passwords. Store the passwords offline.</td></tr><tr><td>2</td><td>Assign both <strong>Global Administrator</strong> as a permanent active assignment, not an eligible one, if you use PIM.</td></tr><tr><td>3</td><td>Create a cloud security group <strong>SG-EmergencyAccess</strong> and add both accounts. Every enforcing Conditional Access policy in this guide excludes this group.</td></tr><tr><td>4</td><td>Create a second cloud security group <strong>SG-Passkey-Pilot</strong>. Add your lab admin account, Sarah Chen and Raj Patel.</td></tr></tbody></table>
+
+<p>The screenshots in this post come from my own lab run, with tenant names, IDs and accounts masked. A few lab names differ from the ones in the steps: my pilot group is <code>IFL-Passkey-Pilot</code> and my custom strength is <code>Passkeys only</code>.</p>
+
+<figure class="post-figure"><a href="/assets/img/post-6/pilot-group-overview.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/pilot-group-overview.webp?v=2" width="874" height="400" alt="Group overview in the Microsoft Entra admin center for the IFL-Passkey-Pilot security group, with the object ID masked" loading="lazy" decoding="async"></a><figcaption>The pilot group in my lab (<code>IFL-Passkey-Pilot</code>, the equivalent of SG-Passkey-Pilot), holding a single test user. Object ID masked.</figcaption></figure>
+
+<div class="callout-orange callout"><div class="callout-label">Different method on purpose</div><p>Your daily admin account gets a passkey in <strong>Microsoft Authenticator</strong>. The break-glass accounts need a phishing-resistant method that is <strong>different</strong> from that one, so that a lost phone or an Authenticator problem can't take out both paths. That separation is the point of Microsoft's "different from your normal admin method" advice, and Microsoft's own example is a <strong>FIDO2 security key</strong> for the emergency accounts. In production, buy keys from a vendor on Microsoft's list of attestation-capable FIDO2 providers. No key in your homelab? Register the break-glass passkeys in Authenticator on a <strong>separate device</strong> that isn't your daily phone. That's a lab compromise, not a production design, so write it down as a gap.</p></div>
+
+<p>Microsoft also recommends alerting on every use of an emergency access account (Azure Monitor or Microsoft Sentinel both work) and validating the accounts at least every 90 days. In a homelab, put a calendar reminder in for the 90-day test, as a minimum.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 1</span><div class="section-divider-line"></div></div>
+
+<h2 id="phase-1">Enable Passkeys with a Passkey Profile</h2>
+
+<p>Passkey profiles are now generally available. A profile is a named set of rules: which passkey types are allowed (device-bound, synced or both), whether attestation is enforced, and which authenticator models (AAGUIDs) are allowed or blocked. You assign profiles to groups.</p>
+
+<h3>Opt in to passkey profiles</h3>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>Sign in to the Microsoft Entra admin center as at least an <strong>Authentication Policy Administrator</strong></td></tr><tr><td>2</td><td>Browse to <strong>Entra ID &gt; Authentication methods &gt; Policies &gt; Passkey (FIDO2)</strong></td></tr><tr><td>3</td><td>If you see the banner offering passkey profiles, select it and opt in. Your existing global settings move into a <strong>Default passkey profile</strong>.</td></tr><tr><td>4</td><td>Make sure <strong>Allow self-service set up</strong> is <strong>Yes</strong>. This is a global setting, and users can't register passkeys without it.</td></tr></tbody></table>
+
+<div class="callout-orange callout"><div class="callout-label">One-way door</div><p>Opting in to passkey profiles can't be undone. In a lab that's fine. In production, read the current settings first (the Graph snippet below does that) so you know what goes into the Default profile. Microsoft has also been moving existing passkey-enabled tenants to profiles automatically, so the banner may already be gone. If it is, you're already on profiles.</p></div>
+
+<figure class="post-figure"><a href="/assets/img/post-6/auth-methods-policies-passkey-enabled.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/auth-methods-policies-passkey-enabled.webp?v=2" width="1093" height="530" alt="Authentication methods Policies list in the Microsoft Entra admin center, showing Passkey (FIDO2) enabled and Temporary Access Pass enabled" loading="lazy" decoding="async"></a><figcaption><strong>Entra ID &gt; Authentication methods &gt; Policies</strong> after the change: Passkey (FIDO2) is enabled for the pilot group only. Tenant name masked.</figcaption></figure>
+
+<p>You may also see a <strong>Passkey auto-enablement</strong> banner on the Passkey (FIDO2) page. It says users who are enabled for SMS or voice authentication will be put in scope for passkeys under a system-managed profile that allows all passkey types. Read it before you assume only your target groups can register a passkey.</p>
+
+<h3>Create the profile</h3>
+
+<p>Microsoft Learn documents <strong>up to three profiles, including the Default</strong>. The admin center in my tenant already says up to 10 are supported, so the limit is moving; plan around three until the documentation catches up. This lab uses one custom profile for everyone in scope:</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>Under Passkey (FIDO2), select <strong>Configure &gt; + Add passkey profile</strong> and name it <code>PK-Attested-DeviceBound</code></td></tr><tr><td>2</td><td><strong>Enforce attestation:</strong> Yes</td></tr><tr><td>3</td><td><strong>Passkey types:</strong> Device-bound only</td></tr><tr><td>4</td><td><strong>Target specific authenticators:</strong> leave this off for now. You'll turn it on in Phase 2, once your first passkeys are registered and you can read their AAGUIDs.</td></tr><tr><td>5</td><td>On <strong>Enable and Target</strong>, enable the method and add <strong>SG-Passkey-Pilot</strong> and <strong>SG-EmergencyAccess</strong>, both assigned <code>PK-Attested-DeviceBound</code></td></tr><tr><td>6</td><td>Save</td></tr></tbody></table>
+
+<figure class="post-figure"><a href="/assets/img/post-6/passkey-enable-and-target-pilot-group.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/passkey-enable-and-target-pilot-group.webp?v=2" width="1093" height="408" alt="Passkey (FIDO2) settings, Enable and target tab: the method is on and the IFL-Passkey-Pilot group is included with the Default passkey profile" loading="lazy" decoding="async"></a><figcaption><strong>Enable and target</strong>: the method switched on for the pilot group only. In my first lab pass the group still uses the Default passkey profile. Assign <code>PK-Attested-DeviceBound</code> here instead.</figcaption></figure>
+
+<figure class="post-figure"><a href="/assets/img/post-6/passkey-configure-default-profile.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/passkey-configure-default-profile.webp?v=2" width="1093" height="455" alt="Passkey (FIDO2) settings, Configure tab: Allow self-service set-up is ticked and the Default passkey profile shows Enforce attestation No, passkey types Device-bound and Synced, key restrictions No" loading="lazy" decoding="async"></a><figcaption><strong>Configure</strong>: Allow self-service set-up is on, and the Default profile allows both device-bound and synced passkeys with no attestation. That's exactly why this guide adds a stricter custom profile with <strong>+ Add profile</strong>.</figcaption></figure>
+
+<p>Why these choices:</p>
+
+<ul><li><strong>Attestation</strong> checks during registration that the authenticator really is the make and model it claims to be. It's checked <em>only at registration</em>. If you turn it on later, passkeys registered earlier aren't blocked. That's why it's on from day one here.</li><li><strong>Device-bound only</strong> keeps the private key on one phone or one key. Synced passkeys (iCloud Keychain, Google Password Manager) are a perfectly good choice for the wider workforce. Microsoft's guidance is to treat them as phishing-resistant but unattested, and attestation can't be enforced for them. For admins, device-bound and attested is the stronger stance.</li><li>If a user is in more than one profile, a passkey that satisfies <strong>any</strong> of them is accepted. If a user is in an <strong>excluded</strong> group, they can't use passkeys at all. Keep exclusions on this method empty unless you mean it.</li></ul>
+
+<p>Check the result from PowerShell. This only reads the policy:</p>
+
+<div class="code-label">Read the Passkey (FIDO2) policy</div>
+
+<div class="code-block">Connect-MgGraph -Scopes "Policy.Read.AuthenticationMethod"
+
+$fido2 = Get-MgPolicyAuthenticationMethodPolicyAuthenticationMethodConfiguration `
+           -AuthenticationMethodConfigurationId "Fido2"
+
+$fido2.State
+$fido2.AdditionalProperties.isSelfServiceRegistrationAllowed
+$fido2.AdditionalProperties.passkeyProfiles | ConvertTo-Json -Depth 5</div>
+
+<p>In the v1.0 response, each profile shows its <code>passkeyTypes</code>, <code>attestationEnforcement</code> and <code>keyRestrictions</code>, and each include target lists its <code>allowedPasskeyProfiles</code>.</p>
+
+<h3>Turn on Temporary Access Pass (P1)</h3>
+
+<p>TAP is a time-limited passcode that an admin issues so that a user can sign in and register a passkey without any other method, for example on day one or after losing a phone.</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td><strong>Entra ID &gt; Authentication methods &gt; Policies &gt; Temporary Access Pass</strong></td></tr><tr><td>2</td><td>Enable it and target <strong>SG-Passkey-Pilot</strong></td></tr><tr><td>3</td><td>Select <strong>Configure</strong>. The defaults are a 1-hour minimum and default lifetime, an 8-hour maximum, one-time use off and a length of 8. Set <strong>One-time use</strong> to <strong>Yes</strong> for this lab.</td></tr><tr><td>4</td><td>Save</td></tr></tbody></table>
+
+<figure class="post-figure"><a href="/assets/img/post-6/tap-policy-configure-defaults.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/tap-policy-configure-defaults.webp?v=2" width="1093" height="267" alt="Temporary Access Pass settings, Configure tab: minimum lifetime 1 hour, maximum lifetime 8 hours, default lifetime 1 hour, one-time No, length 8 characters" loading="lazy" decoding="async"></a><figcaption>The TAP defaults as they appear in the portal. My lab tenant kept <strong>One-time: No</strong> at policy level. That still lets an admin issue a one-time pass per user, as in Phase 2. Setting it to Yes makes every pass one-time.</figcaption></figure>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 2</span><div class="section-divider-line"></div></div>
+
+<h2 id="phase-2">Register the Passkeys</h2>
+
+<h3>Passkey in Microsoft Authenticator (your admin account)</h3>
+
+<p>This is the main hands-on route in this lab, and the only one you need if you don't own a security key. Authenticator passkeys need <strong>iOS 17+ or Android 14+</strong>. The registration flow Microsoft recommends starts in the app itself:</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>In Authenticator, add your work or school account (or tap the existing account) and choose <strong>Create a passkey</strong></td></tr><tr><td>2</td><td>Complete MFA, and set a device screen lock if prompted</td></tr><tr><td>3</td><td>When asked, enable Authenticator as a passkey provider. On iOS 18 that's <strong>Settings &gt; General &gt; AutoFill &amp; Passwords</strong> (iOS 17: <strong>Settings &gt; Passwords &gt; Password Options</strong>): turn on AutoFill Passwords and Passkeys and select Authenticator under Autofill From. On Android, open <strong>Passwords &amp; accounts</strong> and select Authenticator under <strong>Additional providers</strong>.</td></tr><tr><td>4</td><td>Finish. The account in Authenticator now shows a passkey.</td></tr></tbody></table>
+
+<!-- SCREENSHOT PENDING (needs Masood's phone): Microsoft Authenticator passkey registration for the test user - "Create a passkey" / passkey created confirmation. Mask tenant, UPN and device details before adding. -->
+
+<p>You can also start from <strong>Security info</strong> in a browser (<strong>+ Add sign-in method &gt; Passkey in Microsoft Authenticator</strong>). That route uses a QR code and Bluetooth between the computer and the phone, so it needs Bluetooth and internet access on both. It also needs the cross-device endpoints Microsoft lists to be reachable: <code>cable.ua5v.com</code>, <code>cable.auth.com</code>, <code>app-site-association.cdn-apple.com</code> and <code>app-site-association.networking.apple</code>. On iOS, attested passkeys can only be registered directly in the Authenticator app, which is another reason to start there.</p>
+
+<h3>Passkey on a FIDO2 security key (optional, for break-glass accounts)</h3>
+
+<p>If you have a FIDO2 security key, this is how the break-glass accounts get theirs. Any FIDO2 key that supports attestation works; this guide doesn't depend on a particular model. If you don't have one, register the break-glass passkeys in Authenticator on a separate device (see Phase 0) and use the same TAP bootstrap below. Sign in to <strong>Security info</strong> (<code>https://aka.ms/mysecurityinfo</code>) as <code>bg-admin-01</code>. Then:</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>Sign in with MFA</td></tr><tr><td>2</td><td><strong>Add sign-in method &gt; Passkey &gt; Next</strong></td></tr><tr><td>3</td><td>When the browser asks where to save the passkey, choose <strong>Use another device</strong> or <strong>More options</strong>, then <strong>Security key</strong></td></tr><tr><td>4</td><td>Insert or tap the key, set or enter its PIN, and touch it when prompted</td></tr><tr><td>5</td><td>Give the method a recognisable name (for example <code>BG key 1</code>) and select <strong>Done</strong></td></tr></tbody></table>
+
+<p>Repeat for <code>bg-admin-02</code>. The break-glass accounts are new and have no MFA method yet. This is exactly the bootstrap problem TAP solves. Issue each one a one-time TAP first:</p>
+
+<div class="code-label">Issue a one-time TAP for bootstrap</div>
+
+<div class="code-block">Connect-MgGraph -Scopes "UserAuthMethod-TAP.ReadWrite.All"
+
+$tap = New-MgUserAuthenticationTemporaryAccessPassMethod `
+         -UserId "bg-admin-01@iamlab.onmicrosoft.com" `
+         -BodyParameter @{ isUsableOnce = $true; lifetimeInMinutes = 60 }
+
+$tap.TemporaryAccessPass   # shown once - hand it over out of band</div>
+
+<p>Creating a TAP for another user needs <strong>Authentication Administrator</strong>. For admin accounts such as these Global Admins, it needs <strong>Privileged Authentication Administrator</strong>. A user has only one usable TAP at a time, so creating a new one replaces the old one. After someone signs in with a one-time TAP, they have <strong>10 minutes</strong> to finish registering, so have the key (or the second device) ready before you sign in.</p>
+
+<p>The same thing in the admin center: open the user, then <strong>Authentication methods &gt; + Add authentication method &gt; Temporary Access Pass</strong>.</p>
+
+<figure class="post-figure"><a href="/assets/img/post-6/tap-create-one-time-pass.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/tap-create-one-time-pass.webp?v=2" width="1093" height="465" alt="Add authentication method pane for a test user, with Temporary Access Pass selected, activation duration 1 hour and One-time use set to Yes" loading="lazy" decoding="async"></a><figcaption>Issuing a one-time TAP to my lab test user from <strong>Users &gt; [user] &gt; Authentication methods</strong>. The user has no usable methods yet, which is the bootstrap problem TAP solves.</figcaption></figure>
+
+<figure class="post-figure"><a href="/assets/img/post-6/tap-issued-pass-redacted.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/tap-issued-pass-redacted.webp?v=2" width="1093" height="465" alt="Temporary Access Pass details pane after creation, showing the pass value blacked out, a link to My Security Info and the validity times" loading="lazy" decoding="async"></a><figcaption>The pass is shown once. It's blacked out here; in real life, hand it over out of band and never paste it into a ticket or chat.</figcaption></figure>
+
+<div class="callout-orange callout"><div class="callout-label">TAP + interrupt mode</div><p>If a user is in scope of the SSPR registration policy or the Identity Protection MFA registration policy, signing in with a TAP can put them into "interrupt mode" registration, and that mode doesn't support passkey (FIDO2) registration. If the passkey option doesn't appear, go straight to <code>https://aka.ms/mysecurityinfo</code> after the TAP sign-in.</p></div>
+
+<h3>Verify what was registered</h3>
+
+<div class="code-label">Inspect a user&#x27;s passkeys</div>
+
+<div class="code-block">Connect-MgGraph -Scopes "UserAuthMethod-Passkey.Read.All"
+
+Get-MgUserAuthenticationFido2Method -UserId "bg-admin-01@iamlab.onmicrosoft.com" |
+  Select-Object DisplayName, Model, AaGuid, AttestationLevel, PasskeyType, CreatedDateTime</div>
+
+<p>You want <code>AttestationLevel</code> to be <code>attested</code> and <code>PasskeyType</code> to be <code>deviceBound</code>. Write down the <strong>AaGuid</strong>: it identifies the make and model of the authenticator (Authenticator on iOS and Android each report their own, and a security key reports its model's). (If <code>PasskeyType</code> comes back empty in your module version, check <code>AdditionalProperties</code>.) To read other users' passkeys, the signed-in account needs at least <strong>Global Reader</strong> or <strong>Authentication Administrator</strong>.</p>
+
+<h3>Lock the profile to approved authenticators</h3>
+
+<p>Now that you know the AAGUIDs, go back to <strong>Passkey (FIDO2) &gt; Configure &gt; PK-Attested-DeviceBound</strong>:</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td><strong>Target specific authenticators:</strong> On, behaviour <strong>Allow</strong></td></tr><tr><td>2</td><td><strong>+ Add AAGUID &gt; Microsoft Authenticator</strong>. This adds the Authenticator AAGUIDs: <code>90a3ccdf-635c-4729-a248-9b709135078f</code> (iOS) and <code>de1e552d-db1d-4423-a619-566b625cdc84</code> (Android).</td></tr><tr><td>3</td><td>If you registered a security key, add its AAGUID from the PowerShell output. Skip this step if you only use Authenticator.</td></tr><tr><td>4</td><td>Save</td></tr></tbody></table>
+
+<div class="callout-orange callout"><div class="callout-label">Key restrictions bite both ways</div><p>Unlike attestation, key restrictions apply at <strong>registration and at sign-in</strong>. If you later remove an AAGUID from the allow list, every passkey with that AAGUID stops working for sign-in straight away, including the break-glass passkeys. Change this list carefully.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 3</span><div class="section-divider-line"></div></div>
+
+<h2 id="phase-3">Pick the Authentication Strength</h2>
+
+<p>Conditional Access doesn't say "require passkeys" directly. It says "require an <strong>authentication strength</strong>", which is a named list of acceptable method combinations. There are three built-in strengths, and you can't change them:</p>
+
+<table class="step-table wide-first"><thead><tr><th>Built-in strength</th><th>Accepts, for example</th><th>Notes</th></tr></thead><tbody><tr><td>Multifactor authentication</td><td>Password + push/OTP/SMS/voice, passkeys, WHfB, TAP</td><td>TAP satisfies this strength only</td></tr><tr><td>Passwordless MFA</td><td>Passkeys, WHfB, multifactor CBA, Authenticator phone sign-in</td><td></td></tr><tr><td><strong>Phishing-resistant MFA</strong></td><td>Passkeys (FIDO2), Windows Hello for Business / platform credential, multifactor certificate-based authentication</td><td>Authenticator phone sign-in and TAP <strong>don't</strong> satisfy it</td></tr></tbody></table>
+
+<p>You can list them yourself:</p>
+
+<div class="code-label">List authentication strengths</div>
+
+<div class="code-block">Connect-MgGraph -Scopes "Policy.Read.AuthenticationMethod"
+
+Get-MgPolicyAuthenticationStrengthPolicy |
+  Select-Object DisplayName, PolicyType, @{n='Allowed';e={$_.AllowedCombinations -join ', '}}</div>
+
+<p>The built-in <strong>Phishing-resistant MFA</strong> strength accepts <em>any</em> passkey the method policy allows. That's the right choice for the admin policy, because it also covers Windows Hello for Business if you add it later. For tighter control, create a custom strength that accepts only your approved models:</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>Sign in to the Microsoft Entra admin center as at least a <strong>Security Administrator</strong></td></tr><tr><td>2</td><td><strong>Entra ID &gt; Authentication methods &gt; Authentication strengths &gt; New authentication strength</strong></td></tr><tr><td>3</td><td>Name: <code>Passkey - Approved authenticators</code></td></tr><tr><td>4</td><td>Select <strong>Passkeys (FIDO2)</strong>, then <strong>Advanced options &gt; + Add AAGUID</strong>. Add the two Authenticator AAGUIDs, plus your security key's AAGUID if you use one.</td></tr><tr><td>5</td><td>Save</td></tr></tbody></table>
+
+<p>You can create up to 15 custom strengths. A user who signs in with a passkey that isn't on the list is stopped with <strong>"You can't get there from here."</strong> You also can't delete a strength while a Conditional Access policy still references it.</p>
+
+<figure class="post-figure"><a href="/assets/img/post-6/auth-strength-new-passkeys-only.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/auth-strength-new-passkeys-only.webp?v=2" width="1093" height="715" alt="New authentication strength pane with the name Passkeys only and only Passkeys (FIDO2) ticked under Phishing-resistant MFA, with Advanced options below it" loading="lazy" decoding="async"></a><figcaption>Creating the custom strength in my lab (named <code>Passkeys only</code> there). Only <strong>Passkeys (FIDO2)</strong> is ticked; the AAGUID allow list lives under its <strong>Advanced options</strong>.</figcaption></figure>
+
+<figure class="post-figure"><a href="/assets/img/post-6/auth-strength-review-admin-warning.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/auth-strength-review-admin-warning.webp?v=2" width="1093" height="715" alt="Review tab of the new authentication strength showing a warning that the signed-in administrator is not enabled for the selected authentication method" loading="lazy" decoding="async"></a><figcaption>The Review tab warns when you, the signed-in admin, aren't in scope for the methods you picked. In my lab the passkey method targets only the pilot group, so the warning was expected. In production, treat it as a lockout check before you go further.</figcaption></figure>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 4</span><div class="section-divider-line"></div></div>
+
+<h2 id="phase-4">Enforce for Admins: Report-Only, Then On</h2>
+
+<p>Microsoft ships a Conditional Access template for exactly this policy (<strong>Require phishing-resistant multifactor authentication for administrators</strong>). You can create it from the template or build it by hand:</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>Sign in as at least <strong>Conditional Access Administrator</strong>. Go to <strong>Entra ID &gt; Conditional Access &gt; Policies &gt; New policy</strong>. (The menus have moved since Post 2. "Protection" is no longer in the path.)</td></tr><tr><td>2</td><td>Name: <code>CA-Admins-PhishingResistant</code></td></tr><tr><td>3</td><td><strong>Users &gt; Include &gt; Select users and groups &gt; Directory roles</strong>: the 14 roles Microsoft recommends at minimum: Global, Application, Authentication, Billing, Cloud Application, Conditional Access, Exchange, Helpdesk, Password, Privileged Authentication, Privileged Role, Security, SharePoint and User Administrator</td></tr><tr><td>4</td><td><strong>Users &gt; Exclude &gt; Users and groups</strong>: <strong>SG-EmergencyAccess</strong></td></tr><tr><td>5</td><td><strong>Target resources</strong>: All resources</td></tr><tr><td>6</td><td><strong>Grant &gt; Grant access &gt; Require authentication strength &gt; Phishing-resistant MFA</strong></td></tr><tr><td>7</td><td><strong>Enable policy: Report-only</strong>, then <strong>Create</strong></td></tr></tbody></table>
+
+<div class="callout"><div class="callout-label">Two limits worth knowing</div><p>Directory-role targeting covers <strong>built-in</strong> roles only. Custom roles and roles scoped to an administrative unit aren't enforced this way. Also, one policy can't use both <strong>Require multifactor authentication</strong> and <strong>Require authentication strength</strong>. If an older Post 2 policy requires MFA, leave it alone. Conditional Access combines policies, so the admins have to satisfy both.</p></div>
+
+<p>Leave it in report-only mode for a few days while you sign in normally as your admin: sometimes with the passkey, sometimes deliberately with password and push.</p>
+
+<p>My lab policy is a cut-down version of this one. To keep the test small, it targets the pilot group instead of directory roles and uses the custom <code>Passkeys only</code> strength, and it stays in Report-only. The screens are the same ones you'll use for <code>CA-Admins-PhishingResistant</code>.</p>
+
+<figure class="post-figure"><a href="/assets/img/post-6/ca-policy-users-include-pilot-group.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/ca-policy-users-include-pilot-group.webp?v=2" width="1093" height="705" alt="New Conditional Access policy named IFL - Require passkeys - Pilot (report-only), with Users including one group, IFL-Passkey-Pilot, and Enable policy set to Report-only" loading="lazy" decoding="async"></a><figcaption><strong>Users &gt; Include</strong>: my lab policy targets the pilot group. For the admin policy, choose <strong>Directory roles</strong> here instead, and exclude SG-EmergencyAccess on the Exclude tab. Note the warning at the bottom: with security defaults on, you can create the policy in Report-only but must disable security defaults before you can switch any policy On.</figcaption></figure>
+
+<figure class="post-figure"><a href="/assets/img/post-6/ca-policy-grant-auth-strength.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/ca-policy-grant-auth-strength.webp?v=2" width="1093" height="705" alt="Conditional Access Grant pane with Grant access and Require authentication strength selected, set to Passkeys only, and a note that it cannot be used with Require multifactor authentication" loading="lazy" decoding="async"></a><figcaption><strong>Grant &gt; Require authentication strength</strong>. My lab picks the custom strength; for <code>CA-Admins-PhishingResistant</code>, choose the built-in <strong>Phishing-resistant MFA</strong> from the same list. The portal greys out Require multifactor authentication once a strength is selected.</figcaption></figure>
+
+<figure class="post-figure"><a href="/assets/img/post-6/ca-policies-list-report-only.webp?v=2" target="_blank" rel="noopener"><img src="/assets/img/post-6/ca-policies-list-report-only.webp?v=2" width="1093" height="427" alt="Conditional Access Policies list showing one user-created policy, IFL - Require passkeys - Pilot (report-only), in the Report-only state" loading="lazy" decoding="async"></a><figcaption>The policy saved in <strong>Report-only</strong>. A pilot-group policy on All resources is exactly the registration trap described in Phase 6, so don't switch one like this On.</figcaption></figure>
+
+<div class="callout"><div class="callout-label">Security defaults come first</div><p>If your lab tenant still has <strong>security defaults</strong> enabled, the admin center lets you save Conditional Access policies in Report-only, but you have to disable security defaults before any policy can be <strong>On</strong>. Have your replacement baseline policies ready (Post 2) before you flip that switch, so the tenant is never left without MFA.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 5</span><div class="section-divider-line"></div></div>
+
+<h2 id="phase-5">Test and Verify in the Sign-In Logs</h2>
+
+<p>Go to <strong>Entra ID &gt; Monitoring &amp; health &gt; Sign-in logs</strong>, open one of your admin sign-ins, and check three tabs:</p>
+
+<ul><li><strong>Authentication Details</strong> shows the sequence of methods used. A passkey sign-in should show the passkey as the method.</li><li><strong>Conditional Access</strong> shows enforced policies and their result (Success, Failure, Not applied).</li><li><strong>Report-only</strong> shows what <code>CA-Admins-PhishingResistant</code> <em>would</em> have done.</li></ul>
+
+<!-- SCREENSHOT PENDING (needs a passkey sign-in from Masood's phone): Sign-in logs list showing the test user's passkey sign-in. Mask UPN, IP address, location, correlation/request IDs. -->
+
+<!-- SCREENSHOT PENDING (needs a passkey sign-in from Masood's phone): Sign-in log entry > Authentication Details tab showing "Passkey (Microsoft Authenticator)" as the method, plus the Report-only tab. Mask UPN, IP, device and all IDs. -->
+
+<table class="step-table wide-first"><thead><tr><th>Report-only result</th><th>What it means here</th></tr></thead><tbody><tr><td><strong>Report-only: Success</strong></td><td>The sign-in already met the policy, for example you used the passkey</td></tr><tr><td><strong>Report-only: User action required</strong></td><td>The policy applied, and you'd have been prompted for a phishing-resistant method (for example, you used password + push)</td></tr><tr><td><strong>Report-only: Failure</strong></td><td>The policy applied, but a non-interactive control wasn't satisfied (for example a block, or a failed device-compliance check). You shouldn't see this for this policy.</td></tr><tr><td><strong>Report-only: Not applied</strong></td><td>The policy didn't match, for example a break-glass sign-in, which is excluded</td></tr></tbody></table>
+
+<p>Before you switch to On, you need three things:</p>
+
+<ol><li>Every admin account in scope shows a passkey (<code>Get-MgUserAuthenticationFido2Method</code> returns at least one attested, device-bound passkey)</li><li>Sign in as each break-glass account and confirm <strong>Report-only: Not applied</strong>. Then sign out.</li><li>No admin sign-in you rely on (portal, PowerShell, Graph Explorer) shows <strong>User action required</strong> that you can't satisfy with a passkey</li></ol>
+
+<p>For a tenant-wide view, the registration report shows who is ready. It needs P1 or P2, needs <strong>AuditLog.Read.All</strong>, and can lag by up to 36 hours:</p>
+
+<div class="code-label">Who is passwordless-capable?</div>
+
+<div class="code-block">Connect-MgGraph -Scopes "AuditLog.Read.All"
+
+Get-MgReportAuthenticationMethodUserRegistrationDetail -All |
+  Where-Object { $_.IsAdmin } |
+  Select-Object UserPrincipalName, IsPasswordlessCapable,
+                @{n='Methods';e={$_.MethodsRegistered -join ', '}}</div>
+
+<p>When all three checks pass, open the policy, set <strong>Enable policy</strong> to <strong>On</strong>, and save. Then sign in as your admin in a private browser window. If you start with a password, that's expected to work for the first step. Conditional Access is evaluated after the initial authentication, so you can still enter a password, but you must then use a phishing-resistant method before you can continue. Choose <strong>Sign-in options</strong> on the sign-in page to go passwordless from the start.</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Phase 6</span><div class="section-divider-line"></div></div>
+
+<h2 id="phase-6">Pilot for Regular Users, Without the Registration Trap</h2>
+
+<p>Now extend enforcement to <strong>SG-Passkey-Pilot</strong>. There's one trap that Microsoft documents and that catches a lot of rollouts:</p>
+
+<div class="callout-orange callout"><div class="callout-label">The All-resources loop</div><p>If a Conditional Access policy requires a passkey for <strong>All resources</strong> and a user doesn't have one yet, they get stuck in a loop when they try to add one in <strong>Authenticator</strong>: signing in to Authenticator is itself blocked by the policy that needs the passkey. Signing in to Authenticator with a TAP avoids the loop. All-resources policies with <strong>Require approved client app</strong> or <strong>Require app protection policy</strong> block Authenticator passkey registration too, because Authenticator doesn't support those controls.</p></div>
+
+<p>The fix for a pilot is to target the apps people actually use, rather than All resources:</p>
+
+<table class="step-table"><thead><tr><th>Step</th><th>Action</th></tr></thead><tbody><tr><td>1</td><td>New policy <code>CA-Pilot-Passkey-Apps</code></td></tr><tr><td>2</td><td><strong>Users &gt; Include</strong>: SG-Passkey-Pilot. <strong>Exclude</strong>: SG-EmergencyAccess</td></tr><tr><td>3</td><td><strong>Target resources &gt; Select resources</strong>: the <strong>AWS IAM Identity Center</strong> enterprise app from <a href="blog-post-3.html" style="color:var(--teal-dark)">Post 3</a>, plus <strong>Office 365</strong></td></tr><tr><td>4</td><td><strong>Grant &gt; Require authentication strength &gt; Passkey - Approved authenticators</strong> (your custom strength)</td></tr><tr><td>5</td><td><strong>Report-only</strong> first. Switch to <strong>On</strong> once the pilot users show <strong>Report-only: Success</strong>.</td></tr></tbody></table>
+
+<p>Sarah or Raj can now test the pilot: sign in to the AWS access portal from Post 3, choose the passkey, approve on the phone, and land in AWS with no password and no push. The custom strength and the profile's allow list back each other up. If you later loosen the profile (for example, a second profile that allows synced passkeys), anyone who signs in to these apps with a passkey that isn't on the strength's list is stopped at "You can't get there from here".</p>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Rollout</span><div class="section-divider-line"></div></div>
+
+<h2 id="rollout">Rollout Tips That Carry Over to Production</h2>
+
+<ul><li><strong>Plan for passkeys as a first MFA method.</strong> Microsoft 365 message center post <a href="https://mc.merill.net/message/MC1450133" target="_blank" rel="noopener" style="color:var(--teal-dark)">MC1450133</a> (updated 26 Oct 2026) says password-only users will be able to register a passkey as their first MFA method, without adding SMS or voice first. Phase 1 (synced passkeys, Entra passkeys on Windows and FIDO2 security keys) starts rolling out in early November 2026. Phase 2, which adds the Authenticator passkey used in this lab, starts in early January 2027. Users who are enabled for passkeys will then be prompted to register one by default, including when registration is triggered by a Conditional Access authentication strength, so check which groups your passkey profiles target before it reaches your tenant.</li><li><strong>Use a registration campaign to nudge users.</strong> <strong>Entra ID &gt; Authentication methods &gt; Registration campaign</strong> can now target <strong>Passkey (FIDO2)</strong>. Users are prompted after they complete MFA. In the <strong>Enabled</strong> state you choose the snooze length (0&ndash;14 days) and whether snoozing is limited. In <strong>Microsoft managed</strong> state, Microsoft sets those values. The campaign doesn't prompt guests for passkeys, and it doesn't prompt Linux users.</li><li><strong>Make TAP your recovery process, not a back door.</strong> Keep it one-time, issue it only after the helpdesk has verified who is calling, and remember that only users in the TAP policy's scope can use one.</li><li><strong>Admins first, then a pilot, then the wider workforce.</strong> Each stage gets its own report-only period. Move groups into scope; don't widen the conditions of a policy that's already On.</li><li><strong>Decide synced vs device-bound by population.</strong> Microsoft recommends security keys (or Authenticator passkeys) for privileged and highly regulated users, and positions synced passkeys as the low-cost option for most other users. A second passkey profile (you're allowed three) is how you give each group its own rules.</li><li><strong>Watch for "Register security info" policies.</strong> Users still have to satisfy any Conditional Access policy that targets the Register security information user action. If that policy itself requires a passkey, new users can't get started without a TAP.</li></ul>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Pitfalls</span><div class="section-divider-line"></div></div>
+
+<h2 id="pitfalls">Pitfalls I'd Check First When It Breaks</h2>
+
+<table class="step-table wide-first"><thead><tr><th>Symptom</th><th>Likely cause</th></tr></thead><tbody><tr><td>"Passkey" missing from Add sign-in method</td><td>User not in the Passkey (FIDO2) targets, in an excluded group, or Allow self-service set up is No</td></tr><tr><td>Registration fails with attestation on</td><td>On iOS, attested passkeys can only be registered directly in the Authenticator app, not via the browser QR flow. Attestation also relies on Apple and Google services: heavy load can make registration fail (try again), and an outage blocks it until the service is back.</td></tr><tr><td>"A passkey already exists" in Authenticator</td><td>The passkey was saved locally but never registered with Entra ID. Delete it in Authenticator and register again.</td></tr><tr><td>Authenticator passkey can't be registered at all</td><td>An All-resources passkey policy (the loop above), or an approved-client-app / app-protection CA policy</td></tr><tr><td>Passkey problems after a UPN change</td><td>Passkeys can't be updated for a new UPN. Delete the old passkey in Security info and add a new one.</td></tr><tr><td>Guest users can't register</td><td>Guests aren't supported for passkey registration</td></tr><tr><td>Works in the personal Android profile, not the work profile</td><td>Android passkeys are used only from the profile they're stored in</td></tr><tr><td>Hybrid-joined Windows can't use the security key</td><td>Hybrid-joined devices must run Windows 10 version 2004 or later (Microsoft Entra joined devices work best on 1903 or later)</td></tr><tr><td>A passkey that used to work is rejected at sign-in after a policy edit</td><td>Its AAGUID was removed from the profile's allow list or from the custom strength</td></tr><tr><td>Can't save another passkey profile</td><td>The Passkey (FIDO2) policy has a 20 KB size limit. Consolidate the targeted groups.</td></tr></tbody></table>
+
+<div class="callout-amber callout"><div class="callout-label">Why this matters for your career</div><p>"We enforce MFA" is a sentence every candidate can say. "I rolled out attested, device-bound passkeys for every admin role, behind a custom authentication strength, with break-glass accounts on a separate phishing-resistant method and a report-only validation trail in the sign-in logs" describes a phishing-resistant program. Interviewers for IAM and identity security roles increasingly ask about the second one.</p></div>
+
+<div class="section-divider"><div class="section-divider-line"></div><span class="section-divider-text">Document It</span><div class="section-divider-line"></div></div>
+
+<h2 id="portfolio">Document for Your Portfolio</h2>
+
+<p>Capture these and add them to the GitHub repo from earlier posts:</p>
+
+<ul><li>The passkey profile settings (attestation, device-bound, AAGUID allow list)</li><li><code>Get-MgUserAuthenticationFido2Method</code> output showing <code>attested</code> and <code>deviceBound</code></li><li>The custom authentication strength with its AAGUIDs</li><li><code>CA-Admins-PhishingResistant</code> in report-only, and a sign-in showing <strong>Report-only: User action required</strong> next to one showing <strong>Success</strong></li><li>The same policy <strong>On</strong>, with a break-glass sign-in showing <strong>Not applied</strong></li></ul>
+
+<div class="pull-quote">"I deployed phishing-resistant MFA for privileged roles in Microsoft Entra ID, using attested device-bound passkeys, a custom authentication strength and a report-only validation phase, with emergency access accounts on a separate phishing-resistant method." That's a line a hiring manager can check.</div>
+
+<hr class="post-rule">
+
+<h2 id="checklist">Your Passkeys Lab Checklist</h2>
+
+<ul class="checklist"><li>Created two cloud-only break-glass accounts and SG-EmergencyAccess</li><li>Created SG-Passkey-Pilot with your admin, Sarah Chen and Raj Patel</li><li>Opted in to passkey profiles and confirmed Allow self-service set up = Yes</li><li>Created PK-Attested-DeviceBound (attestation on, device-bound) and targeted both groups</li><li>Enabled TAP (one-time) for the pilot group</li><li>Registered an Authenticator passkey for your admin account</li><li>Registered a separate passkey for both break-glass accounts using a TAP (a FIDO2 security key in production)</li><li>Confirmed <code>attested</code> / <code>deviceBound</code> with Get-MgUserAuthenticationFido2Method</li><li>Added the AAGUID allow list to the profile</li><li>Created the custom authentication strength "Passkey - Approved authenticators"</li><li>Created CA-Admins-PhishingResistant in report-only, reviewed the Report-only tab, then switched it On</li><li>Verified a break-glass sign-in shows Not applied</li><li>Created CA-Pilot-Passkey-Apps for AWS IAM Identity Center and Office 365</li><li>Tested a passwordless sign-in to the AWS access portal</li><li>Captured screenshots for the portfolio</li></ul>
+
+<hr class="post-rule">
+
+<h2 id="whats-next">What to Build Next</h2>
+
+<ul><li><strong>Conditional Access baseline</strong>: put this admin policy alongside block legacy authentication, require MFA for all users, and risk-based policies as one documented baseline</li><li><strong>Windows Hello for Business or platform credentials</strong>: the other phishing-resistant methods the built-in strength already accepts</li><li><strong>Synced passkeys for the wider workforce</strong>: a second passkey profile with different rules for non-admin users</li><li><strong>Automated readiness reporting</strong>: feed <code>userRegistrationDetails</code> into the n8n instance from Posts 4 and 5, and post a weekly "who still isn't passwordless-capable" summary</li></ul>
+
+<p>Six posts in, the homelab has gone from "has MFA" to "can't be phished into giving away an admin session". That's the change that matters most against the attacks hitting identity teams right now.</p>
+
+<p><strong>Keep building. Make the phish land on nothing.</strong></p>
+
+<aside class="learn-box" aria-label="Further reading on Microsoft Learn"><div class="learn-box-label">Learn more on Microsoft Learn</div><ul><li><a href="https://learn.microsoft.com/en-us/entra/identity/authentication/how-to-enable-passkey-fido2" target="_blank" rel="noopener">How to enable passkeys (FIDO2) in Microsoft Entra ID</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/authentication/how-to-enable-authenticator-passkey" target="_blank" rel="noopener">Enable passkeys in Microsoft Authenticator</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-strengths" target="_blank" rel="noopener">Conditional Access authentication strengths</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/conditional-access/policy-admin-phish-resistant-mfa" target="_blank" rel="noopener">Require phishing-resistant MFA for administrators</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass" target="_blank" rel="noopener">Configure a Temporary Access Pass</a></li><li><a href="https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/security-emergency-access" target="_blank" rel="noopener">Manage emergency access accounts</a></li></ul><p class="learn-box-note">Official Microsoft documentation for the features used in this guide.</p></aside>
+
+<p>&mdash; <strong>Masood</strong></p>
+<p style="font-size:13px;color:var(--muted)">IAM Architect &middot; Identity security &middot; identityfrontline.com</p>
+
+</article>
+
+<aside class="post-sidebar">
+<div class="sidebar-sub"><div class="sidebar-sub-title">Stay on the Frontline</div><p class="sidebar-sub-desc">IAM labs, automation workflows, and career guides. Monthly.</p><a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" class="sidebar-sub-btn" style="display:block;text-align:center;text-decoration:none;color:#fff">Join the frontline &rarr;</a><p class="sidebar-sub-note">Subscribe on Substack. Free.</p></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">In this guide</div><div class="sidebar-widget-body"><ul class="toc-list">
+<li><a href="#licensing" class="toc-link">Free vs P1</a></li>
+<li><a href="#break-glass" class="toc-link">Phase 0: Break-glass</a></li>
+<li><a href="#phase-1" class="toc-link">Phase 1: Enable passkeys</a></li>
+<li><a href="#phase-2" class="toc-link">Phase 2: Register</a></li>
+<li><a href="#phase-3" class="toc-link">Phase 3: Auth strength</a></li>
+<li><a href="#phase-4" class="toc-link">Phase 4: Admin policy</a></li>
+<li><a href="#phase-5" class="toc-link">Phase 5: Verify</a></li>
+<li><a href="#phase-6" class="toc-link">Phase 6: Pilot</a></li>
+<li><a href="#rollout" class="toc-link">Rollout tips</a></li>
+<li><a href="#pitfalls" class="toc-link">Pitfalls</a></li>
+<li><a href="#portfolio" class="toc-link">Portfolio</a></li>
+<li><a href="#checklist" class="toc-link">Checklist</a></li>
+<li><a href="#whats-next" class="toc-link">What to build next</a></li>
+</ul></div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">Share this guide</div><div class="sidebar-widget-body">
+<a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https://identityfrontline.com/blog-post-6.html" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>Share on LinkedIn</a>
+<button class="share-btn" onclick="copyLink()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg><span id="copy-label">Copy link</span></button>
+</div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">Previous guides</div><div class="sidebar-widget-body">
+<a href="blog-post-5.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Automate the Leaver</a>
+<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Automation &middot; 20 min</span>
+<hr style="border:none;border-top:1px solid var(--rule);margin:10px 0">
+<a href="blog-post-3.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Entra ID SSO and SCIM to AWS</a>
+<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Hands-On Lab &middot; 20 min</span>
+<hr style="border:none;border-top:1px solid var(--rule);margin:10px 0">
+<a href="blog-post-2.html" style="display:block;text-decoration:none;color:var(--ink);font-size:13px;font-weight:500;margin-bottom:6px">Build Your IAM Homelab for Free</a>
+<span style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Hands-On Lab &middot; 25 min</span>
+</div></div>
+
+<div class="sidebar-widget"><div class="sidebar-widget-title">About the author</div><div style="padding:16px"><img class="author-avatar author-photo" src="/assets/img/masood-raza-128.webp?v=2" width="52" height="52" alt="Masood Raza" loading="lazy" decoding="async" style="width:52px;height:52px;margin-bottom:12px"><div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px">Syed Masood Raza</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">IAM Architect &middot; AI + Automation</div><p style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6">24+ years in IAM. Builds n8n automation workflows with AI agents for identity teams. 500+ automations deployed.</p><a class="author-more" href="/about/masood-raza/">Full bio &amp; links &rarr;</a></div></div>
+</aside>
+</div>
+
+<section class="post-footer-section"><div class="post-footer-grid"><div class="post-footer-sub"><h2>Make the phish land on nothing.</h2><p>Passkeys for admins today, the rest of the workforce next. Subscribe for the Conditional Access baseline and what comes after it.</p><form class="if-sub-form" action="https://identityfrontline.substack.com/subscribe" method="get" target="_blank"><input type="email" name="email" required placeholder="you@example.com" aria-label="Email address" autocomplete="email"><button type="submit">Subscribe</button></form><p class="if-sub-note">Opens Substack in a new tab to confirm. No spam. Unsubscribe any time.</p></div><div><p style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px">Free resources</p><ul class="resource-list"><li>Passkeys (FIDO2) &mdash; <a href="https://learn.microsoft.com/en-us/entra/identity/authentication/how-to-enable-passkey-fido2" target="_blank" rel="noopener">enable passkeys in Entra ID</a></li><li>Authentication strengths &mdash; <a href="https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-strengths" target="_blank" rel="noopener">concept overview</a></li><li>Temporary Access Pass &mdash; <a href="https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass" target="_blank" rel="noopener">configure TAP</a></li><li>Microsoft Graph PowerShell &mdash; <a href="https://learn.microsoft.com/powershell/microsoftgraph/" target="_blank" rel="noopener">documentation</a></li></ul></div></div></section>
+
+<footer><span class="footer-logo">Identity<em>Frontline</em></span><span class="footer-copy">&copy; 2026 Identity Frontline &middot; identityfrontline.com</span><span class="footer-follow" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase"><a href="/about/masood-raza/" style="color:inherit;opacity:.7">Author</a> · <a href="/speaking.html" style="color:inherit;opacity:.7">Speaking</a> · <a href="https://www.linkedin.com/company/121464335/" target="_blank" rel="noopener" style="color:inherit;opacity:.7">LinkedIn</a> · <a href="https://identityfrontline.substack.com/subscribe" target="_blank" rel="noopener" style="color:inherit;opacity:.7">Newsletter</a> · <a href="privacy.html" style="color:inherit;opacity:.7">Privacy</a></span></footer>
+
+<script>
+window.addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress-bar').style.width=(d.scrollTop/(d.scrollHeight-d.clientHeight))*100+'%'});
+const hs=document.querySelectorAll('h2[id]'),tls=document.querySelectorAll('.toc-link');
+const to=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){tls.forEach(l=>l.classList.remove('active'));const m=document.querySelector('.toc-link[href="#'+en.target.id+'"]');if(m)m.classList.add('active')}})},{rootMargin:'-10% 0px -70% 0px'});
+hs.forEach(h=>to.observe(h));
+const nt=document.getElementById('nav-toggle'),mn=document.getElementById('mobile-nav');
+nt.addEventListener('click',()=>{const o=mn.classList.toggle('open');nt.classList.toggle('open',o)});
+document.addEventListener('click',e=>{if(!nt.contains(e.target)&&!mn.contains(e.target)){mn.classList.remove('open');nt.classList.remove('open')}});
+function closeMobileNav(){mn.classList.remove('open');nt.classList.remove('open')}
+function copyLink(){navigator.clipboard.writeText(window.location.href).then(()=>{const l=document.getElementById('copy-label');l.textContent='Copied!';setTimeout(()=>l.textContent='Copy link',2000)})}
+</script>
+<!-- Cloudflare Web Analytics: enable in the Cloudflare dashboard (Analytics & Logs > Web Analytics > Add a site).
+     Because this site is proxied by Cloudflare, the beacon is injected automatically; no snippet is needed here. -->
+</body>
+</html>

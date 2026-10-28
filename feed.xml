@@ -6,8 +6,16 @@
   <description>Practical, field-tested writing on IAM, Zero Trust, and enterprise cybersecurity from a 24-year practitioner.</description>
   <language>en</language>
   <atom:link href="https://identityfrontline.com/feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Sun, 18 Oct 2026 09:00:00 +0000</lastBuildDate>
+  <lastBuildDate>Wed, 28 Oct 2026 04:00:00 +0000</lastBuildDate>
   <image><url>https://identityfrontline.com/assets/icons/icon-512.png</url><title>Identity Frontline</title><link>https://identityfrontline.com/</link></image>
+  <item>
+    <title>Passkeys in Microsoft Entra ID: Phishing-Resistant MFA, End to End</title>
+    <link>https://identityfrontline.com/blog-post-6.html</link>
+    <guid isPermaLink="true">https://identityfrontline.com/blog-post-6.html</guid>
+    <pubDate>Wed, 28 Oct 2026 04:00:00 +0000</pubDate>
+    <category>Hands-On Lab</category>
+    <description>Roll out device-bound passkeys in Microsoft Authenticator and FIDO2 security keys, then enforce them with a Conditional Access authentication strength, admins first, report-only first. Free homelab guide.</description>
+  </item>
   <item>
     <title>Automate the Leaver: Offboarding Without the Loose Ends</title>
     <link>https://identityfrontline.com/blog-post-5.html</link>
