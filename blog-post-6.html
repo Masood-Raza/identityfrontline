@@ -272,6 +272,10 @@ body{background:radial-gradient(circle at 82% 12%,#122550 0,var(--paper) 36%)}
 .post-body ul:not([class]) li::before{position:absolute;left:0;top:0}
 .post-body ol:not([class]) li{padding-left:40px;min-height:26px}
 .post-body ol:not([class]) li::before{position:absolute;left:0;top:0}
+
+/* footer resource list: "Label — link" as normal text flow, not flex columns */
+.resource-list li{display:block;position:relative;padding-left:22px;overflow-wrap:anywhere}
+.resource-list li::before{position:absolute;left:0;top:0}
 </style>
 <style id="if-sub-css">
 .if-sub-form{display:flex;gap:10px;max-width:480px;width:100%;margin-top:18px;flex-wrap:wrap}
